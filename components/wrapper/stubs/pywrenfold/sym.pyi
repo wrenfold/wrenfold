@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable, Iterator, Sequence
-from typing import Annotated, overload
+from typing import Annotated, Any, overload
 
 import numpy
 from numpy.typing import NDArray
@@ -395,7 +395,76 @@ class Expr:
     def __bool__(self) -> None:
         """Coerce expression to bool."""
 
-def symbols(names: str | Iterable, real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Expr | list:
+def symbol(name: str, real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Expr:
+    """
+    Create a ``variable`` expressions with the provided name and numeric set.
+
+    Args:
+      name: String name for the variable. Variables with the same name and numeric set are considered
+        identical.
+      real: Indicate the symbol is real-valued.
+      positive: Indicate the symbol is positive and real-valued.
+      nonnegative: Indicate the symbol is non-negative and real-valued.
+      complex: Indicate the symbols is complex.
+
+    Returns:
+      A ``variable`` expression.
+
+    Examples:
+      >>> x0 = sym.symbol('x')
+      >>> print(x0)
+      x
+      >>> x0.type_name
+      'Variable'
+      >>> x1 = sym.symbols('x', complex=True)
+      >>> x0.is_identical_to(x1)
+      False
+
+    Raises:
+      :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
+        if the variable name is an empty string.
+    """
+
+@overload
+def make_symbols(names: Sequence[str], real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> list[Expr]:
+    """
+    Create multiple ``variable`` expressions with the provided names and numeric set.
+
+    Args:
+      names: List of string names for the variables.
+      real: Indicate the symbols are real-valued.
+      positive: Indicate the symbols are positive and real-valued.
+      nonnegative: Indicate the symbols are non-negative and real-valued.
+      complex: Indicate the symbols are complex.
+
+    Returns:
+      A list of ``variable`` expressions.
+
+    Examples:
+      >>> x0, = sym.make_symbols(['x'])
+      >>> print(x0)
+      x
+      >>> x0.type_name
+      'Variable'
+      >>> x, y = sym.make_symbols(['x', 'y'], complex=True)
+      >>> x.is_identical_to(y)
+      False
+      >>> x, y = sym.make_symbols('x', 'y', complex=True) # Alternative invocation using *args.
+      >>> print(x + y)
+      x + y
+
+    Raises:
+      :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
+        if the variable name is an empty string.
+    """
+
+@overload
+def make_symbols(*args, real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> list[Expr]:
+    """
+    Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.
+    """
+
+def symbols(names: str | Iterable[str], real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Any:
     """
     Create instances of ``variable`` expressions with the provided names. The argument ``names`` may be
     either:
@@ -426,8 +495,9 @@ def symbols(names: str | Iterable, real: bool = False, positive: bool = False, n
       [[w, x], [y, z]]
 
     Caution:
-      wrenfold does not yet support the range-syntax implemented in sympy, so evaluating
-      ``sym.symbols('x:5')`` will not produce the expected result.
+      Prefer using :func:`wrenfold.sym.symbol` or :func:`wrenfold.sym.make_symbols`, which have more
+      meaningful return type annotations. This function can only be annotated with ``typing.Any``, which
+      reduces the utility of type checking.
     """
 
 def integer(value: int) -> Expr:
@@ -492,7 +562,7 @@ def rational(n: int, d: int) -> Expr:
       -2/7
     """
 
-def unique_symbols(count: int, real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Expr | list:
+def unique_symbols(count: int, real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Expr | list[Expr]:
     """
     Create instances of ``variable`` expressions with unique identities that can never be accidentally
     re-used. This is useful if you need temporary variables that will later be replaced by substitution,

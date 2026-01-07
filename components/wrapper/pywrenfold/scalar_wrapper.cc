@@ -38,6 +38,24 @@ using namespace py::literals;
 
 namespace wf {
 
+// Convert optional boolean arguments into `number_set`.
+inline number_set determine_set_from_flags(const bool real, const bool positive,
+                                           const bool nonnegative, const bool complex) {
+  if (const bool is_real = real || positive || nonnegative; is_real && complex) {
+    throw invalid_argument_error("Symbols cannot be both real and complex.");
+  }
+  if (positive) {
+    return number_set::real_positive;
+  } else if (nonnegative) {
+    return number_set::real_non_negative;
+  } else if (real) {
+    return number_set::real;
+  } else if (complex) {
+    return number_set::complex;
+  }
+  return number_set::unknown;
+}
+
 // Create symbols from CSV list of names.
 static std::variant<scalar_expr, py::list> create_symbols_from_str(const std::string_view csv,
                                                                    const number_set set) {
@@ -64,55 +82,71 @@ static std::variant<scalar_expr, py::list> create_symbols_from_str(const std::st
 
 // Traverse the provided iterable, inspecting elements. If the inner element is a
 // string, then parse it into symbols. If the inner element is an iterable, recurse on it.
-static std::variant<scalar_expr, py::list> create_symbols_from_str(const py::iterable& iterable,
-                                                                   const number_set set) {
+static py::list create_symbols_from_str(const py::iterable& iterable, const number_set set) {
   py::list result{};
   for (const py::handle& handle : iterable) {
     // Each element of the iterable could be a string, or a nested iterable:
-    auto symbols =
-        std::visit([set](const auto& input) { return create_symbols_from_str(input, set); },
-                   py::cast<std::variant<std::string, py::iterable>>(handle));
+    auto symbols = std::visit(
+        [set](const auto& input) -> std::variant<scalar_expr, py::list> {
+          return create_symbols_from_str(input, set);
+        },
+        py::cast<std::variant<std::string, py::iterable>>(handle));
     result.append(std::move(symbols));
   }
   return result;
 }
 
-// Convert optional boolean arguments into `number_set`.
-inline number_set determine_set_from_flags(const bool real, const bool positive,
-                                           const bool nonnegative, const bool complex) {
-  if (const bool is_real = real || positive || nonnegative; is_real && complex) {
-    throw invalid_argument_error("Symbols cannot be both real and complex.");
+static scalar_expr create_symbol(const std::string_view name, const bool real, const bool positive,
+                                 const bool nonnegative, const bool complex) {
+  if (name.empty()) {
+    throw invalid_argument_error("Symbol name string cannot be empty.");
   }
-  if (positive) {
-    return number_set::real_positive;
-  } else if (nonnegative) {
-    return number_set::real_non_negative;
-  } else if (real) {
-    return number_set::real;
-  } else if (complex) {
-    return number_set::complex;
-  }
-  return number_set::unknown;
+  const number_set set = determine_set_from_flags(real, positive, nonnegative, complex);
+  return make_expr<variable>(std::string(name), set);
 }
 
-// To imitate sympy, we support a list of bool flags to specify assumptions.
-// We check for incompatible arrangements in this function.
+static std::vector<scalar_expr> create_many_symbols_sequence(
+    const std::vector<std::string_view>& names, const bool real, const bool positive,
+    const bool nonnegative, const bool complex) {
+  return transform_map<std::vector>(names, [&](const std::string_view x) {
+    return create_symbol(x, real, positive, nonnegative, complex);
+  });
+}
+
+static std::vector<scalar_expr> create_many_symbols_args(const py::args& names, const bool real,
+                                                         const bool positive,
+                                                         const bool nonnegative,
+                                                         const bool complex) {
+  return transform_map<std::vector>(names, [&](const py::handle& x) {
+    try {
+      return create_symbol(py::cast<std::string_view>(x), real, positive, nonnegative, complex);
+    } catch (const py::cast_error&) {
+      throw py::type_error("Expected arguments to be string names.");
+    }
+  });
+}
+
 static std::variant<scalar_expr, py::list> create_symbols_from_str_or_iterable(
     const std::variant<std::string, py::iterable>& arg, const bool real, const bool positive,
     const bool nonnegative, const bool complex) {
+  if (std::holds_alternative<py::iterable>(arg)) {
+    PyErr_WarnEx(PyExc_DeprecationWarning,
+                 "Calling sym.symbols with an iterable is deprecated, and will be removed in a "
+                 "future release. Call sym.symbol to create a single symbol, or sym.make_symbols "
+                 "to create multiple symbols.",
+                 1);
+  }
   return std::visit(
-      [&](const auto& input) {
+      [&](const auto& input) -> std::variant<scalar_expr, py::list> {
         return create_symbols_from_str(
             input, determine_set_from_flags(real, positive, nonnegative, complex));
       },
       arg);
 }
 
-static std::variant<scalar_expr, py::list> create_unique_variables(const std::size_t num,
-                                                                   const bool real,
-                                                                   const bool positive,
-                                                                   const bool nonnegative,
-                                                                   const bool complex) {
+static std::variant<scalar_expr, std::vector<scalar_expr>> create_unique_variables(
+    const std::size_t num, const bool real, const bool positive, const bool nonnegative,
+    const bool complex) {
   if (num == 0) {
     throw invalid_argument_error("count must be >= 1");
   }
@@ -120,9 +154,10 @@ static std::variant<scalar_expr, py::list> create_unique_variables(const std::si
   if (num == 1) {
     return make_unique_variable_symbol(set);
   } else {
-    py::list result{};
+    std::vector<scalar_expr> result{};
+    result.reserve(num);
     for (std::size_t i = 0; i < num; ++i) {
-      result.append(make_unique_variable_symbol(set));
+      result.push_back(make_unique_variable_symbol(set));
     }
     return result;
   }
@@ -255,7 +290,8 @@ void wrap_scalar_operations(py::module_& m) {
           "__bool__",
           [](const scalar_expr& self) {
             throw type_error(
-                "Expression of type `{}` cannot be coerced to boolean. Only expressions sym.true "
+                "Expression of type `{}` cannot be coerced to boolean. Only expressions "
+                "sym.true "
                 "and sym.false can be evaluated for truthiness.",
                 self.type_name());
           },
@@ -263,8 +299,21 @@ void wrap_scalar_operations(py::module_& m) {
       .doc() = "A scalar-valued symbolic expression.";
 
   // Methods for declaring expressions:
+  m.def("symbol", &create_symbol, py::arg("name"), py::arg("real") = false,
+        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
+        docstrings::symbol.data());
+  m.def("make_symbols", &create_many_symbols_sequence, py::arg("names"), py::arg("real") = false,
+        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
+        docstrings::make_symbols.data());
+  m.def("make_symbols", &create_many_symbols_args, py::arg("args"), py::arg("real") = false,
+        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
+        "Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.");
+
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,
         py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
+        py::sig("def symbols(names: str | typing.Iterable[str], real: bool = False, positive: bool "
+                "= False, "
+                "nonnegative: bool = False, complex: bool = False) -> typing.Any"),
         docstrings::symbols.data());
   m.def(
       "integer", [](const std::int64_t value) { return scalar_expr{value}; }, "value"_a,

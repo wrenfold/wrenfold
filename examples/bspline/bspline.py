@@ -288,7 +288,7 @@ def create_bspline_functions(
 
     # Define the zero order bases as symbolic variables.
     # We will later substitute 0 or 1, depending on whether the interval is active.
-    degree_zero_bases = sym.symbols(f"b_{i}_0" for i in range(0, number_of_knots - 1))
+    degree_zero_bases = sym.symbols([f"b_{i}_0" for i in range(0, number_of_knots - 1)])
 
     # Variable for the argument to the spline.
     x = sym.symbols("x")

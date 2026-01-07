@@ -143,6 +143,66 @@ Examples:
   w*x + x**2*y*(3 + cos(w)) + y**2*(x*(1 + pi) - 5*x**2)
 )doc";
 
+inline constexpr std::string_view symbol = R"doc(
+Create a ``variable`` expressions with the provided name and numeric set.
+
+Args:
+  name: String name for the variable. Variables with the same name and numeric set are considered
+    identical.
+  real: Indicate the symbol is real-valued.
+  positive: Indicate the symbol is positive and real-valued.
+  nonnegative: Indicate the symbol is non-negative and real-valued.
+  complex: Indicate the symbols is complex.
+
+Returns:
+  A ``variable`` expression.
+
+Examples:
+  >>> x0 = sym.symbol('x')
+  >>> print(x0)
+  x
+  >>> x0.type_name
+  'Variable'
+  >>> x1 = sym.symbols('x', complex=True)
+  >>> x0.is_identical_to(x1)
+  False
+
+Raises:
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
+    if the variable name is an empty string.
+)doc";
+
+inline constexpr std::string_view make_symbols = R"doc(
+Create multiple ``variable`` expressions with the provided names and numeric set.
+
+Args:
+  names: List of string names for the variables.
+  real: Indicate the symbols are real-valued.
+  positive: Indicate the symbols are positive and real-valued.
+  nonnegative: Indicate the symbols are non-negative and real-valued.
+  complex: Indicate the symbols are complex.
+
+Returns:
+  A list of ``variable`` expressions.
+
+Examples:
+  >>> x0, = sym.make_symbols(['x'])
+  >>> print(x0)
+  x
+  >>> x0.type_name
+  'Variable'
+  >>> x, y = sym.make_symbols(['x', 'y'], complex=True)
+  >>> x.is_identical_to(y)
+  False
+  >>> x, y = sym.make_symbols('x', 'y', complex=True) # Alternative invocation using *args.
+  >>> print(x + y)
+  x + y
+
+Raises:
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
+    if the variable name is an empty string.
+)doc";
+
 inline constexpr std::string_view symbols = R"doc(
 Create instances of ``variable`` expressions with the provided names. The argument ``names`` may be
 either:
@@ -173,8 +233,9 @@ Examples:
   [[w, x], [y, z]]
 
 Caution:
-  wrenfold does not yet support the range-syntax implemented in sympy, so evaluating
-  ``sym.symbols('x:5')`` will not produce the expected result.
+  Prefer using :func:`wrenfold.sym.symbol` or :func:`wrenfold.sym.make_symbols`, which have more
+  meaningful return type annotations. This function can only be annotated with ``typing.Any``, which
+  reduces the utility of type checking.
 )doc";
 
 inline constexpr std::string_view unique_symbols = R"doc(
