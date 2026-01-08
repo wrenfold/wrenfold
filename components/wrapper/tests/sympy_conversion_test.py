@@ -8,6 +8,7 @@ import unittest
 
 import sympy as sp
 from wrenfold import exceptions, sym, sympy_conversion
+from wrenfold.enumerations import NumberSet
 
 from .test_base import MathTestBase
 
@@ -29,20 +30,26 @@ class SympyConversionTest(MathTestBase):
 
     def test_variables(self):
         """Test conversion of Variable <-> Symbol."""
-        self.assertEqualSp(sp.symbols("x"), sym.symbols("x"))
-        self.assertEqualSp(sp.symbols("x", real=True), sym.symbols("x", real=True))
-        self.assertEqualSp(sp.symbols("x", positive=True), sym.symbols("x", positive=True))
-        self.assertEqualSp(sp.symbols("x", nonnegative=True), sym.symbols("x", nonnegative=True))
-        self.assertEqualSp(sp.symbols("x", complex=True), sym.symbols("x", complex=True))
+        self.assertEqualSp(sp.symbols("x"), sym.symbol("x"))
+        self.assertEqualSp(sp.symbols("x", real=True), sym.symbol("x", NumberSet.Real))
+        self.assertEqualSp(sp.symbols("x", positive=True), sym.symbol("x", NumberSet.RealPositive))
+        self.assertEqualSp(
+            sp.symbols("x", nonnegative=True), sym.symbol("x", NumberSet.RealNonNegative)
+        )
+        self.assertEqualSp(sp.symbols("x", complex=True), sym.symbol("x", NumberSet.Complex))
 
         # sympy --> wf
-        self.assertIdenticalFromSp(sym.symbols("x"), sp.symbols("x"))
-        self.assertIdenticalFromSp(sym.symbols("x", real=True), sp.symbols("x", real=True))
-        self.assertIdenticalFromSp(sym.symbols("x", positive=True), sp.symbols("x", positive=True))
+        self.assertIdenticalFromSp(sym.symbol("x"), sp.symbols("x"))
+        self.assertIdenticalFromSp(sym.symbol("x", NumberSet.Real), sp.symbols("x", real=True))
         self.assertIdenticalFromSp(
-            sym.symbols("x", nonnegative=True), sp.symbols("x", nonnegative=True)
+            sym.symbol("x", NumberSet.RealPositive), sp.symbols("x", positive=True)
         )
-        self.assertIdenticalFromSp(sym.symbols("x", complex=True), sp.symbols("x", complex=True))
+        self.assertIdenticalFromSp(
+            sym.symbol("x", NumberSet.RealNonNegative), sp.symbols("x", nonnegative=True)
+        )
+        self.assertIdenticalFromSp(
+            sym.symbol("x", NumberSet.Complex), sp.symbols("x", complex=True)
+        )
 
     def test_numeric_constants(self):
         self.assertEqualSp(sp.Integer(0), sym.zero)
@@ -110,7 +117,7 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(sym.false, sp.false)
 
     def test_addition(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertIsInstance(spy(x + y), sp.Add)
         self.assertEqualSp(spy(x) + spy(y), x + y)
         self.assertEqualSp(spy(x) + spy(3), x + 3)
@@ -125,7 +132,7 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(-x - y, -spy(x) - spy(y))
 
     def test_multiplication(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertIsInstance(spy(x * y), sp.Mul)
         self.assertIsInstance(spy(x / y), sp.Mul)
         self.assertIsInstance(spy(x + x), sp.Mul)
@@ -145,8 +152,8 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(x / y / 55, spy(x) / spy(y) / 55)
 
     def test_power(self):
-        x, y = sym.symbols("x, y")
-        w = sym.symbols("w", real=True, nonnegative=True)
+        x, y = sym.make_symbols("x", "y")
+        w = sym.symbol("w", set=NumberSet.RealNonNegative)
         self.assertIsInstance(spy(x * x), sp.Pow)
         self.assertIsInstance(spy(1 / x), sp.Pow)
         self.assertEqualSp(sp.Pow(spy(x), 2), x * x)
@@ -178,7 +185,7 @@ class SympyConversionTest(MathTestBase):
         )
 
     def test_functions(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqualSp(sp.cos(spy(x)), sym.cos(x))
         self.assertEqualSp(sp.sin(spy(x)), sym.sin(x))
         self.assertEqualSp(sp.tan(spy(x)), sym.tan(x))
@@ -220,7 +227,7 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(sym.atan2(y, x), sp.atan2(sy, sx))
 
     def test_relational(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqualSp(spy(x) < spy(y), x < y)
         self.assertEqualSp(spy(y) < spy(x), x > y)
         self.assertEqualSp(spy(x) <= spy(y), x <= y)
@@ -235,7 +242,7 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(sym.eq(x, y), sp.Eq(spy(x), spy(y)))
 
     def test_conditional(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqualSp(sp.Piecewise((2, spy(x < y)), (3, True)), sym.where(x < y, 2, 3))
         self.assertEqualSp(
             sp.Piecewise((sp.cos(spy(x)), spy(x <= y + 2)), (sp.sin(spy(y)) * 2, True)),
@@ -250,14 +257,14 @@ class SympyConversionTest(MathTestBase):
         )
 
     def test_iverson_bracket(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqualSp(sp.Piecewise((1, spy(x < y)), (0, True)), sym.iverson(x < y))
 
         # sympy --> wf
         self.assertIdenticalFromSp(sym.iverson(x < y), sp.Piecewise((1, spy(x < y)), (0, True)))
 
     def test_min_max(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqualSp(sp.Min(spy(x), spy(y)), sym.min(x, y))
         self.assertEqualSp(sp.Max(spy(x), spy(y)), sym.max(x, y))
 
@@ -270,7 +277,7 @@ class SympyConversionTest(MathTestBase):
 
     def test_heaviside(self):
         # Heaviside only goes one way for now:
-        x = sym.symbols("x")
+        x = sym.symbol("x")
         # sympy --> wf
         self.assertIdenticalFromSp(
             sym.where(x > 0, 1, sym.where(x < 0, -1, sym.rational(1, 2))),
@@ -282,7 +289,7 @@ class SympyConversionTest(MathTestBase):
         )
 
     def test_unevaluated(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertEqualSp(sp.UnevaluatedExpr(spy(x)), sym.unevaluated(x))
         self.assertEqualSp(sp.UnevaluatedExpr(spy(x) * spy(y)) * spy(y), sym.unevaluated(x * y) * y)
 
@@ -292,7 +299,7 @@ class SympyConversionTest(MathTestBase):
         )
 
     def test_derivative_expression(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         sx, sy = spy(x), spy(y)
         self.assertEqualSp(sp.Derivative(sp.cos(sx), sx), sym.derivative(sym.cos(x), x))
         self.assertEqualSp(sp.Derivative(sp.cos(sx), sx, 2), sym.derivative(sym.cos(x), x).diff(x))
@@ -310,7 +317,7 @@ class SympyConversionTest(MathTestBase):
         )
 
     def test_symbolic_function_evaluation(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         f = sym.Function("f")
 
         sx, sy = spy(x), spy(y)
@@ -330,7 +337,7 @@ class SympyConversionTest(MathTestBase):
         self.assertRaises(NotImplementedError, lambda: unspy(sg(sx)))
 
     def test_substitute_expression(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         f = sym.Function("f")
 
         sx, sy = spy(x), spy(y)
@@ -352,7 +359,7 @@ class SympyConversionTest(MathTestBase):
         )
 
     def test_matrix(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
 
         m1_sp = sp.Matrix([[spy(x) + 3, -2 * spy(y)], [spy(x * y), 22]])
         m1_wf = sym.matrix([[x + 3, -2 * y], [x * y, 22]])
@@ -370,7 +377,7 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(sym.zeros(3, 5), sp.zeros(3, 5))
 
     def test_unsupported(self):
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         self.assertRaises(exceptions.TypeError, lambda: spy(sym.stop_derivative(x * y)))
         u = sym.unique_symbols(1)
         self.assertRaises(exceptions.TypeError, lambda: spy(u))

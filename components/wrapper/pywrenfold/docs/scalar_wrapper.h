@@ -15,7 +15,7 @@ Returns:
  String representation of the expression tree.
 
 Example:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> print((x*y + 5).expression_tree_str())
   Addition:
   ├─ Integer (5)
@@ -31,7 +31,7 @@ Returns:
   String name of the underlying expression type.
 
 Example:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> print(x.type_name)
   Variable
   >>> print((x + y).type_name)
@@ -60,7 +60,7 @@ Returns:
 Examples:
   Taking the derivative with respect to a variable:
 
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> f = x * sym.sin(x * y) + 3
   >>> f.diff(x)
   x*y*cos(x*y) + sin(x*y)
@@ -88,7 +88,7 @@ Raises:
     cannot be converted to a numerical representation.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> f = sym.cos(sym.pi / 3 + x)
   >>> f.subs(x, sym.pi).eval()
   -0.4999999999999998
@@ -133,7 +133,7 @@ Returns:
   The collected expression.
 
 Examples:
-  >>> x, y, w = sym.symbols('x, y, w')
+  >>> x, y, w = sym.make_symbols('x', 'y', 'w')
   >>> f = x**2*y*sym.cos(w) + 3*y*x**2 + x*y**2 + x*y**2*sym.pi - 5*x**2*y**2 + x*w
   >>> f.collect(x)
   x*(w + pi*y**2 + y**2) + x**2*(3*y + y*cos(w) - 5*y**2)
@@ -141,6 +141,58 @@ Examples:
   x*(w + y**2*(1 + pi)) + x**2*(y*(3 + cos(w)) - 5*y**2)
   >>> f.collect([y, x])
   w*x + x**2*y*(3 + cos(w)) + y**2*(x*(1 + pi) - 5*x**2)
+)doc";
+
+inline constexpr std::string_view symbol = R"doc(
+Create a ``variable`` expressions with the provided name and numeric set.
+
+Args:
+  name: String name for the variable. Variables with the same name and numeric set are considered
+    identical.
+  set: Classification of the symbol, an instance of :class:`wrenfold.enumerations.NumberSet`.
+
+Returns:
+  A ``variable`` expression.
+
+Examples:
+  >>> x0 = sym.symbol('x')
+  >>> print(x0)
+  x
+  >>> x0.type_name
+  'Variable'
+  >>> x1 = sym.symbol('x', set=NumberSet.Complex)
+  >>> x0.is_identical_to(x1)
+  False
+
+Raises:
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If the variable name is an empty string.
+)doc";
+
+inline constexpr std::string_view make_symbols = R"doc(
+Create multiple ``variable`` expressions with the provided names and numeric set.
+
+Args:
+  names: List of string names for the variables.
+  set: Classification of the symbols, an instance of :class:`wrenfold.enumerations.NumberSet`.
+
+Returns:
+  A list of ``variable`` expressions.
+
+Examples:
+  >>> x0, = sym.make_symbols(['x'])
+  >>> print(x0)
+  x
+  >>> x0.type_name
+  'Variable'
+  >>> x, y = sym.make_symbols(['x', 'y'], set=NumberSet.Complex)
+  >>> x.is_identical_to(y)
+  False
+  >>> x, y = sym.make_symbols('x', 'y', set=NumberSet.Complex) # Alternative invocation using *args.
+  >>> print(x + y)
+  x + y
+
+Raises:
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If any variable name is an empty string.
 )doc";
 
 inline constexpr std::string_view symbols = R"doc(
@@ -173,8 +225,10 @@ Examples:
   [[w, x], [y, z]]
 
 Caution:
-  wrenfold does not yet support the range-syntax implemented in sympy, so evaluating
-  ``sym.symbols('x:5')`` will not produce the expected result.
+  Prefer using :func:`wrenfold.sym.symbol` or :func:`wrenfold.sym.make_symbols`, which have more
+  meaningful return type annotations. Because of the highly permissive treatment of the input arg
+  ``names``, this function can only be annotated with a return type of `typing.Any` - which reduces
+  the effectiveness of type checking.
 )doc";
 
 inline constexpr std::string_view unique_symbols = R"doc(
@@ -210,7 +264,7 @@ Returns:
   * ``+1`` if ``a`` belongs after ``b``.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.compare(x, y)
   -1
   >>> sym.compare(y, x)
@@ -287,7 +341,7 @@ Args:
   arg: Argument to the logarithm.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.log(x + 3)
   log(x + 3)
   >>> sym.log(sym.E)
@@ -303,7 +357,7 @@ Args:
   arg: Argument to the exponential function.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.exp(x + 3)
   exp(x + 3)
   >>> sym.exp(0)
@@ -341,7 +395,7 @@ Examples:
   nan
   >>> sym.pow(sym.zoo, -1)
   0
-  >>> x, w = sym.symbols('x, w')
+  >>> x, w = sym.make_symbols('x', 'w')
   >>> sym.pow(x * w, 2)
   x**2*w**2
   >>> sym.pow(sym.sqrt(x), 2)
@@ -357,7 +411,7 @@ Args:
   arg: Argument in radians.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.cos(x)
   cos(x)
   >>> sym.cos(sym.pi)
@@ -371,7 +425,7 @@ Args:
   arg: Argument in radians.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.sin(x)
   sin(x)
   >>> sym.sin(0)
@@ -385,7 +439,7 @@ Args:
   arg: Argument in radians.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.tan(x)
   tan(x)
   >>> sym.tan(sym.pi/2)
@@ -396,7 +450,7 @@ inline constexpr std::string_view acos = R"doc(
 The inverse cosine function :math:`\cos^{-1}{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.acos(x)
   acos(x)
   >>> sym.acos(0)
@@ -407,7 +461,7 @@ inline constexpr std::string_view asin = R"doc(
 The inverse sine function :math:`\sin^{-1}{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.asin(x)
   asin(x)
   >>> sym.asin(-1)
@@ -418,7 +472,7 @@ inline constexpr std::string_view atan = R"doc(
 The inverse tangent function :math:`\tan^{-1}{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.atan(x)
   atan(x)
   >>> sym.atan(-x)
@@ -429,7 +483,7 @@ inline constexpr std::string_view cosh = R"doc(
 The hyperbolic cosine function :math:`\cosh{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.cosh(x)
   cosh(x)
   >>> sym.cosh(x * sp.I)
@@ -440,7 +494,7 @@ inline constexpr std::string_view sinh = R"doc(
 The hyperbolic sine function :math:`\sinh{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.sinh(x)
   sinh(x)
   >>> sym.sinh(x * sp.I)
@@ -451,7 +505,7 @@ inline constexpr std::string_view tanh = R"doc(
 The hyperbolic tangent function :math:`\tanh{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.tanh(x)
   tanh(x)
   >>> sym.tanh(x * sp.I)
@@ -462,7 +516,7 @@ inline constexpr std::string_view acosh = R"doc(
 The inverse hyperbolic cosine function :math:`\cosh^{-1}{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.acosh(x)
   acosh(x)
 )doc";
@@ -471,7 +525,7 @@ inline constexpr std::string_view asinh = R"doc(
 The inverse hyperbolic sine function :math:`\sinh^{-1}{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.asinh(x)
   asinh(x)
 )doc";
@@ -480,7 +534,7 @@ inline constexpr std::string_view atanh = R"doc(
 The inverse hyperbolic tangent function :math:`\tanh^{-1}{x}`.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.atanh(x)
   atanh(x)
 )doc";
@@ -495,7 +549,7 @@ The absolute value function :math:`\lvert x \rvert`.
 Examples:
   >>> sym.abs(3)
   3
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.abs(x)
   abs(x)
   >>> sym.abs(x).diff(x)
@@ -527,7 +581,7 @@ Returns:
   * Otherwise, a ``function`` expression.
 
 Examples:
-  >>> x = sym.symbols('x')
+  >>> x = sym.symbol('x')
   >>> sym.sign(x)
   sign(x)
   >>> sym.sign(x).diff(x)
@@ -552,7 +606,7 @@ Examples:
    -4
    >>> sym.floor(sym.rational(-5, 40))
    -2
-   >>> x = sym.symbols('x')
+   >>> x = sym.symbol('x')
    >>> sym.floor(x)
    floor(x)
 )doc";
@@ -570,7 +624,7 @@ Two-argument inverse tangent function :math:`\text{atan2}\left(y, x\right)`. Ret
 Examples:
   >>> sym.atan2(1, 0)
   pi/2
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.atan2(y, x).diff(x)
   -y/(x**2 + y**2)
 )doc";
@@ -589,7 +643,7 @@ Returns:
   * Otherwise, a ``sym.where`` expression.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.max(x, y)
   where(x < y, y, x)
   >>> sym.max(2, 3)
@@ -610,7 +664,7 @@ Returns:
   * Otherwise, a ``sym.where`` expression.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.min(x, y)
   where(y < x, y, x)
   >>> sym.min(sym.rational(2, 3), sym.rational(3, 4))
@@ -643,7 +697,7 @@ Returns:
   * Otherwise, a ``conditional`` expression.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.where(x > y, sym.cos(x), sym.sin(y))
   where(y < x, cos(x), sin(y))
   >>> sym.where(x > y, sym.pi * x, 0).subs(x, 3).subs(y, 2)
@@ -658,7 +712,7 @@ Boolean-valued relational expression :math:`a \lt b`, or ``<`` operator.
 Examples:
   >>> sym.lt(2, 3)
   True
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.lt(x, y)
   x < y
 )doc";
@@ -669,7 +723,7 @@ Boolean-valued relational expression :math:`a \le b`, or ``<=`` operator.
 Examples:
   >>> sym.le(1, sym.rational(3, 2))
   True
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.le(x, y)
   x <= y
 )doc";
@@ -681,7 +735,7 @@ automatically canonicalized to ``b < a``.
 Examples:
   >>> sym.gt(2.12, 2)
   True
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.gt(x, y)
   y < x
 )doc";
@@ -693,7 +747,7 @@ automatically canonicalized to ``b <= a``.
 Examples:
   >>> sym.ge(2, 2)
   True
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.ge(x, y)
   y <= x
 )doc";
@@ -704,7 +758,7 @@ Boolean-valued relational expression :math:`a = b`, or ``==`` operator.
 Examples:
   >>> sym.eq(2, 5)
   False
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.eq(3*x, y/2)
   3*x == y/2
 )doc";
@@ -738,7 +792,7 @@ Args:
   arg: Scalar-valued expression to wrap.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> f = sym.unevaluated(x * y) * y
   >>> f # Products are not combined automatically.
   y*(x*y)
@@ -754,7 +808,7 @@ Args:
   arg: Scalar-valued expression to wrap.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> f = sym.stop_derivative(x * y) * y
   >>> f.diff(x)
   0
@@ -781,7 +835,7 @@ Args:
     to be extracted.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> f = sym.cos(x * y) - sym.sin(x * y) + 5 * sym.abs(sym.cos(x * y))
   >>> g, replacements = sym.eliminate_subexpressions(f)
   >>> replacements
@@ -798,7 +852,7 @@ Args:
   name: Function name.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> f = sym.Function('f')
   >>> f(x)
   f(x)
@@ -818,7 +872,7 @@ Args:
   replacement: The substituted expression.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> f = sym.substitution(x**2 + y, y, sym.cos(x))
   >>> print(f)
   Subs(y + x**2, y, cos(x))
@@ -839,7 +893,7 @@ Args:
   order: The order of the derivative.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.derivative(x * x, x)
   Derivative(x**2, x)
   >>> f = sym.Function('f')
@@ -862,7 +916,7 @@ Returns:
   ``FuntionArgumentVariable``.
 
 Examples:
-  >>> x, y, z = sym.symbols('x, y, z')
+  >>> x, y, z = sym.make_symbols('x', 'y', 'z')
   >>> sym.get_variables(x**2 + y * 3 - sym.cos(z))
   [x, y, z]
   >>> sym.get_variables(x * 3)

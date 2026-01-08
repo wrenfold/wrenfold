@@ -20,7 +20,7 @@ Caution:
   normalized components, or invoke :func:`wrenfold.sym.Quaternion.normalized`.
 
 Examples:
-  >>> w, x, y, z = sym.symbols('w, x, y, z')
+  >>> w, x, y, z = sym.make_symbols('w', 'x', 'y', 'z')
   >>> q = geometry.Quaternion(w, x, y, z)
   >>> q
   Quaternion(w, x, y, z)
@@ -95,7 +95,7 @@ Returns:
   Scalar-valued expression ``w**2 + x**2 + y**2 + z**2``.
 
 Examples:
-  >>> w, x, y, z = sym.symbols('w, x, y, z')
+  >>> w, x, y, z = sym.make_symbols('w', 'x', 'y', 'z')
   >>> geometry.Quaternion(w, x, y, z).squared_norm()
   w**2 + x**2 + y**2 + z**2
 )doc";
@@ -107,7 +107,7 @@ Returns:
   Scalar-valued expression ``sqrt(w**2 + x**2 + y**2 + z**2)``.
 
 Examples:
-  >>> w, x, y, z = sym.symbols('w, x, y, z')
+  >>> w, x, y, z = sym.make_symbols('w', 'x', 'y', 'z')
   >>> geometry.Quaternion(w, x, y, z).norm()
   (w**2 + x**2 + y**2 + z**2)**(1/2)
 )doc";
@@ -119,10 +119,10 @@ Returns:
   Quaternion with unit norm.
 
 Examples:
-  >>> w, x, y, z = sym.symbols('w, x, y, z')
+  >>> w, x, y, z = sym.make_symbols('w', 'x', 'y', 'z')
   >>> q = geometry.Quaternion(w, x, y, z)
   >>> norm = q.norm()
-  >>> q.normalized().subs(norm, sym.symbols('q_n'))
+  >>> q.normalized().subs(norm, sym.symbol('q_n'))
   Quaternion(w/q_n, x/q_n, y/q_n, z/q_n)
   >>> geometry.Quaternion(0, 1, 1, 0).normalized()
   Quaternion(0, 2**(1/2)/2, 2**(1/2)/2, 0)
@@ -146,7 +146,7 @@ Returns:
   Conjugated quaternion, where the signs of the ``[x, y, z]`` components have been flipped.
 
 Examples:
-  >>> w, x, y, z = sym.symbols('w, x, y, z')
+  >>> w, x, y, z = sym.make_symbols('w', 'x', 'y', 'z')
   >>> q = geometry.Quaternion(w, x, y, z)
   >>> q * q.conjugate()
   Quaternion(w**2 + x**2 + y**2 + z**2, 0, 0, 0)
@@ -272,7 +272,7 @@ Returns:
   radians.
 
 Examples:
-  >>> angle, x, y, z = sym.symbols('angle, x, y, z')
+  >>> angle, x, y, z = sym.make_symbols('angle', 'x', 'y', 'z')
   >>> geometry.Quaternion.from_angle_axis(angle, x, y, z)
   Quaternion(cos(angle/2), x*sin(angle/2), y*sin(angle/2), z*sin(angle/2))
 )doc";
@@ -410,7 +410,7 @@ Returns:
   4x3 jacobian ``d(self * exp(v)) / dv`` evaluated at ``v = 0``.
 
 Examples:
-  >>> w, x, y, z = sym.symbols('w, x, y, z')
+  >>> w, x, y, z = sym.make_symbols('w', 'x', 'y', 'z')
   >>> geometry.Quaternion(w, x, y, z).right_retract_derivative()
   [[-x/2, -y/2, -z/2], [w/2, -z/2, y/2], [z/2, w/2, -x/2], [-y/2, x/2, w/2]]
 )doc";
@@ -430,7 +430,7 @@ Returns:
   3x4 jacobian of ``d(log(self^T * (self + dq)) / dq`` evaluated at ``dq = 0``.
 
 Examples:
-  >>> w, x, y, z = sym.symbols('w, x, y, z')
+  >>> w, x, y, z = sym.make_symbols('w', 'x', 'y', 'z')
   >>> geometry.Quaternion(w, x, y, z).right_local_coordinates_derivative()
   [[-2*x, 2*w, 2*z, -2*y], [-2*y, -2*z, 2*w, 2*x], [-2*z, 2*y, -2*x, 2*w]]
 )doc";

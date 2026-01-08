@@ -24,7 +24,7 @@ Returns:
   The input expression after expansion.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> f = (x - 2) * (y + x) * (y - 3)
   >>> f.distribute()
   6*x + 6*y - 5*x*y + x**2*y + x*y**2 - 3*x**2 - 2*y**2
@@ -44,7 +44,7 @@ Returns:
   The input expression after performing replacements.
 
 Examples:
-  >>> x, y = sym.symbols('x, y')
+  >>> x, y = sym.make_symbols('x', 'y')
   >>> sym.cos(x).subs([(x, y*2), (y, sym.pi)])
   1
   >>> (sym.pow(x, 2) * y).subs(x * y, 3)

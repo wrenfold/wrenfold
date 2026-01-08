@@ -9,7 +9,7 @@ import typing as T
 import sympy
 from pywrenfold.sympy_conversion import _to_sympy_impl
 
-from . import sym
+from . import enumerations, sym
 
 
 class Conversions:
@@ -95,16 +95,16 @@ class Conversions:
 
         :param expr: sympy `Symbol` object.
         """
-        kwargs = dict()
+        s = enumerations.NumberSet.Unknown
         if expr.is_positive:
-            kwargs.update(positive=True)
+            s = enumerations.NumberSet.RealPositive
         elif expr.is_nonnegative:
-            kwargs.update(nonnegative=True)
+            s = enumerations.NumberSet.RealNonNegative
         elif expr.is_real:
-            kwargs.update(real=True)
+            s = enumerations.NumberSet.Real
         elif expr.is_complex:
-            kwargs.update(complex=True)
-        return sym.symbols(expr.name, **kwargs)
+            s = enumerations.NumberSet.Complex
+        return sym.symbol(expr.name, set=s)
 
     def convert_piecewise(self, expr) -> sym.Expr:
         """

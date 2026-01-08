@@ -9,7 +9,7 @@ relationals:
 
 .. code:: python
 
-    >>> x, y = sym.symbols('x, y')
+    >>> x, y = sym.make_symbols('x', 'y')
     >>> condition = x < y
     >>> type(condition)
     pywrenfold.sym.BooleanExpr

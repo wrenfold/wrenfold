@@ -22,7 +22,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         self.assertEqual(1, func.num_arguments)
         self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), func.return_type)
 
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
 
         output = func(x + 2)
         self.assertIsInstance(output, sym.Expr)
@@ -55,7 +55,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         self.assertEqual(2, func.num_arguments)
         self.assertEqual(type_info.MatrixType(2, 1), func.return_type)
 
-        x, y, z = sym.symbols("x, y, z")
+        x, y, z = sym.make_symbols("x", "y", "z")
         v = sym.vector(y, 2, z - 1)
 
         output = func(x, v)
@@ -87,7 +87,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         self.assertEqual(2, func.num_arguments)
         self.assertIsInstance(func.return_type, type_info.CustomType)
 
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         v = sym.vector(x * y, x - y)
 
         output = func(TestType(a=2 + x, b=v), bar=sym.pi)
@@ -121,7 +121,7 @@ class ExternalFunctionWrapperTest(MathTestBase):
         self.assertEqual(2, func_2.num_arguments)
         self.assertEqual(type_info.ScalarType(type_info.NumericType.Float), func_2.return_type)
 
-        x, y = sym.symbols("x, y")
+        x, y = sym.make_symbols("x", "y")
         f = func_1(x=x + 2 / y)
 
         self.assertIsInstance(f, TestType)
