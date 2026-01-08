@@ -63,7 +63,7 @@ sym
 
 .. autofunction:: wrenfold.sym.eye
 
-.. autofunction:: wrenfold.sym.float
+.. autofunction:: wrenfold.sym.float_constant
 
 .. autofunction:: wrenfold.sym.floor
 
@@ -88,6 +88,8 @@ sym
 .. autofunction:: wrenfold.sym.log
 
 .. autofunction:: wrenfold.sym.lt
+
+.. autofunction:: wrenfold.sym.make_symbols
 
 .. autofunction:: wrenfold.sym.matrix
 
@@ -118,6 +120,8 @@ sym
 .. autofunction:: wrenfold.sym.subs
 
 .. autofunction:: wrenfold.sym.substitution
+
+.. autofunction:: wrenfold.sym.symbol
 
 .. autofunction:: wrenfold.sym.symbols
 

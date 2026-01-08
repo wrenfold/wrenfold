@@ -16,6 +16,7 @@
 #include "wf/collect.h"
 #include "wf/constants.h"
 #include "wf/cse.h"
+#include "wf/enumerations.h"
 #include "wf/expression.h"
 #include "wf/expressions/addition.h"
 #include "wf/expressions/derivative_expression.h"
@@ -96,32 +97,26 @@ static py::list create_symbols_from_str(const py::iterable& iterable, const numb
   return result;
 }
 
-static scalar_expr create_symbol(const std::string_view name, const bool real, const bool positive,
-                                 const bool nonnegative, const bool complex) {
+static scalar_expr create_symbol(const std::string_view name, const number_set set) {
   if (name.empty()) {
     throw invalid_argument_error("Symbol name string cannot be empty.");
   }
-  const number_set set = determine_set_from_flags(real, positive, nonnegative, complex);
   return make_expr<variable>(std::string(name), set);
 }
 
 static std::vector<scalar_expr> create_many_symbols_sequence(
-    const std::vector<std::string_view>& names, const bool real, const bool positive,
-    const bool nonnegative, const bool complex) {
-  return transform_map<std::vector>(names, [&](const std::string_view x) {
-    return create_symbol(x, real, positive, nonnegative, complex);
-  });
+    const std::vector<std::string_view>& names, const number_set set) {
+  return transform_map<std::vector>(
+      names, [&](const std::string_view x) { return create_symbol(x, set); });
 }
 
-static std::vector<scalar_expr> create_many_symbols_args(const py::args& names, const bool real,
-                                                         const bool positive,
-                                                         const bool nonnegative,
-                                                         const bool complex) {
+static std::vector<scalar_expr> create_many_symbols_args(const py::args& names,
+                                                         const number_set set) {
   return transform_map<std::vector>(names, [&](const py::handle& x) {
     try {
-      return create_symbol(py::cast<std::string_view>(x), real, positive, nonnegative, complex);
+      return create_symbol(py::cast<std::string_view>(x), set);
     } catch (const py::cast_error&) {
-      throw py::type_error("Expected arguments to be string names.");
+      throw py::type_error("Expected arguments to be strings.");
     }
   });
 }
@@ -299,14 +294,12 @@ void wrap_scalar_operations(py::module_& m) {
       .doc() = "A scalar-valued symbolic expression.";
 
   // Methods for declaring expressions:
-  m.def("symbol", &create_symbol, py::arg("name"), py::arg("real") = false,
-        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
+  m.def("symbol", &create_symbol, py::arg("name"), py::arg("set") = wf::number_set::unknown,
         docstrings::symbol.data());
-  m.def("make_symbols", &create_many_symbols_sequence, py::arg("names"), py::arg("real") = false,
-        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
-        docstrings::make_symbols.data());
-  m.def("make_symbols", &create_many_symbols_args, py::arg("args"), py::arg("real") = false,
-        py::arg("positive") = false, py::arg("nonnegative") = false, py::arg("complex") = false,
+  m.def("make_symbols", &create_many_symbols_sequence, py::arg("names"),
+        py::arg("set") = wf::number_set::unknown, docstrings::make_symbols.data());
+  m.def("make_symbols", &create_many_symbols_args, py::arg("args"),
+        py::arg("set") = wf::number_set::unknown,
         "Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.");
 
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,

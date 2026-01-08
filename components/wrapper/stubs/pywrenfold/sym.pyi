@@ -4,6 +4,7 @@ from typing import Annotated, Any, overload
 import numpy
 from numpy.typing import NDArray
 
+import pywrenfold.enumerations
 import pywrenfold.type_info
 
 
@@ -395,17 +396,14 @@ class Expr:
     def __bool__(self) -> None:
         """Coerce expression to bool."""
 
-def symbol(name: str, real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> Expr:
+def symbol(name: str, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> Expr:
     """
     Create a ``variable`` expressions with the provided name and numeric set.
 
     Args:
       name: String name for the variable. Variables with the same name and numeric set are considered
         identical.
-      real: Indicate the symbol is real-valued.
-      positive: Indicate the symbol is positive and real-valued.
-      nonnegative: Indicate the symbol is non-negative and real-valued.
-      complex: Indicate the symbols is complex.
+      set: Classification of the symbol, an instance of :class:`wrenfold.enumerations.NumberSet`.
 
     Returns:
       A ``variable`` expression.
@@ -416,26 +414,22 @@ def symbol(name: str, real: bool = False, positive: bool = False, nonnegative: b
       x
       >>> x0.type_name
       'Variable'
-      >>> x1 = sym.symbol('x', complex=True)
+      >>> x1 = sym.symbol('x', set=NumberSet.Complex)
       >>> x0.is_identical_to(x1)
       False
 
     Raises:
-      :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
-        if the variable name is an empty string.
+      :class:`wrenfold.exceptions.InvalidArgumentError`: If the variable name is an empty string.
     """
 
 @overload
-def make_symbols(names: Sequence[str], real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> list[Expr]:
+def make_symbols(names: Sequence[str], set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
     """
     Create multiple ``variable`` expressions with the provided names and numeric set.
 
     Args:
       names: List of string names for the variables.
-      real: Indicate the symbols are real-valued.
-      positive: Indicate the symbols are positive and real-valued.
-      nonnegative: Indicate the symbols are non-negative and real-valued.
-      complex: Indicate the symbols are complex.
+      set: Classification of the symbols, an instance of :class:`wrenfold.enumerations.NumberSet`.
 
     Returns:
       A list of ``variable`` expressions.
@@ -446,20 +440,19 @@ def make_symbols(names: Sequence[str], real: bool = False, positive: bool = Fals
       x
       >>> x0.type_name
       'Variable'
-      >>> x, y = sym.make_symbols(['x', 'y'], complex=True)
+      >>> x, y = sym.make_symbols(['x', 'y'], set=NumberSet.Complex)
       >>> x.is_identical_to(y)
       False
-      >>> x, y = sym.make_symbols('x', 'y', complex=True) # Alternative invocation using *args.
+      >>> x, y = sym.make_symbols('x', 'y', set=NumberSet.Complex) # Alternative invocation using *args.
       >>> print(x + y)
       x + y
 
     Raises:
-      :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
-        if the variable name is an empty string.
+      :class:`wrenfold.exceptions.InvalidArgumentError`: If any variable name is an empty string.
     """
 
 @overload
-def make_symbols(*args, real: bool = False, positive: bool = False, nonnegative: bool = False, complex: bool = False) -> list[Expr]:
+def make_symbols(*args, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
     """
     Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.
     """

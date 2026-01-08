@@ -8,6 +8,7 @@ import unittest
 
 import sympy as sp
 from wrenfold import exceptions, sym, sympy_conversion
+from wrenfold.enumerations import NumberSet
 
 from .test_base import MathTestBase
 
@@ -30,19 +31,25 @@ class SympyConversionTest(MathTestBase):
     def test_variables(self):
         """Test conversion of Variable <-> Symbol."""
         self.assertEqualSp(sp.symbols("x"), sym.symbol("x"))
-        self.assertEqualSp(sp.symbols("x", real=True), sym.symbol("x", real=True))
-        self.assertEqualSp(sp.symbols("x", positive=True), sym.symbol("x", positive=True))
-        self.assertEqualSp(sp.symbols("x", nonnegative=True), sym.symbol("x", nonnegative=True))
-        self.assertEqualSp(sp.symbols("x", complex=True), sym.symbol("x", complex=True))
+        self.assertEqualSp(sp.symbols("x", real=True), sym.symbol("x", NumberSet.Real))
+        self.assertEqualSp(sp.symbols("x", positive=True), sym.symbol("x", NumberSet.RealPositive))
+        self.assertEqualSp(
+            sp.symbols("x", nonnegative=True), sym.symbol("x", NumberSet.RealNonNegative)
+        )
+        self.assertEqualSp(sp.symbols("x", complex=True), sym.symbol("x", NumberSet.Complex))
 
         # sympy --> wf
         self.assertIdenticalFromSp(sym.symbol("x"), sp.symbols("x"))
-        self.assertIdenticalFromSp(sym.symbol("x", real=True), sp.symbols("x", real=True))
-        self.assertIdenticalFromSp(sym.symbol("x", positive=True), sp.symbols("x", positive=True))
+        self.assertIdenticalFromSp(sym.symbol("x", NumberSet.Real), sp.symbols("x", real=True))
         self.assertIdenticalFromSp(
-            sym.symbol("x", nonnegative=True), sp.symbols("x", nonnegative=True)
+            sym.symbol("x", NumberSet.RealPositive), sp.symbols("x", positive=True)
         )
-        self.assertIdenticalFromSp(sym.symbol("x", complex=True), sp.symbols("x", complex=True))
+        self.assertIdenticalFromSp(
+            sym.symbol("x", NumberSet.RealNonNegative), sp.symbols("x", nonnegative=True)
+        )
+        self.assertIdenticalFromSp(
+            sym.symbol("x", NumberSet.Complex), sp.symbols("x", complex=True)
+        )
 
     def test_numeric_constants(self):
         self.assertEqualSp(sp.Integer(0), sym.zero)
@@ -146,7 +153,7 @@ class SympyConversionTest(MathTestBase):
 
     def test_power(self):
         x, y = sym.make_symbols("x", "y")
-        w = sym.symbol("w", real=True, nonnegative=True)
+        w = sym.symbol("w", set=NumberSet.RealNonNegative)
         self.assertIsInstance(spy(x * x), sp.Pow)
         self.assertIsInstance(spy(1 / x), sp.Pow)
         self.assertEqualSp(sp.Pow(spy(x), 2), x * x)

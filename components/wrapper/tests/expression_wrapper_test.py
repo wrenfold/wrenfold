@@ -9,7 +9,7 @@ import functools
 import typing
 import unittest
 
-from wrenfold import exceptions, sym
+from wrenfold import enumerations, exceptions, sym
 
 from .test_base import MathTestBase
 
@@ -54,8 +54,13 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertEqual([sym.symbol("x"), sym.symbol("y")], sym.make_symbols(["x", "y"]))
         self.assertEqual([sym.symbol("x"), sym.symbol("y")], sym.make_symbols("x", "y"))
 
-        for arg_name in "real", "positive", "nonnegative", "complex":
-            kwargs = {arg_name: True}
+        for s in (
+            enumerations.NumberSet.Real,
+            enumerations.NumberSet.RealNonNegative,
+            enumerations.NumberSet.RealPositive,
+            enumerations.NumberSet.Complex,
+        ):
+            kwargs = {"set": s}
             self.assertNotIdentical(x, sym.symbol("x", **kwargs))
             self.assertEqual(
                 [sym.symbol("x", **kwargs), sym.symbol("y", **kwargs)],

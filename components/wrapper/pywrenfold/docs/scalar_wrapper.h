@@ -149,10 +149,7 @@ Create a ``variable`` expressions with the provided name and numeric set.
 Args:
   name: String name for the variable. Variables with the same name and numeric set are considered
     identical.
-  real: Indicate the symbol is real-valued.
-  positive: Indicate the symbol is positive and real-valued.
-  nonnegative: Indicate the symbol is non-negative and real-valued.
-  complex: Indicate the symbols is complex.
+  set: Classification of the symbol, an instance of :class:`wrenfold.enumerations.NumberSet`.
 
 Returns:
   A ``variable`` expression.
@@ -163,13 +160,12 @@ Examples:
   x
   >>> x0.type_name
   'Variable'
-  >>> x1 = sym.symbol('x', complex=True)
+  >>> x1 = sym.symbol('x', set=NumberSet.Complex)
   >>> x0.is_identical_to(x1)
   False
 
 Raises:
-  :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
-    if the variable name is an empty string.
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If the variable name is an empty string.
 )doc";
 
 inline constexpr std::string_view make_symbols = R"doc(
@@ -177,10 +173,7 @@ Create multiple ``variable`` expressions with the provided names and numeric set
 
 Args:
   names: List of string names for the variables.
-  real: Indicate the symbols are real-valued.
-  positive: Indicate the symbols are positive and real-valued.
-  nonnegative: Indicate the symbols are non-negative and real-valued.
-  complex: Indicate the symbols are complex.
+  set: Classification of the symbols, an instance of :class:`wrenfold.enumerations.NumberSet`.
 
 Returns:
   A list of ``variable`` expressions.
@@ -191,16 +184,15 @@ Examples:
   x
   >>> x0.type_name
   'Variable'
-  >>> x, y = sym.make_symbols(['x', 'y'], complex=True)
+  >>> x, y = sym.make_symbols(['x', 'y'], set=NumberSet.Complex)
   >>> x.is_identical_to(y)
   False
-  >>> x, y = sym.make_symbols('x', 'y', complex=True) # Alternative invocation using *args.
+  >>> x, y = sym.make_symbols('x', 'y', set=NumberSet.Complex) # Alternative invocation using *args.
   >>> print(x + y)
   x + y
 
 Raises:
-  :class:`wrenfold.exceptions.InvalidArgumentError`: If incompatible numeric sets are specified, or
-    if the variable name is an empty string.
+  :class:`wrenfold.exceptions.InvalidArgumentError`: If any variable name is an empty string.
 )doc";
 
 inline constexpr std::string_view symbols = R"doc(

@@ -7,6 +7,7 @@ import sys
 import typing as T
 
 from wrenfold import code_generation, sym, type_annotations, type_info
+from wrenfold.enumerations import NumberSet
 
 from .sympy_helpers import get_euler_lagrange_coefficients, get_mat_inverse
 
@@ -35,7 +36,7 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     We derive the necessary expressions symbolically, and then create the function
     `cart_double_pole_dynamics` that specifies exactly what we want code-generated.
     """
-    t = sym.symbol("t", real=True)
+    t = sym.symbol("t", set=NumberSet.Real)
 
     # Position of the base + angles as a function of time.
     # We create symbolic functions to represent these, and then substitute in the function arguments
@@ -51,24 +52,24 @@ def get_cart_double_pole_dynamics() -> T.Callable:
 
     # Mass of the base, and two weights + lever arm lengths:
     m_b, m_1, m_2, l_1, l_2 = sym.make_symbols(
-        "m_b", "m_1", "m_2", "l_1", "l_2", real=True, positive=True
+        "m_b", "m_1", "m_2", "l_1", "l_2", set=NumberSet.RealPositive
     )
 
     # Gravity:
-    g = sym.symbol("g", real=True)
+    g = sym.symbol("g", set=NumberSet.Real)
 
     # Control input on the base:
-    u_b = sym.symbol("u_b", real=True)
+    u_b = sym.symbol("u_b", set=NumberSet.Real)
 
     # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
-    mu_b, v_mu_b = sym.make_symbols("mu_b", "v_mu_b", real=True)
+    mu_b, v_mu_b = sym.make_symbols("mu_b", "v_mu_b", set=NumberSet.Real)
 
     # Air drag coefficient on the mass:
     # This is summarized as: rho * C_d * A, where rho is air density, and A is cross-sectional area.
-    c_d = sym.symbol("c_d_1", real=True)
+    c_d = sym.symbol("c_d_1", set=NumberSet.Real)
 
     # Position and spring coefficient on the boundary of the workspace.
-    x_s, k_s = sym.make_symbols("x_s", "k_s", real=True)
+    x_s, k_s = sym.make_symbols("x_s", "k_s", set=NumberSet.Real)
 
     # Positions of base, and two weights.
     b = sym.vector(b_x, 0)
