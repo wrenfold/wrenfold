@@ -194,8 +194,22 @@ void wrap_scalar_operations(py::module_& m) {
       .def(-py::self)
       .def("__pow__", &wf::pow, py::is_operator(), py::arg("other"))
       .def(
+          "__pow__",
+          [](const scalar_expr& self, std::int64_t other) { return wf::pow(self, other); },
+          py::is_operator(), py::arg("other"))
+      .def(
+          "__pow__", [](const scalar_expr& self, double other) { return wf::pow(self, other); },
+          py::is_operator(), py::arg("other"))
+      .def(
           "__rpow__",
           [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
+          py::is_operator(), py::arg("other"))
+      .def(
+          "__rpow__",
+          [](const scalar_expr& self, const std::int64_t other) { return pow(other, self); },
+          py::is_operator(), py::arg("other"))
+      .def(
+          "__rpow__", [](const scalar_expr& self, const double other) { return pow(other, self); },
           py::is_operator(), py::arg("other"))
       .def("__abs__", [](const scalar_expr& self) { return abs(self); })
       .def(py::self > py::self)

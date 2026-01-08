@@ -223,6 +223,7 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(sym.pow(2, q), 2**q)
         self.assertIdentical(sym.pow(p, 5), p**5)
         self.assertIdentical(sym.pow(p, 0.231), p**0.231)
+        self.assertIdentical(sym.pow(0.887, q), 0.887**q)
         self.assertIdentical(p / q, sym.pow(q / p, -1))
         self.assertCountEqual((p, q), (p**q).args)
 
