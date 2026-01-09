@@ -219,7 +219,6 @@ add_wrapper_module(
   ast
   enumerations
   exceptions
-  expressions
   gen
   geometry
   sym

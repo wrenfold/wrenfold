@@ -13,7 +13,6 @@ from wrenfold import (
     code_generation,
     enumerations,
     exceptions,
-    expressions,
     external_functions,
     geometry,
     sym,
@@ -101,7 +100,6 @@ def main(args: argparse.Namespace):
     )
     generate_rst_for_module(module=enumerations, module_name="enumerations", output_dir=output_dir)
     generate_rst_for_module(module=exceptions, module_name="exceptions", output_dir=output_dir)
-    generate_rst_for_module(module=expressions, module_name="expressions", output_dir=output_dir)
     generate_rst_for_module(module=type_info, module_name="type_info", output_dir=output_dir)
     generate_rst_for_module(
         module=external_functions,

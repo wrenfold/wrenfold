@@ -77,9 +77,11 @@ NB_MODULE(PY_MODULE_NAME, m) {
   wrap_compound_expression(m_sym);
   wrap_symbolic_functions(m_sym);
 
+#if 0
   auto m_expressions =
       m.def_submodule(PY_SUBMODULE_NAME_EXPRESSIONS, "Wrapped concrete expressions.");
   wrap_expressions(m_expressions);
+#endif
 
   auto m_geo = m.def_submodule(PY_SUBMODULE_NAME_GEOMETRY, "Wrapped geometry methods.");
   wrap_geometry_operations(m_geo);
