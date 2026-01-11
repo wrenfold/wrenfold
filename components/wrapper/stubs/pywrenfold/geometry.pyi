@@ -47,15 +47,10 @@ class Quaternion:
     def __hash__(self) -> int:
         """Compute hash."""
 
-    @overload
     def is_identical_to(self, other: Quaternion) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
-
-    @overload
-    def is_identical_to(self, other: Quaternion) -> bool:
-        """Test if two quaternions have identical expression trees."""
 
     def __eq__(self, other: Quaternion) -> bool:
         """
