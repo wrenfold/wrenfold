@@ -157,8 +157,8 @@ are shorthand for ``sym.where``:
         df = df.subs(xv, x_clamped)
 
         return [
-            code_generation.ReturnValue(f),
-            code_generation.OutputArg(df, name="df", is_optional=True)
+            wf.ReturnValue(f),
+            wf.OutputArg(df, name="df", is_optional=True)
         ]
 
 The output code (truncated here) now includes the clamping logic as well:
@@ -205,16 +205,16 @@ the ``FunctionDescription``:
 
 .. code:: python
 
-    from wrenfold import code_generation
+    import wrenfold as wf
 
-    desc = code_generation.create_function_description(func=step)
+    desc = wf.create_function_description(func=step)
     print(desc)  # prints: FunctionDescription('step', 1 args)
 
 We can then convert it to syntax by calling :func:`~wrenfold.code_generation.transpile`:
 
 .. code:: python
 
-    definition = code_generation.transpile(desc)
+    definition = wf.transpile(desc)
     print(definition)  # prints: FunctionDefinition('step', <1 arguments>, <8 elements>)
 
 :class:`~wrenfold.ast.FunctionDefinition` is the root of the abstract syntax tree. We can directly

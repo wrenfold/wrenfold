@@ -19,7 +19,7 @@ import collections
 import typing as T
 
 import wrenfold as wf
-from wrenfold import code_generation, sym
+from wrenfold import sym
 
 
 def weight(x: sym.Expr, i: int, k: int, knots: T.Sequence[sym.Expr]) -> sym.Expr:
@@ -168,7 +168,7 @@ def create_piecewise_polynomials(
 
 def create_polynomial_functions(
     x: sym.Expr, polynomials: T.Sequence[sym.Expr], order: int, is_cumulative: bool
-) -> list[code_generation.FunctionDescription]:
+) -> list[wf.FunctionDescription]:
     """
     Convert the output of `create_basis_polynomials` into function code-generated functions
     that evaluate the polynomials, and their first `order - 2` derivatives.
@@ -178,7 +178,7 @@ def create_polynomial_functions(
     :param polynomials: The result of `create_basis_polynomials`.
     :param is_cumulative: If true, assume the output is cumulative.
     """
-    descriptions: list[code_generation.FunctionDescription] = []
+    descriptions: list[wf.FunctionDescription] = []
     for i in range(0, len(polynomials)):
 
         def bspline(arg: wf.FloatScalar, arg_scale: wf.FloatScalar):
@@ -196,7 +196,7 @@ def create_polynomial_functions(
             name = f"bspline_cumulative_order{order}_poly_{i}"
         else:
             name = f"bspline_order{order}_poly_{i}"
-        desc = code_generation.create_function_description(func=bspline, name=name)
+        desc = wf.create_function_description(func=bspline, name=name)
         descriptions.append(desc)
 
     return descriptions
@@ -267,9 +267,7 @@ def plot_polynomials(polynomials: list[sym.Expr], x: sym.Expr, order: int, num_k
     plt.show()
 
 
-def create_bspline_functions(
-    order: int, visualize: bool = False
-) -> list[code_generation.FunctionDescription]:
+def create_bspline_functions(order: int, visualize: bool = False) -> list[wf.FunctionDescription]:
     """
     Construct function descriptions for an order `order` b-spline.
     """
@@ -342,7 +340,7 @@ def main(args: argparse.Namespace):
     for order in [3, 4, 5, 6]:
         descriptions += create_bspline_functions(order=order, visualize=args.visualize)
 
-    definitions = [code_generation.transpile(d) for d in descriptions]
+    definitions = [wf.transpile(d) for d in descriptions]
     if args.language == "cpp":
         generator = wf.CppGenerator()
         code = generator.generate(definitions)

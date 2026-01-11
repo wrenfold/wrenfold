@@ -4,7 +4,7 @@ import argparse
 import dataclasses
 
 import wrenfold as wf
-from wrenfold import ast, code_generation, type_info
+from wrenfold import ast, type_info
 from wrenfold.external_functions import declare_external_function
 
 
@@ -85,13 +85,13 @@ class CustomRustGenerator(wf.RustGenerator):
 
 def main(args: argparse.Namespace):
     descriptions = [
-        code_generation.create_function_description(
+        wf.create_function_description(
             func=lookup_and_compute_inner_product,
             name="lookup_and_compute_inner_product",
         )
     ]
 
-    definitions = [code_generation.transpile(d) for d in descriptions]
+    definitions = [wf.transpile(d) for d in descriptions]
     if args.language == "cpp":
         generator = CustomCppGenerator()
         code = generator.generate(definitions)

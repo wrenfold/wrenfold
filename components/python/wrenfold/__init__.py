@@ -11,17 +11,24 @@ __license__ = "MIT"
 
 from .code_generation import (
     BaseGenerator,
+    CodegenFuncInvocationResult,
     CppGenerator,
     CppMatrixTypeBehavior,
+    FunctionDescription,
+    OptimizationParams,
     OutputArg,
     PythonGenerator,
     PythonGeneratorFloatWidth,
     PythonGeneratorTarget,
     ReturnValue,
+    ReturnValueOrOutputArg,
     RustGenerator,
+    create_function_description,
+    cse_function_description,
     generate_function,
     generate_python,
     mkdir_and_write_file,
+    transpile,
 )
 from .enumerations import NumberSet, RelationalOperation, StdMathFunction, SymbolicConstant
 from .type_annotations import (
