@@ -4,7 +4,9 @@ class ArithmeticError(Exception):
     """Thrown when invalid arithmetic is attempted."""
 
 class AssertionError(Exception):
-    """Thrown for internal errors."""
+    """
+    Thrown for internal errors. Report these on `GitHub <https://github.com/wrenfold/wrenfold/issues>`_.
+    """
 
 class DimensionError(Exception):
     """Thrown when matrix operations encounter invalid dimensions."""

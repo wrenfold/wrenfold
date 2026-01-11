@@ -1,8 +1,8 @@
 import argparse
 from dataclasses import dataclass
 
-from wrenfold import code_generation, sym, type_info
-from wrenfold.type_annotations import FloatScalar, Vector3
+import wrenfold as wf
+from wrenfold import sym, type_info
 
 # Modify to change the planning horizon and time discretization of problem
 # A larger N will result in a more accurate trajectory, but will take longer to solve
@@ -40,8 +40,8 @@ class Weights:
     Associated with the `Weights` struct in `problem.rs`
     """
 
-    final_state: FloatScalar
-    dynamics: FloatScalar
+    final_state: wf.FloatScalar
+    dynamics: wf.FloatScalar
 
 
 @dataclass
@@ -51,27 +51,27 @@ class ProblemInfo:
     Associated with the `ProblemInfo` struct in `problem.rs`
     """
 
-    dt: FloatScalar
-    mass: FloatScalar
+    dt: wf.FloatScalar
+    mass: wf.FloatScalar
 
 
-def get_pos(state: State) -> Vector3:
+def get_pos(state: State) -> wf.Vector3:
     return state[0:3, :]
 
 
-def get_vel(state: State) -> Vector3:
+def get_vel(state: State) -> wf.Vector3:
     return state[3:6, :]
 
 
-def get_acc(state: State) -> Vector3:
+def get_acc(state: State) -> wf.Vector3:
     return state[6:9, :]
 
 
-def get_control(state: State) -> Vector3:
+def get_control(state: State) -> wf.Vector3:
     return state[9:12, :]
 
 
-def dynamics(state: State, mass: FloatScalar, dt: FloatScalar) -> State:
+def dynamics(state: State, mass: wf.FloatScalar, dt: wf.FloatScalar) -> State:
     """
     Given a state, compute the next state after dt seconds
     """
@@ -98,7 +98,7 @@ def cost_hessian(cost: sym.Expr, state: State):
     return cost_jacobian(cost, state).jacobian(state)
 
 
-def desired_state_objective(state: State, desired_state: State, weight: FloatScalar):
+def desired_state_objective(state: State, desired_state: State, weight: wf.FloatScalar):
     """
     Penalize the distance between the current state and the desired state
     """
@@ -109,9 +109,9 @@ def desired_state_objective(state: State, desired_state: State, weight: FloatSca
 def dynamics_objective(
     state: State,
     next_state: State,
-    weight: FloatScalar,
-    mass: FloatScalar,
-    dt: FloatScalar,
+    weight: wf.FloatScalar,
+    mass: wf.FloatScalar,
+    dt: wf.FloatScalar,
 ):
     """
     Penalize the distance between the next state and the state predicted by the dynamics
@@ -165,7 +165,7 @@ def problem_cost(
         problem_info,
     )
     return [
-        code_generation.OutputArg(
+        wf.OutputArg(
             expression=cost,
             name="cost",
         )
@@ -192,7 +192,7 @@ def problem_jacobian(
     trajectory_to_optimize = trajectory[9:]
     jacobian = cost_jacobian(cost, trajectory_to_optimize)
     return [
-        code_generation.OutputArg(
+        wf.OutputArg(
             expression=jacobian,
             name="cost_jacobian",
         )
@@ -219,14 +219,14 @@ def problem_hessian(
     trajectory_to_optimize = trajectory[9:]
     hessian = cost_hessian(cost, trajectory_to_optimize)
     return [
-        code_generation.OutputArg(
+        wf.OutputArg(
             expression=hessian,
             name="cost_hessian",
         )
     ]
 
 
-class CustomRustGenerator(code_generation.RustGenerator):
+class CustomRustGenerator(wf.RustGenerator):
     def format_custom_type(self, element: type_info.CustomType) -> str:
         """Place our custom types into the `crate` namespace."""
         if element.python_type in [Weights, ProblemInfo]:
@@ -237,10 +237,10 @@ class CustomRustGenerator(code_generation.RustGenerator):
 def main(args: argparse.Namespace):
     code = ""
     for function in [problem_cost, problem_jacobian, problem_hessian]:
-        code += code_generation.generate_function(func=function, generator=CustomRustGenerator())
+        code += wf.generate_function(func=function, generator=CustomRustGenerator())
         code += "\n\n"
     code = CustomRustGenerator.apply_preamble(code)
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

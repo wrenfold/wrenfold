@@ -5,7 +5,7 @@ These tests are here to make sure that wrapped methods behave as expected, and t
 don't accidentally remove any wrappers. Algorithmic tests are in C++.
 """
 
-import typing as T
+import typing
 import unittest
 
 import numpy as np
@@ -156,7 +156,7 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: sym.zeros(0, 6))
 
     @staticmethod
-    def generate_slices(dim: int, step_sizes: T.Iterable[int] = (1, 2, 3)):
+    def generate_slices(dim: int, step_sizes: typing.Iterable[int] = (1, 2, 3)):
         """
         Generate slices that are valid in a container of size `dim`.
         """
@@ -167,7 +167,7 @@ class MatrixWrapperTest(MathTestBase):
 
     @staticmethod
     def generate_row_and_col_slices(
-        shape: tuple[int, int], step_sizes: T.Iterable[int] = (1, 2, 3)
+        shape: tuple[int, int], step_sizes: typing.Iterable[int] = (1, 2, 3)
     ):
         """
         Generate slices that extract all possible sub-blocks (for the given step sizes) for a 2D

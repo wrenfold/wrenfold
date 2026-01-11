@@ -7,7 +7,8 @@ Generate some example functions in C:
 import argparse
 import dataclasses
 
-from wrenfold import code_generation, geometry, type_annotations
+import wrenfold as wf
+from wrenfold import geometry
 
 from ..shared_expressions import (
     kb_camera_projection_with_jacobians,
@@ -22,13 +23,13 @@ class quaternion_t:
     The equivalent C-struct is declared in `c_span_types.h`.
     """
 
-    w: type_annotations.FloatScalar
-    x: type_annotations.FloatScalar
-    y: type_annotations.FloatScalar
-    z: type_annotations.FloatScalar
+    w: wf.FloatScalar
+    x: wf.FloatScalar
+    y: wf.FloatScalar
+    z: wf.FloatScalar
 
 
-def quaternion_from_rotation_matrix(R: type_annotations.Matrix3):
+def quaternion_from_rotation_matrix(R: wf.Matrix3):
     """
     We use this method to test construction of a struct in C (quaternion_t).
     """
@@ -38,7 +39,7 @@ def quaternion_from_rotation_matrix(R: type_annotations.Matrix3):
 
 def main(args: argparse.Namespace):
     functions = [
-        code_generation.generate_function(function, generator=CCodeGenerator())
+        wf.generate_function(function, generator=CCodeGenerator())
         for function in (
             kb_camera_projection_with_jacobians,
             kb_camera_unprojection_with_jacobians,
@@ -46,7 +47,7 @@ def main(args: argparse.Namespace):
         )
     ]
     code = C_PREAMBLE.format(code="\n\n".join(functions), header_name="C_GENERATION_EXAMPLE")
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

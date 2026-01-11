@@ -4,13 +4,13 @@ Generate quaternion interpolation with tangent-space derivatives using wrenfold.
 
 import argparse
 
-from wrenfold import code_generation, sym
+import wrenfold as wf
+from wrenfold import sym
 from wrenfold.geometry import Quaternion
-from wrenfold.type_annotations import FloatScalar, Vector4
 
 
 def quaternion_interpolation_impl(
-    q0_xyzw: Vector4, q1_xyzw: Vector4, alpha: FloatScalar, use_conditional: bool = True
+    q0_xyzw: wf.Vector4, q1_xyzw: wf.Vector4, alpha: wf.FloatScalar, use_conditional: bool = True
 ):
     """
     Interpolate between two quaternions, `q0` and `q1` (passed as scalar-last vectors). The
@@ -46,29 +46,31 @@ def quaternion_interpolation_impl(
     )
 
     return (
-        code_generation.OutputArg(q_out.to_vector_xyzw(), name="q_out"),
-        code_generation.OutputArg(D0, name="d0", is_optional=True),
-        code_generation.OutputArg(D1, name="d1", is_optional=True),
+        wf.OutputArg(q_out.to_vector_xyzw(), name="q_out"),
+        wf.OutputArg(D0, name="d0", is_optional=True),
+        wf.OutputArg(D1, name="d1", is_optional=True),
     )
 
 
-def quaternion_interpolation(q0_xyzw: Vector4, q1_xyzw: Vector4, alpha: FloatScalar):
+def quaternion_interpolation(q0_xyzw: wf.Vector4, q1_xyzw: wf.Vector4, alpha: wf.FloatScalar):
     return quaternion_interpolation_impl(q0_xyzw, q1_xyzw, alpha, use_conditional=True)
 
 
-def quaternion_interpolation_no_conditional(q0_xyzw: Vector4, q1_xyzw: Vector4, alpha: FloatScalar):
+def quaternion_interpolation_no_conditional(
+    q0_xyzw: wf.Vector4, q1_xyzw: wf.Vector4, alpha: wf.FloatScalar
+):
     return quaternion_interpolation_impl(q0_xyzw, q1_xyzw, alpha, use_conditional=False)
 
 
 def main(args: argparse.Namespace):
     code = ""
-    generator = code_generation.CppGenerator()
+    generator = wf.CppGenerator()
     for function in [quaternion_interpolation, quaternion_interpolation_no_conditional]:
-        code += code_generation.generate_function(function, generator=generator)
+        code += wf.generate_function(function, generator=generator)
         code += "\n\n"
 
     code = generator.apply_preamble(code=code, namespace="gen")
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

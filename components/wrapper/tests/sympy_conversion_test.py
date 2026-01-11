@@ -3,7 +3,7 @@ Test conversion of wrenfold expressions to sympy, and visa-versa.
 """
 
 import sys
-import typing as T
+import typing
 import unittest
 
 import sympy as sp
@@ -20,7 +20,7 @@ unspy = lambda x: sympy_conversion.from_sympy(expr=x, sp=sp)
 class SympyConversionTest(MathTestBase):
     """Test conversion to and from sympy."""
 
-    def assertEqualSp(self, first: sp.Basic, second: sym.AnyExpression, msg: T.Any = None):
+    def assertEqualSp(self, first: sp.Basic, second: sym.AnyExpression, msg: typing.Any = None):
         """Convert `second` to sympy form, and compare with __eq__ operator."""
         self.assertEqual(first=first, second=spy(second), msg=msg)
 

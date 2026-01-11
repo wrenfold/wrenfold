@@ -2,7 +2,7 @@
 Utilities for defining user-specified external functions.
 """
 
-import typing as T
+import typing
 
 from pywrenfold.gen import PyExternalFunction
 
@@ -19,7 +19,7 @@ class ExternalFunction(PyExternalFunction):
     def __init__(self, super_val: PyExternalFunction) -> None:
         super().__init__(super_val)
 
-    def __call__(self, *args, **kwargs) -> T.Any:
+    def __call__(self, *args, **kwargs) -> typing.Any:
         """
         Generate expressions to represent an invocation of ``self``.
         """
@@ -28,7 +28,7 @@ class ExternalFunction(PyExternalFunction):
 
 def declare_external_function(
     name: str,
-    arguments: T.Iterable[tuple[str, type]],
+    arguments: typing.Iterable[tuple[str, type]],
     return_type: type,
 ) -> ExternalFunction:
     """
@@ -90,8 +90,8 @@ def declare_external_function(
 
 
 def _combine_args(
-    func: PyExternalFunction, args: T.Sequence[T.Any], kwargs: dict[str, T.Any]
-) -> list[T.Any]:
+    func: PyExternalFunction, args: typing.Sequence[typing.Any], kwargs: dict[str, typing.Any]
+) -> list[typing.Any]:
     """
     Combine args and kwargs into one ordered list.
     """
@@ -101,7 +101,7 @@ def _combine_args(
             + f"Expected: {func.num_arguments}, Actual: {len(args) + len(kwargs)}"
         )
 
-    index_and_value: list[tuple[int, T.Any]] = []
+    index_and_value: list[tuple[int, typing.Any]] = []
     for key, value in kwargs.items():
         position = func.arg_position(key)
         if position is None:

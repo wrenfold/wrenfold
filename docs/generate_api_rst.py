@@ -4,7 +4,7 @@ Script that generates the `python_api_docs.rst` file.
 
 import argparse
 import inspect
-import typing as T
+import typing
 from pathlib import Path
 
 # The built library needs to be on the import path by this point.
@@ -13,7 +13,6 @@ from wrenfold import (
     code_generation,
     enumerations,
     exceptions,
-    expressions,
     external_functions,
     geometry,
     sym,
@@ -25,7 +24,7 @@ from wrenfold import (
 DOCS_DIR = Path(__file__).parent.absolute()
 
 
-def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
+def generate_rst_for_module(module: typing.Any, module_name: str, output_dir: Path):
     """
     Write out rst files for classes + functions in the provided module.
     """
@@ -87,6 +86,7 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
 
 def main(args: argparse.Namespace):
     output_dir = Path(args.output_dir)
+
     generate_rst_for_module(module=sym, module_name="sym", output_dir=output_dir)
     generate_rst_for_module(module=geometry, module_name="geometry", output_dir=output_dir)
     generate_rst_for_module(module=ast, module_name="ast", output_dir=output_dir)
@@ -101,7 +101,6 @@ def main(args: argparse.Namespace):
     )
     generate_rst_for_module(module=enumerations, module_name="enumerations", output_dir=output_dir)
     generate_rst_for_module(module=exceptions, module_name="exceptions", output_dir=output_dir)
-    generate_rst_for_module(module=expressions, module_name="expressions", output_dir=output_dir)
     generate_rst_for_module(module=type_info, module_name="type_info", output_dir=output_dir)
     generate_rst_for_module(
         module=external_functions,

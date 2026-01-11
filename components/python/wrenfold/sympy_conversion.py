@@ -4,7 +4,7 @@ Conversion in the opposite direction is implemented in C++ in `sympy_conversion.
 """
 
 import types
-import typing as T
+import typing
 
 import sympy
 from pywrenfold.sympy_conversion import _to_sympy_impl
@@ -80,7 +80,7 @@ class Conversions:
 
         # Cache of already converted expressions. Since expressions often include repeated terms,
         # avoid converting them more than once.
-        self.cache: dict[T.Any, sym.AnyExpression] = {}
+        self.cache: dict[typing.Any, sym.AnyExpression] = {}
 
     def convert_add(self, expr) -> sym.Expr:
         return sym.addition([self(x) for x in expr.args])
@@ -177,7 +177,7 @@ class Conversions:
         args = [self(x) for x in expr.args]
         return sym.Function(sp_func.name)(*args)
 
-    def __call__(self, expr: T.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
+    def __call__(self, expr: typing.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
         """
         Convert sympy expression `expr`. We check the different maps stored on self for
         matching values or types, and use the corresponding method to convert.
@@ -185,7 +185,7 @@ class Conversions:
         :param expr: A sympy expression.
         """
         # Not all types are hashable (sympy matrix, for example) so cache only hashable things.
-        if isinstance(expr, T.Hashable):
+        if isinstance(expr, typing.Hashable):
             cached_result = self.cache.get(expr)
             if cached_result is not None:
                 return cached_result
@@ -195,7 +195,7 @@ class Conversions:
         else:
             return self._convert_expr(expr)
 
-    def _convert_expr(self, expr: T.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
+    def _convert_expr(self, expr: typing.Any) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
         func = self.type_map.get(type(expr), None)
         if func is not None:
             args = [self(x) for x in expr.args]
@@ -213,7 +213,7 @@ class Conversions:
                 data.append([self(expr[i, j]) for j in range(0, cols)])
             return sym.matrix(data)
 
-        if isinstance(expr, T.Hashable):
+        if isinstance(expr, typing.Hashable):
             value = self.value_map.get(expr, None)
             if value is not None:
                 return value
@@ -225,7 +225,7 @@ class Conversions:
 
 
 def from_sympy(
-    expr: T.Union["sympy.Basic", "sympy.MatrixBase"],
+    expr: typing.Union["sympy.Basic", "sympy.MatrixBase"],
     sp: types.ModuleType | None = None,
 ) -> sym.Expr | sym.MatrixExpr | sym.BooleanExpr:
     """
@@ -252,7 +252,7 @@ def to_sympy(
     expr: sym.Expr | sym.MatrixExpr | sym.BooleanExpr,
     sp: types.ModuleType | None = None,
     evaluate: bool = True,
-) -> T.Union["sympy.Basic", "sympy.MatrixBase"]:
+) -> typing.Union["sympy.Basic", "sympy.MatrixBase"]:
     """
     Convert expression tree to `sympy <https://www.sympy.org/en/index.html>`_ expressions.
 

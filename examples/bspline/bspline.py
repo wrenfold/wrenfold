@@ -16,13 +16,13 @@ knots are combined into piecewise continuous (to derivative k - 1) polynomials.
 
 import argparse
 import collections
-import typing as T
+import typing
 
-from wrenfold import code_generation, sym
-from wrenfold.type_annotations import FloatScalar
+import wrenfold as wf
+from wrenfold import sym
 
 
-def weight(x: sym.Expr, i: int, k: int, knots: T.Sequence[sym.Expr]) -> sym.Expr:
+def weight(x: sym.Expr, i: int, k: int, knots: typing.Sequence[sym.Expr]) -> sym.Expr:
     """
     Linear interpolation weight function. The knots are assumed to be known at code-generation time,
     and must be arranged in non-decreasing order.
@@ -37,8 +37,8 @@ def B(
     x: sym.Expr,
     i: int,
     k: int,
-    degree_zero: T.Sequence[sym.Expr],
-    knots: T.Sequence[sym.Expr],
+    degree_zero: typing.Sequence[sym.Expr],
+    knots: typing.Sequence[sym.Expr],
 ) -> sym.Expr:
     """
     Construct b-spline basis function `i` of order `k + 1` using the De-Boor recursive
@@ -69,9 +69,9 @@ def B(
 
 def create_bases(
     x: sym.Expr,
-    knots: T.Sequence[sym.Expr],
+    knots: typing.Sequence[sym.Expr],
     order: int,
-    degree_zero_bases: T.Sequence[sym.Expr],
+    degree_zero_bases: typing.Sequence[sym.Expr],
 ) -> list[sym.Expr]:
     """
     Create the degree `order` b-spline basis functions.
@@ -94,8 +94,8 @@ def create_bases(
 def create_cumulative_bases(
     number_of_knots: int,
     order: int,
-    bases: T.Sequence[sym.Expr],
-    degree_zero_bases: T.Sequence[sym.Expr],
+    bases: typing.Sequence[sym.Expr],
+    degree_zero_bases: typing.Sequence[sym.Expr],
 ) -> list[sym.Expr]:
     """
     Given the result of `create_bases`, form the cumulative b-spline basis functions.
@@ -119,8 +119,8 @@ def create_cumulative_bases(
 def create_piecewise_polynomials(
     x: sym.Expr,
     order: int,
-    bases: T.Sequence[sym.Expr],
-    degree_zero_bases: T.Sequence[sym.Expr],
+    bases: typing.Sequence[sym.Expr],
+    degree_zero_bases: typing.Sequence[sym.Expr],
     is_cumulative: bool,
 ) -> list[sym.Expr]:
     """
@@ -167,8 +167,8 @@ def create_piecewise_polynomials(
 
 
 def create_polynomial_functions(
-    x: sym.Expr, polynomials: T.Sequence[sym.Expr], order: int, is_cumulative: bool
-) -> list[code_generation.FunctionDescription]:
+    x: sym.Expr, polynomials: typing.Sequence[sym.Expr], order: int, is_cumulative: bool
+) -> list[wf.FunctionDescription]:
     """
     Convert the output of `create_basis_polynomials` into function code-generated functions
     that evaluate the polynomials, and their first `order - 2` derivatives.
@@ -178,10 +178,10 @@ def create_polynomial_functions(
     :param polynomials: The result of `create_basis_polynomials`.
     :param is_cumulative: If true, assume the output is cumulative.
     """
-    descriptions: list[code_generation.FunctionDescription] = []
+    descriptions: list[wf.FunctionDescription] = []
     for i in range(0, len(polynomials)):
 
-        def bspline(arg: FloatScalar, arg_scale: FloatScalar):
+        def bspline(arg: wf.FloatScalar, arg_scale: wf.FloatScalar):
             # Output the function, plus (order - 2) derivatives that are continuous.
             # The last non-zero derivative is discontinuous.
             rows = [polynomials[i].subs(x, arg)]  # noqa: B023
@@ -189,14 +189,14 @@ def create_polynomial_functions(
                 rows.append(rows[-1].diff(arg) * arg_scale)
 
             return [
-                code_generation.OutputArg(expression=sym.vector(*rows).transpose(), name=f"b_{i}")  # noqa: B023
+                wf.OutputArg(expression=sym.vector(*rows).transpose(), name=f"b_{i}")  # noqa: B023
             ]
 
         if is_cumulative:
             name = f"bspline_cumulative_order{order}_poly_{i}"
         else:
             name = f"bspline_order{order}_poly_{i}"
-        desc = code_generation.create_function_description(func=bspline, name=name)
+        desc = wf.create_function_description(func=bspline, name=name)
         descriptions.append(desc)
 
     return descriptions
@@ -267,9 +267,7 @@ def plot_polynomials(polynomials: list[sym.Expr], x: sym.Expr, order: int, num_k
     plt.show()
 
 
-def create_bspline_functions(
-    order: int, visualize: bool = False
-) -> list[code_generation.FunctionDescription]:
+def create_bspline_functions(order: int, visualize: bool = False) -> list[wf.FunctionDescription]:
     """
     Construct function descriptions for an order `order` b-spline.
     """
@@ -342,18 +340,19 @@ def main(args: argparse.Namespace):
     for order in [3, 4, 5, 6]:
         descriptions += create_bspline_functions(order=order, visualize=args.visualize)
 
-    definitions = [code_generation.transpile(d) for d in descriptions]
+    definitions = [wf.transpile(d) for d in descriptions]
     if args.language == "cpp":
-        generator = code_generation.CppGenerator()
+        generator = wf.CppGenerator()
         code = generator.generate(definitions)
         code = generator.apply_preamble(code, namespace="gen")
     elif args.language == "rust":
-        code = code_generation.RustGenerator().generate(definitions)
-        code = code_generation.RustGenerator.apply_preamble(code)
+        generator = wf.RustGenerator()
+        code = generator.generate(definitions)
+        code = generator.apply_preamble(code)
     else:
         raise RuntimeError("Invalid language selection")
 
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

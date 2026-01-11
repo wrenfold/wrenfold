@@ -4,6 +4,7 @@
 #pragma once
 #include <variant>
 
+#include "wf/code_generation/expression_group.h"
 #include "wf/code_generation/types.h"
 #include "wf/expressions/custom_type_expressions.h"
 #include "wf/expressions/numeric_expressions.h"

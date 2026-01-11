@@ -59,11 +59,13 @@ Returns:
   required to compute the function outputs.
 
 Example:
-  >>> from wrenfold import sym, code_generation, type_annotations
-  >>> def func(x: type_annotations.FloatScalar, y: type_annotations.FloatScalar):
+  >>> import wrenfold as wf
+  >>> from wrenfold import sym
+  >>>
+  >>> def func(x: wf.FloatScalar, y: wf.FloatScalar):
   >>>   return sym.abs(x * y) * sym.cos(x * y)
-  >>> desc = code_generation.create_function_description(func)
-  >>> outputs, intermediate_values = code_generation.cse_function_description(desc)
+  >>> desc = wf.create_function_description(func)
+  >>> outputs, intermediate_values = wf.cse_function_description(desc)
   >>> outputs
   {OutputKey(return_value): [v5]}
   >>> intermediate_values

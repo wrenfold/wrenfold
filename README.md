@@ -31,10 +31,10 @@
 Using wrenfold, mathematical functions can be expressed and composed succinctly in python:
 
 ```python
-from wrenfold import code_generation, sym
-from wrenfold.type_annotations import Vector3
+import wrenfold as wf
+from wrenfold import sym
 
-def angular_distance(a: Vector3, b: Vector3):
+def angular_distance(a: wf.Vector3, b: wf.Vector3):
     """
     A simple example function: We compute the angle between two vectors. The angle is returned, and
     the Jacobian with respect to `a` is passed as an output argument. This might be a cost in an
@@ -47,8 +47,8 @@ def angular_distance(a: Vector3, b: Vector3):
 
     # Our generated function will return `theta`, and pass `theta_D_a` as an output arg.
     return (
-        code_generation.ReturnValue(theta),
-        code_generation.OutputArg(theta_D_a, "theta_D_a"),
+        wf.ReturnValue(theta),
+        wf.OutputArg(theta_D_a, "theta_D_a"),
     )
 ```
 
@@ -58,7 +58,7 @@ And corresponding compilable code can be obtained easily:
 # CppGenerator can be swapped out for RustGenerator to obtain Rust. You can implement your own
 # custom generator to target a new language - or override methods on the provided generators in
 # order to customize the output code to your liking.
-cpp = code_generation.generate_function(angular_distance, code_generation.CppGenerator())
+cpp = wf.generate_function(angular_distance, wf.CppGenerator())
 print(cpp)
 ```
 ```cpp

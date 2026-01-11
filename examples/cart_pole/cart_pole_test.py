@@ -3,13 +3,14 @@ Generate the cart-pole dynamics as NumPy and JAX functions.
 """
 
 import dataclasses
-import typing as T
+import typing
 import unittest
 
 import jax
 import jax.numpy as jnp
 import numpy as np
-from wrenfold import code_generation, type_info
+import wrenfold as wf
+from wrenfold import type_info
 
 from .cart_pole_dynamics import (
     CartPoleParamsSymbolic,
@@ -38,14 +39,14 @@ class CartPoleParamsNumeric:
     k_s: float
 
 
-class CustomPythonGenerator(code_generation.PythonGenerator):
+class CustomPythonGenerator(wf.PythonGenerator):
     def format_custom_type(self, target: type_info.CustomType):
         if target.python_type == CartPoleParamsSymbolic:
             return "CartPoleParamsNumeric"
         return self.super_format(target)
 
 
-def rk4(x: np.ndarray, h: float, f: T.Callable[[np.ndarray], np.ndarray]):
+def rk4(x: np.ndarray, h: float, f: typing.Callable[[np.ndarray], np.ndarray]):
     """4th order runge kutta."""
     k1 = f(x)
     k2 = f(x + k1 * h / 2)
@@ -60,11 +61,11 @@ class CartPoleTest(unittest.TestCase):
         Generate the cart-double-pole dynamics as a NumPy/Python function, and test that we can
         integrate the state forward while conserving energy.
         """
-        np_func, _code = code_generation.generate_python(
+        np_func, _code = wf.generate_python(
             func=get_cart_double_pole_dynamics(),
             generator=CustomPythonGenerator(
-                target=code_generation.PythonGeneratorTarget.NumPy,
-                float_width=code_generation.PythonGeneratorFloatWidth.Float32,
+                target=wf.PythonGeneratorTarget.NumPy,
+                float_width=wf.PythonGeneratorFloatWidth.Float32,
             ),
             context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
         )
@@ -117,11 +118,11 @@ class CartPoleTest(unittest.TestCase):
         Generate the cart-double-pole dynamics as a JAX function, and check our Jacobians against
         `jacfwd`.
         """
-        np_func, _code = code_generation.generate_python(
+        np_func, _code = wf.generate_python(
             func=get_cart_double_pole_dynamics(),
             generator=CustomPythonGenerator(
-                target=code_generation.PythonGeneratorTarget.JAX,
-                float_width=code_generation.PythonGeneratorFloatWidth.Float32,
+                target=wf.PythonGeneratorTarget.JAX,
+                float_width=wf.PythonGeneratorFloatWidth.Float32,
             ),
             context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
         )

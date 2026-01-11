@@ -20,10 +20,10 @@ Initially we will assume the input variable :math:`x` is already in the domain `
 
 .. code:: python
 
+    import wrenfold as wf
     from wrenfold import sym
-    from wrenfold import type_annotations
 
-    def step(x: type_annotations.FloatScalar):
+    def step(x: wf.FloatScalar):
         """The smoothstep polynomial."""
         return 3 * sym.pow(x, 2) - 2 * sym.pow(x, 3)
 
@@ -42,9 +42,9 @@ Next, we can code-generate the equivalent C++:
 
 .. code:: python
 
-    from wrenfold import code_generation
+    import wrenfold as wf
 
-    cpp = code_generation.generate_function(func=step, generator=code_generation.CppGenerator())
+    cpp = wf.generate_function(func=step, generator=wf.CppGenerator())
     print(cpp)
 
 .. code:: cpp
@@ -61,7 +61,7 @@ Or Rust:
 
 .. code:: python
 
-    rust = code_generation.generate_function(func=step, generator=code_generation.RustGenerator())
+    rust = wf.generate_function(func=step, generator=wf.RustGenerator())
     print(rust)
 
 .. code:: rust
@@ -84,7 +84,10 @@ output argument:
 
 .. code:: python
 
-    def step_deriv(x: type_annotations.FloatScalar):
+    import wrenfold as wf
+    from wrenfold import sym
+
+    def step_deriv(x: wf.FloatScalar):
         """The smoothstep polynomial."""
         f = 3 * sym.pow(x, 2) - 2 * sym.pow(x, 3)
 
@@ -94,11 +97,11 @@ output argument:
         # Because we are now producing multiple outputs, we need to indicate which one is the
         # return value, and which should be an output argument:
         return [
-            code_generation.ReturnValue(f),
-            code_generation.OutputArg(df, name="df", is_optional=True)
+            wf.ReturnValue(f),
+            wf.OutputArg(df, name="df", is_optional=True)
         ]
 
-    cpp = code_generation.generate_function(func=step_deriv, generator=code_generation.CppGenerator())
+    cpp = wf.generate_function(func=step_deriv, generator=wf.CppGenerator())
     print(cpp)
 
 The key distinction here is that our symbolic function now returns a sequence of
@@ -137,12 +140,13 @@ are shorthand for ``sym.where``:
 
 .. code:: python
 
-    from wrenfold.enumerations import NumberSet
+    import wrenfold as wf
+    from wrenfold import sym
 
-    def step_clamped(x: type_annotations.FloatScalar):
+    def step_clamped(x: wf.FloatScalar):
         """The clamped smoothstep polynomial."""
         # First express the polynomials in terms of `xv`.
-        xv = sym.symbol('xv', set=NumberSet.Real)
+        xv = sym.symbol('xv', set=wf.NumberSet.Real)
         f = 3 * sym.pow(xv, 2) - 2 * sym.pow(xv, 3)
         df = sym.vector(f.diff(xv), f.diff(xv, 2))
 
@@ -153,8 +157,8 @@ are shorthand for ``sym.where``:
         df = df.subs(xv, x_clamped)
 
         return [
-            code_generation.ReturnValue(f),
-            code_generation.OutputArg(df, name="df", is_optional=True)
+            wf.ReturnValue(f),
+            wf.OutputArg(df, name="df", is_optional=True)
         ]
 
 The output code (truncated here) now includes the clamping logic as well:
@@ -201,16 +205,16 @@ the ``FunctionDescription``:
 
 .. code:: python
 
-    from wrenfold import code_generation
+    import wrenfold as wf
 
-    desc = code_generation.create_function_description(func=step)
+    desc = wf.create_function_description(func=step)
     print(desc)  # prints: FunctionDescription('step', 1 args)
 
 We can then convert it to syntax by calling :func:`~wrenfold.code_generation.transpile`:
 
 .. code:: python
 
-    definition = code_generation.transpile(desc)
+    definition = wf.transpile(desc)
     print(definition)  # prints: FunctionDefinition('step', <1 arguments>, <8 elements>)
 
 :class:`~wrenfold.ast.FunctionDefinition` is the root of the abstract syntax tree. We can directly
@@ -232,7 +236,7 @@ obtain code:
 
 .. code:: python
 
-    generator = code_generation.CppGenerator()
+    generator = wf.CppGenerator()
     cpp = generator.generate(definition)
     print(cpp)
 

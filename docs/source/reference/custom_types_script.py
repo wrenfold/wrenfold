@@ -4,7 +4,8 @@ Source code for the `custom_types.rst` file.
 
 import dataclasses
 
-from wrenfold import ast, code_generation, sym, type_annotations, type_info
+import wrenfold as wf
+from wrenfold import ast, sym, type_info
 
 
 # [dataclass_declaration_start]
@@ -12,8 +13,8 @@ from wrenfold import ast, code_generation, sym, type_annotations, type_info
 class Vec2:
     """Symbolic version of geo::vec2."""
 
-    x: type_annotations.FloatScalar
-    y: type_annotations.FloatScalar
+    x: wf.FloatScalar
+    y: wf.FloatScalar
 
     def to_vector(self) -> sym.MatrixExpr:
         return sym.vector(self.x, self.y)
@@ -26,7 +27,7 @@ class Vec2:
 
 
 # [function_definition_start]
-def rotate_vector(angle: type_annotations.FloatScalar, v: Vec2):
+def rotate_vector(angle: wf.FloatScalar, v: Vec2):
     """Rotate vector `v` by `angle` radians."""
     R = sym.matrix([[sym.cos(angle), -sym.sin(angle)], [sym.sin(angle), sym.cos(angle)]])
     v_rot = R * v.to_vector()
@@ -37,14 +38,14 @@ def rotate_vector(angle: type_annotations.FloatScalar, v: Vec2):
 
     # We also want to return `Vec2`:
     return [
-        code_generation.ReturnValue(Vec2.from_vector(v_rot)),
-        code_generation.OutputArg(Vec2.from_vector(v_rot_diff), name="v_rot_D_angle"),
+        wf.ReturnValue(Vec2.from_vector(v_rot)),
+        wf.OutputArg(Vec2.from_vector(v_rot_diff), name="v_rot_D_angle"),
     ]
     # [function_definition_end]
 
 
 # [code_generator_start]
-class CustomCppGenerator(code_generation.CppGenerator):
+class CustomCppGenerator(wf.CppGenerator):
     def format_get_field(self, element: ast.GetField) -> str:
         """
         geo::vec2 members are private, so call the accessor method instead:
@@ -64,7 +65,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
 
 
 # [rust_code_generator_start]
-class CustomRustGenerator(code_generation.RustGenerator):
+class CustomRustGenerator(wf.RustGenerator):
     def format_get_field(self, element: ast.GetField) -> str:
         if element.struct_type.python_type == Vec2:
             return f"{self.format(element.arg)}.{element.field_name}()"
@@ -88,5 +89,5 @@ class CustomRustGenerator(code_generation.RustGenerator):
 
 
 # [transpilation_start]
-code = code_generation.generate_function(func=rotate_vector, generator=CustomCppGenerator())
+code = wf.generate_function(func=rotate_vector, generator=CustomCppGenerator())
 print(code)

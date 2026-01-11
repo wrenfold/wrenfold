@@ -1,15 +1,11 @@
-import typing as T
+import typing
 
+import wrenfold as wf
 from wrenfold import ast, code_generation, type_info
-from wrenfold.enumerations import (
-    RelationalOperation,
-    StdMathFunction,
-    SymbolicConstant,
-)
 
 
 # noinspection PyMethodMayBeStatic
-class CCodeGenerator(code_generation.BaseGenerator):
+class CCodeGenerator(wf.BaseGenerator):
     """
     A custom code-generator that emits C code. I have endeavored to make this compatible
     with C99. Not being a C programmer myself, it might have small mistakes.
@@ -23,7 +19,7 @@ class CCodeGenerator(code_generation.BaseGenerator):
         assert indent > 0, f"indent = {indent}"
         self._indent: str = " " * indent
 
-    def _indent_and_join(self, lines: T.Iterable[str]) -> str:
+    def _indent_and_join(self, lines: typing.Iterable[str]) -> str:
         lines_split = []
         for line in lines:
             lines_split.extend(line.splitlines())
@@ -92,31 +88,32 @@ class CCodeGenerator(code_generation.BaseGenerator):
         return f"{call.function.name}(" + ", ".join(self.format(x) for x in call.args) + ")"
 
     def format_call_std_function(self, call: ast.CallStdFunction) -> str:
-        if call.function == StdMathFunction.Signum:
+        if call.function == wf.StdMathFunction.Signum:
             # There is no standard sign function in C.
             sign_arg = self.format(call.args[0])
             return f"(double)(int(0.0 < {sign_arg}) - int({sign_arg} < 0.0))"
         functions = {
-            StdMathFunction.Cos: "cos",
-            StdMathFunction.Sin: "sin",
-            StdMathFunction.Tan: "tan",
-            StdMathFunction.Acos: "acos",
-            StdMathFunction.Asin: "asin",
-            StdMathFunction.Atan: "atan",
-            StdMathFunction.Sqrt: "sqrt",
-            StdMathFunction.Cosh: "cosh",
-            StdMathFunction.Sinh: "sinh",
-            StdMathFunction.Tanh: "tanh",
-            StdMathFunction.Acosh: "acosh",
-            StdMathFunction.Asinh: "asinh",
-            StdMathFunction.Atanh: "atanh",
-            StdMathFunction.Abs: "fabs",
-            StdMathFunction.Log: "log",
-            StdMathFunction.Signum: "sign",
-            StdMathFunction.Floor: "floor",
-            StdMathFunction.Atan2: "atan2",
-            StdMathFunction.Powi: "pow",
-            StdMathFunction.Powf: "pow",
+            wf.StdMathFunction.Cos: "cos",
+            wf.StdMathFunction.Sin: "sin",
+            wf.StdMathFunction.Tan: "tan",
+            wf.StdMathFunction.Acos: "acos",
+            wf.StdMathFunction.Asin: "asin",
+            wf.StdMathFunction.Atan: "atan",
+            wf.StdMathFunction.Sqrt: "sqrt",
+            wf.StdMathFunction.Cosh: "cosh",
+            wf.StdMathFunction.Sinh: "sinh",
+            wf.StdMathFunction.Tanh: "tanh",
+            wf.StdMathFunction.Acosh: "acosh",
+            wf.StdMathFunction.Asinh: "asinh",
+            wf.StdMathFunction.Atanh: "atanh",
+            wf.StdMathFunction.Abs: "fabs",
+            wf.StdMathFunction.Log: "log",
+            wf.StdMathFunction.Exp: "exp",
+            wf.StdMathFunction.Signum: "sign",
+            wf.StdMathFunction.Floor: "floor",
+            wf.StdMathFunction.Atan2: "atan2",
+            wf.StdMathFunction.Powi: "pow",
+            wf.StdMathFunction.Powf: "pow",
         }
         return f"{functions[call.function]}(" + ", ".join(self.format(x) for x in call.args) + ")"
 
@@ -127,11 +124,11 @@ class CCodeGenerator(code_generation.BaseGenerator):
         return "\n".join(f"// {x}" for x in comment.split_lines())
 
     def format_compare(self, compare: ast.Compare) -> str:
-        if compare.operation == RelationalOperation.LessThan:
+        if compare.operation == wf.RelationalOperation.LessThan:
             op = "<"
-        elif compare.operation == RelationalOperation.LessThanOrEqual:
+        elif compare.operation == wf.RelationalOperation.LessThanOrEqual:
             op = "<="
-        elif compare.operation == RelationalOperation.Equal:
+        elif compare.operation == wf.RelationalOperation.Equal:
             op = "=="
         else:
             raise NotImplementedError(f"Unknown operation: {compare.operation}")
@@ -203,9 +200,9 @@ class CCodeGenerator(code_generation.BaseGenerator):
         return f"return {self.format(ret.value)};"
 
     def format_special_constant(self, constant: ast.SpecialConstant) -> str:
-        if constant.value == SymbolicConstant.Euler:
+        if constant.value == wf.SymbolicConstant.Euler:
             return "M_E"
-        elif constant.value == SymbolicConstant.Pi:
+        elif constant.value == wf.SymbolicConstant.Pi:
             return "M_PI"
         else:
             raise NotImplementedError(f"Unsupported constant: {constant.value}")

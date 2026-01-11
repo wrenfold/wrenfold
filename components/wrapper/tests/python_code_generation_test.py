@@ -6,7 +6,7 @@ import collections
 import dataclasses
 import inspect
 import sys
-import typing as T
+import typing
 import unittest
 
 import jax
@@ -20,21 +20,14 @@ except ImportError:
     print("Torch not installed, PyTorch tests will be skipped.")
     th = None
 
-from wrenfold import code_generation, external_functions, sym, type_info
+import wrenfold as wf
+from wrenfold import external_functions, sym, type_info
 from wrenfold.geometry import Quaternion
-from wrenfold.type_annotations import (
-    FloatScalar,
-    IntScalar,
-    Matrix3,
-    Vector2,
-    Vector3,
-    Vector4,
-)
 
 from .test_base import MathTestBase
 
 
-def create_evaluator(func: T.Callable) -> T.Callable:
+def create_evaluator(func: typing.Callable) -> typing.Callable:
     """
     Create a python function that evaluates a symbolic function numerically by walking the
     expression tree and substituting in floats.
@@ -42,7 +35,7 @@ def create_evaluator(func: T.Callable) -> T.Callable:
     We could promote this to a library feature, although handling of custom types is somewhat
     tricky. For now it only handles scalars and vectors.
     """
-    desc = code_generation.create_function_description(func=func)
+    desc = wf.create_function_description(func=func)
     output_expressions = desc.output_expressions()
 
     input_args = [a for a in desc.arguments if a.is_input]
@@ -101,7 +94,7 @@ def create_evaluator(func: T.Callable) -> T.Callable:
     return evaluator
 
 
-def batch_evaluator(func: T.Callable) -> T.Callable:
+def batch_evaluator(func: typing.Callable) -> typing.Callable:
     """
     Create a new callable that runs an evaluator in a for-loop so we can more easily compare
     to batched variants.
@@ -143,14 +136,14 @@ def batch_evaluator(func: T.Callable) -> T.Callable:
 
 
 def get_optional_output_flags(
-    func: T.Callable[..., code_generation.CodegenFuncInvocationResult],
+    func: typing.Callable[..., wf.CodegenFuncInvocationResult],
 ) -> tuple[int, dict[str, bool]]:
     """
     Get the function description and do two things:
     - Count the # of input args.
     - Return a dict of flags to enable all optional outputs.
     """
-    description = code_generation.create_function_description(func)
+    description = wf.create_function_description(func)
     optional_arg_flags = dict()
     num_input_args = 0
     for arg in description.arguments:
@@ -186,19 +179,19 @@ class PythonCodeGenerationTestBase(MathTestBase):
     SUPPORTS_BATCH = True
     EXPECTED_TYPE: npt.DTypeLike | None = None
 
-    def _generator(self, func: T.Callable, batch: bool = False) -> T.Callable:
+    def _generator(self, func: typing.Callable, batch: bool = False) -> typing.Callable:
         raise NotImplementedError()
 
     def test_rotate_vector2d(self):
         """Test a function that rotates a vector."""
 
-        def vector_rotation_2d(theta: FloatScalar, v: Vector2):
+        def vector_rotation_2d(theta: wf.FloatScalar, v: wf.Vector2):
             R = sym.matrix([[sym.cos(theta), -sym.sin(theta)], [sym.sin(theta), sym.cos(theta)]])
             f = R * v
             J_theta = sym.jacobian(f, [theta])
             return [
-                code_generation.ReturnValue(f),
-                code_generation.OutputArg(J_theta, name="J_theta"),
+                wf.ReturnValue(f),
+                wf.OutputArg(J_theta, name="J_theta"),
             ]
 
         func = self._generator(vector_rotation_2d)
@@ -233,8 +226,8 @@ class PythonCodeGenerationTestBase(MathTestBase):
     def test_nested_conditional(self):
         """Test a function that creates a nested conditional."""
 
-        def nested_cond(x: FloatScalar, y: FloatScalar):
-            return code_generation.ReturnValue(
+        def nested_cond(x: wf.FloatScalar, y: wf.FloatScalar):
+            return wf.ReturnValue(
                 sym.where(
                     x > 0,
                     sym.where(y > 0, 0, x * y),
@@ -269,7 +262,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
     def test_std_math_functions(self):
         """Test a function that uses every built-in math function."""
 
-        def built_ins(x: FloatScalar):
+        def built_ins(x: wf.FloatScalar):
             # Alter the inputs here so everything is real:
             return sym.vector(
                 sym.cos(x),
@@ -312,12 +305,12 @@ class PythonCodeGenerationTestBase(MathTestBase):
     def test_rotate_vector(self):
         """Test a function that creates a rotation matrix."""
 
-        def rotate_vector(w: Vector3, v: Vector3):
+        def rotate_vector(w: wf.Vector3, v: wf.Vector3):
             v_rot = Quaternion.from_rotation_vector(w, epsilon=1.0e-6).to_rotation_matrix() * v
             v_rot_D_w = v_rot.jacobian(vars=w)
             return (
-                code_generation.ReturnValue(v_rot),
-                code_generation.OutputArg(v_rot_D_w, name="v_rot_D_w", is_optional=True),
+                wf.ReturnValue(v_rot),
+                wf.OutputArg(v_rot_D_w, name="v_rot_D_w", is_optional=True),
             )
 
         func = self._generator(rotate_vector)
@@ -347,10 +340,10 @@ class PythonCodeGenerationTestBase(MathTestBase):
     def test_quaternion_to_and_from_matrix(self):
         """Test conversion of a quaternion to/from a matrix."""
 
-        def matrix_from_quat(q_wxyz: Vector4):
+        def matrix_from_quat(q_wxyz: wf.Vector4):
             return Quaternion.from_wxyz(q_wxyz).to_rotation_matrix()
 
-        def quat_from_matrix(m: Matrix3):
+        def quat_from_matrix(m: wf.Matrix3):
             return Quaternion.from_rotation_matrix(m).to_vector_wxyz()
 
         q2m_func = self._generator(matrix_from_quat)
@@ -422,12 +415,12 @@ class PythonCodeGenerationTestBase(MathTestBase):
         Test a method that only has optional outputs.
         """
 
-        def only_optional_outputs(x: Vector3, y: Vector3):
+        def only_optional_outputs(x: wf.Vector3, y: wf.Vector3):
             inner_product = x.T * y
             outer_product = x * y.T
             return [
-                code_generation.OutputArg(inner_product, name="inner", is_optional=True),
-                code_generation.OutputArg(outer_product, name="outer", is_optional=True),
+                wf.OutputArg(inner_product, name="inner", is_optional=True),
+                wf.OutputArg(outer_product, name="outer", is_optional=True),
             ]
 
         func = self._generator(only_optional_outputs)
@@ -467,10 +460,10 @@ class PythonCodeGenerationTestBase(MathTestBase):
         type.
         """
 
-        def compute_with_ints(x: IntScalar, y: IntScalar):
+        def compute_with_ints(x: wf.IntScalar, y: wf.IntScalar):
             return [
-                code_generation.ReturnValue(x * y),
-                code_generation.OutputArg(sym.vector(x + y), name="sum"),
+                wf.ReturnValue(x * y),
+                wf.OutputArg(sym.vector(x + y), name="sum"),
             ]
 
         func = self._generator(compute_with_ints)
@@ -498,15 +491,15 @@ class SimParamsSymbolic:
     We use this to test code-generation of custom types in python methods.
     """
 
-    mass: FloatScalar
-    drag_coefficient: FloatScalar
-    gravity: FloatScalar
+    mass: wf.FloatScalar
+    drag_coefficient: wf.FloatScalar
+    gravity: wf.FloatScalar
 
 
 @dataclasses.dataclass
 class SimStateSymbolic:
-    position: Vector2
-    velocity: Vector2
+    position: wf.Vector2
+    velocity: wf.Vector2
 
 
 @dataclasses.dataclass
@@ -528,7 +521,7 @@ class SimState:
 
 def integrate_sim(
     x: SimStateSymbolic,
-    dt: FloatScalar,
+    dt: wf.FloatScalar,
     params: SimParamsSymbolic,
 ):
     """
@@ -563,24 +556,24 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
-        custom_generator_type: type[code_generation.PythonGenerator] | None = None,
+        custom_generator_type: type[wf.PythonGenerator] | None = None,
         **kwargs,
-    ) -> T.Callable:
+    ) -> typing.Callable:
         if custom_generator_type is None:
-            custom_generator_type = code_generation.PythonGenerator
+            custom_generator_type = wf.PythonGenerator
         generator = custom_generator_type(
-            target=code_generation.PythonGeneratorTarget.NumPy,
+            target=wf.PythonGeneratorTarget.NumPy,
             float_width=(
-                code_generation.PythonGeneratorFloatWidth.Float32
+                wf.PythonGeneratorFloatWidth.Float32
                 if np.float32 == self.EXPECTED_TYPE
-                else code_generation.PythonGeneratorFloatWidth.Float64
+                else wf.PythonGeneratorFloatWidth.Float64
             ),
             use_output_arguments=self.USE_OUTPUT_ARGUMENTS,
         )
 
-        func_gen, code = code_generation.generate_python(func=func, generator=generator, **kwargs)
+        func_gen, code = wf.generate_python(func=func, generator=generator, **kwargs)
         if self.VERBOSE:
             print(code)
 
@@ -593,7 +586,7 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
             return wrapped_func
         else:
             # Generate a wrapped version that passes arrays to be filled as arguments.
-            description = code_generation.create_function_description(func)
+            description = wf.create_function_description(func)
             output_arg_spec = dict()
             for arg in description.arguments:
                 if not arg.is_input:
@@ -620,10 +613,10 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
         Test calling an external function via a generated python method.
         """
         external_func = external_functions.declare_external_function(
-            name="external_func", arguments=[("x", FloatScalar)], return_type=Vector2
+            name="external_func", arguments=[("x", wf.FloatScalar)], return_type=wf.Vector2
         )
 
-        def call_external_func(a: Vector2, b: Vector2):
+        def call_external_func(a: wf.Vector2, b: wf.Vector2):
             (dot,) = a.T * b
             return external_func(3 * dot + 0.2)
 
@@ -647,7 +640,7 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
         Test we can generated a method that uses a custom type.
         """
 
-        class CustomPythonGenerator(code_generation.PythonGenerator):
+        class CustomPythonGenerator(wf.PythonGenerator):
             def format_custom_type(self, custom: type_info.CustomType):
                 if custom.python_type == SimParamsSymbolic:
                     return "SimParams"
@@ -670,7 +663,7 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
         v_in = np.array([9.1, 8.3]).reshape((2, 1))
 
         x_out_sym: SimStateSymbolic = integrate_sim(
-            x=SimStateSymbolic(position=Vector2(p_in), velocity=Vector2(v_in)),
+            x=SimStateSymbolic(position=wf.Vector2(p_in), velocity=wf.Vector2(v_in)),
             dt=0.7,
             params=SimParamsSymbolic(mass=5.7, drag_coefficient=2.4, gravity=9.81),
         )
@@ -712,20 +705,20 @@ class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
         **kwargs,
-    ) -> T.Callable:
-        generator = code_generation.PythonGenerator(
+    ) -> typing.Callable:
+        generator = wf.PythonGenerator(
             float_width=(
-                code_generation.PythonGeneratorFloatWidth.Float32
+                wf.PythonGeneratorFloatWidth.Float32
                 if np.float32 == self.EXPECTED_TYPE
-                else code_generation.PythonGeneratorFloatWidth.Float64
+                else wf.PythonGeneratorFloatWidth.Float64
             ),
             use_output_arguments=self.USE_OUTPUT_ARGUMENTS,
         )
 
-        func_gen, code = code_generation.generate_python(func=func, generator=generator, **kwargs)
+        func_gen, code = wf.generate_python(func=func, generator=generator, **kwargs)
         if self.VERBOSE:
             print(code)
 
@@ -741,7 +734,7 @@ class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
             return wrapped_func
         else:
-            description = code_generation.create_function_description(func)
+            description = wf.create_function_description(func)
             output_arg_spec = dict()
             for arg in description.arguments:
                 if not arg.is_input:
@@ -768,10 +761,10 @@ class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
         Test calling an external function via a generated python method.
         """
         external_func = external_functions.declare_external_function(
-            name="external_func", arguments=[("x", FloatScalar)], return_type=Vector2
+            name="external_func", arguments=[("x", wf.FloatScalar)], return_type=wf.Vector2
         )
 
-        def call_external_func(a: Vector2, b: Vector2):
+        def call_external_func(a: wf.Vector2, b: wf.Vector2):
             (dot,) = a.T * b
             return external_func(3 * sym.cos(dot) + 0.2 - sym.sin(a[0]))
 
@@ -817,16 +810,16 @@ class JaxCodeGenerationTest(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
         **kwargs,
-    ) -> T.Callable:
-        generator = code_generation.PythonGenerator(
-            target=code_generation.PythonGeneratorTarget.JAX,
-            float_width=(code_generation.PythonGeneratorFloatWidth.Float32),
+    ) -> typing.Callable:
+        generator = wf.PythonGenerator(
+            target=wf.PythonGeneratorTarget.JAX,
+            float_width=(wf.PythonGeneratorFloatWidth.Float32),
         )
 
-        func_gen, _code = code_generation.generate_python(func=func, generator=generator, **kwargs)
+        func_gen, _code = wf.generate_python(func=func, generator=generator, **kwargs)
         num_input_args, optional_arg_flags = get_optional_output_flags(func)
 
         if batch:
@@ -856,16 +849,16 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
         **kwargs,
-    ) -> T.Callable:
-        generator = code_generation.PythonGenerator(
-            target=code_generation.PythonGeneratorTarget.PyTorch,
-            float_width=(code_generation.PythonGeneratorFloatWidth.Float32),
+    ) -> typing.Callable:
+        generator = wf.PythonGenerator(
+            target=wf.PythonGeneratorTarget.PyTorch,
+            float_width=(wf.PythonGeneratorFloatWidth.Float32),
         )
 
-        func_gen, _code = code_generation.generate_python(func=func, generator=generator, **kwargs)
+        func_gen, _code = wf.generate_python(func=func, generator=generator, **kwargs)
         num_input_args, optional_arg_flags = get_optional_output_flags(func)
 
         # For PyTorch, test that we can batch the code we generate.
@@ -898,23 +891,23 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
 def test_apply_preamble():
     """A simple test to check that we apply the preamble correctly to code."""
     targets_to_test = [
-        code_generation.PythonGeneratorTarget.NumPy,
-        code_generation.PythonGeneratorTarget.JAX,
+        wf.PythonGeneratorTarget.NumPy,
+        wf.PythonGeneratorTarget.JAX,
     ]
     if th is not None:
-        targets_to_test.append(code_generation.PythonGeneratorTarget.PyTorch)
+        targets_to_test.append(wf.PythonGeneratorTarget.PyTorch)
 
     target_imports = {
-        code_generation.PythonGeneratorTarget.NumPy: "import numpy as np",
-        code_generation.PythonGeneratorTarget.JAX: "import jax.numpy as jnp",
-        code_generation.PythonGeneratorTarget.PyTorch: "import torch as th",
+        wf.PythonGeneratorTarget.NumPy: "import numpy as np",
+        wf.PythonGeneratorTarget.JAX: "import jax.numpy as jnp",
+        wf.PythonGeneratorTarget.PyTorch: "import torch as th",
     }
 
     code = "def foo():\n\tpass"
     preamble_template = "# Machine generated code.\nimport typing as T\n{}\n\n{}\n"
 
     for target in targets_to_test:
-        code_generator = code_generation.PythonGenerator(target=target)
+        code_generator = wf.PythonGenerator(target=target)
         code_with_preamble = code_generator.apply_preamble(code)
         expected = preamble_template.format(target_imports[target], code)
         assert code_with_preamble == expected
@@ -925,16 +918,14 @@ def test_numpy_type_annotations():
     Test that type annotations are correct.
     """
 
-    def sym1(x: Vector2, y: Vector3, z: FloatScalar, w: IntScalar):
+    def sym1(x: wf.Vector2, y: wf.Vector3, z: wf.FloatScalar, w: wf.IntScalar):
         return [
-            code_generation.ReturnValue(x * z * w),
-            code_generation.OutputArg(sym.vector(*x, z), name="foo"),
-            code_generation.OutputArg(y * y.T, name="bar", is_optional=True),
+            wf.ReturnValue(x * z * w),
+            wf.OutputArg(sym.vector(*x, z), name="foo"),
+            wf.OutputArg(y * y.T, name="bar", is_optional=True),
         ]
 
-    func, _code = code_generation.generate_python(
-        sym1, generator=code_generation.PythonGenerator(use_output_arguments=False)
-    )
+    func, _code = wf.generate_python(sym1, generator=wf.PythonGenerator(use_output_arguments=False))
 
     spec = inspect.getfullargspec(func=func)
     for arg_name in spec.args:
@@ -950,9 +941,7 @@ def test_numpy_type_annotations():
     assert spec.annotations["w"] is int
     assert spec.annotations["compute_bar"] is bool
 
-    func, _code = code_generation.generate_python(
-        sym1, generator=code_generation.PythonGenerator(use_output_arguments=True)
-    )
+    func, _code = wf.generate_python(sym1, generator=wf.PythonGenerator(use_output_arguments=True))
 
     spec = inspect.getfullargspec(func=func)
     for arg_name in spec.args:

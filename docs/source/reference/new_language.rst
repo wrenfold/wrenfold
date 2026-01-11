@@ -20,10 +20,10 @@ For example, when printing ``ast.Add`` we can recurse on ``add.args``:
 
 .. code:: python
 
+    import wrenfold as wf
     from wrenfold import ast
-    from wrenfold.code_generation import BaseGenerator
 
-    class CustomGenerator(BaseGenerator):
+    class CustomGenerator(wf.BaseGenerator):
         """A generator for a new language."""
 
         def format_add(self, add: ast.Add) -> str:
@@ -34,11 +34,11 @@ For example, when printing ``ast.Add`` we can recurse on ``add.args``:
         # ... more overloads ...
 
         def format_compare(self, compare: ast.Compare) -> str:
-            if compare.operation == RelationalOperation.LessThan:
+            if compare.operation == wf.RelationalOperation.LessThan:
                 op = '<'
-            elif compare.operation == RelationalOperation.LessThanOrEqual:
+            elif compare.operation == wf.RelationalOperation.LessThanOrEqual:
                 op = '<='
-            elif compare.operation == RelationalOperation.Equal:
+            elif compare.operation == wf.RelationalOperation.Equal:
                 op = '=='
             else:
                 raise NotImplementedError(f"Unknown operation: {compare.operation}")
@@ -51,12 +51,12 @@ For example, when printing ``ast.Add`` we can recurse on ``add.args``:
     ``FunctionDefinition`` object, which can be traversed by alternative means if desired.
 
 
-With a ``BaseGenerator`` subclass in hand, we can generate code:
+With our ``BaseGenerator``-subclass ``CustomGenerator`` in hand, we can generate code:
 
 .. code:: python
 
-    def some_symbolic_func(x: type_annotations.FloatScalar):
+    def some_symbolic_func(x: wf.FloatScalar):
         return x * 2
 
     # Here we replace the built-in generator with `CustomGenerator`:
-    code = code_generation.generate_function(some_symbolic_func, generator=CustomGenerator())
+    code = wf.generate_function(some_symbolic_func, generator=CustomGenerator())

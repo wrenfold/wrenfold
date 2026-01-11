@@ -13,7 +13,9 @@ namespace wf {
 void wrap_exceptions(py::module_& m) {
   py::exception<arithmetic_error>(m, "ArithmeticError").doc() =
       "Thrown when invalid arithmetic is attempted.";
-  py::exception<assertion_error>(m, "AssertionError").doc() = "Thrown for internal errors.";
+  py::exception<assertion_error>(m, "AssertionError").doc() =
+      "Thrown for internal errors. Report these on `GitHub "
+      "<https://github.com/wrenfold/wrenfold/issues>`_.";
   py::exception<dimension_error>(m, "DimensionError").doc() =
       "Thrown when matrix operations encounter invalid dimensions.";
   py::exception<domain_error>(m, "DomainError").doc() =

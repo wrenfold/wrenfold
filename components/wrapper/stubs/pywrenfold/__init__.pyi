@@ -2,7 +2,6 @@ from . import (
     ast as ast,
     enumerations as enumerations,
     exceptions as exceptions,
-    expressions as expressions,
     gen as gen,
     geometry as geometry,
     sym as sym,

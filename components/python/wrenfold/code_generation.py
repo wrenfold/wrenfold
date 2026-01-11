@@ -5,7 +5,7 @@ Utility functions to support code-generation.
 import dataclasses
 import inspect
 import pathlib
-import typing as T
+import typing
 
 from pywrenfold.gen import (
     Argument,  # noqa
@@ -37,7 +37,7 @@ class ReturnValue:
         custom type.
     """
 
-    expression: sym.Expr | sym.MatrixExpr | T.Any
+    expression: sym.Expr | sym.MatrixExpr | typing.Any
 
 
 @dataclasses.dataclass
@@ -52,7 +52,7 @@ class OutputArg:
       is_optional: Specify whether the output argument is optional or not.
     """
 
-    expression: sym.Expr | sym.MatrixExpr | T.Any
+    expression: sym.Expr | sym.MatrixExpr | typing.Any
     name: str
     is_optional: bool = False
 
@@ -61,12 +61,12 @@ ReturnValueOrOutputArg = ReturnValue | OutputArg
 
 # Things that can be returned from symbolic python functions.
 CodegenFuncInvocationResult = (
-    sym.Expr | sym.MatrixExpr | ReturnValueOrOutputArg | T.Sequence[ReturnValueOrOutputArg]
+    sym.Expr | sym.MatrixExpr | ReturnValueOrOutputArg | typing.Sequence[ReturnValueOrOutputArg]
 )
 
 
 def create_function_description(
-    func: T.Callable[..., CodegenFuncInvocationResult], name: str | None = None
+    func: typing.Callable[..., CodegenFuncInvocationResult], name: str | None = None
 ) -> FunctionDescription:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
@@ -92,22 +92,21 @@ def create_function_description(
       An instance of :class:`wrenfold.code_generation.FunctionDescription`.
 
     Example:
-      >>> from wrenfold.type_annotations import FloatScalar
-      >>> from wrenfold import code_generation
+      >>> import wrenfold as wf
       >>>
-      >>> def foo(x: FloatScalar, y: FloatScalar):
+      >>> def foo(x: wf.FloatScalar, y: wf.FloatScalar):
       >>>     # One return value, and one output argument named `z`:
-      >>>     return [code_generation.ReturnValue(x * y), code_generation.OutputArg(x + y, "z")]
-      >>> description = code_generation.create_function_description(func=foo)
+      >>>     return [wf.ReturnValue(x * y), wf.OutputArg(x + y, "z")]
+      >>> description = wf.create_function_description(func=foo)
       >>> print(description)
       FunctionDescription('foo', 3 args)
 
       The description can then be transpiled to a target language:
 
-      >>> definition = code_generation.transpile(description)
+      >>> definition = wf.transpile(description)
       >>> print(definition)
       FunctionDefinition('foo', <3 arguments>, <7 elements>)
-      >>> code = code_generation.CppGenerator().generate(definition=definition)
+      >>> code = wf.CppGenerator().generate(definition=definition)
       >>> print(code)
 
       .. code-block:: cpp
@@ -206,7 +205,7 @@ def create_function_description(
 
 
 def generate_function(
-    func: T.Callable[..., CodegenFuncInvocationResult],
+    func: typing.Callable[..., CodegenFuncInvocationResult],
     generator: CppGenerator | RustGenerator | PythonGenerator | BaseGenerator,
     name: str | None = None,
     optimization_params: OptimizationParams | None = None,
@@ -245,14 +244,13 @@ def generate_function(
       * A string of generated code.
 
     Example:
-      >>> from wrenfold.type_annotations import FloatScalar
-      >>> from wrenfold import code_generation
+      >>> import wrenfold as wf
       >>>
-      >>> def foo(x: FloatScalar, y: FloatScalar):
+      >>> def foo(x: wf.FloatScalar, y: wf.FloatScalar):
       >>>     # One return value, and one output argument named `z`:
-      >>>     return [code_generation.ReturnValue(x * y), code_generation.OutputArg(x + y, "z")]
+      >>>     return [wf.ReturnValue(x * y), wf.OutputArg(x + y, "z")]
       >>>
-      >>> code = code_generation.generate_function(func=foo)
+      >>> code = wf.generate_function(func=foo)
       >>> print(code)
 
       .. code-block:: cpp
@@ -284,12 +282,12 @@ def generate_function(
 
 
 def generate_python(
-    func: T.Callable[..., CodegenFuncInvocationResult],
+    func: typing.Callable[..., CodegenFuncInvocationResult],
     generator: PythonGenerator | None = None,
     convert_ternaries: bool | None = None,
-    context: dict[str, T.Any] | None = None,
+    context: dict[str, typing.Any] | None = None,
     import_target_module: bool = True,
-) -> tuple[T.Callable, str]:
+) -> tuple[typing.Callable, str]:
     """
     Code-generate a symbolic function as python code, then ``exec`` the code and return a python
     function that implements the symbolic function numerically.
@@ -342,26 +340,26 @@ def generate_python(
       >>> import numpy as np
       >>> import jax
       >>>
-      >>> from wrenfold import code_generation, sym
-      >>> from wrenfold.type_annotations import Vector3
+      >>> import wrenfold as wf
+      >>> from wrenfold import sym
       >>>
-      >>> def foo(x: Vector3, y: Vector3):
+      >>> def foo(x: wf.Vector3, y: wf.Vector3):
       >>>     # A simple test function, with one return value and one output argument.
       >>>     dot, = x.T * y
       >>>     f = sym.tanh(dot)
       >>>     J = sym.jacobian([f], x)
-      >>>     return [code_generation.ReturnValue(f), code_generation.OutputArg(J, "J")]
+      >>>     return [wf.ReturnValue(f), wf.OutputArg(J, "J")]
       >>>
       >>> # Generate NumPy code:
-      >>> func_numpy, _ = code_generation.generate_python(func=foo)
+      >>> func_numpy, _ = wf.generate_python(func=foo)
       >>> x = np.array([-0.1, 0.2, 0.3])
       >>> y = np.array([0.25, -0.32, 0.4])
       >>> f_numerical, J_numerical = func_numpy(x, y)
       >>> print(f_numerical) # produces: 0.03099...
       >>>
       >>> # Alternatively, generate JAX code and batch it:
-      >>> generator = code_generation.PythonGenerator(code_generation.PythonGeneratorTarget.JAX)
-      >>> func_jax, code = code_generation.generate_python(func=foo, generator=generator)
+      >>> generator = wf.PythonGenerator(wf.PythonGeneratorTarget.JAX)
+      >>> func_jax, code = wf.generate_python(func=foo, generator=generator)
       >>> print(code) # See python listing below.
       >>>
       >>> # Generate a batched and JIT compiled version of our function using JAX.
