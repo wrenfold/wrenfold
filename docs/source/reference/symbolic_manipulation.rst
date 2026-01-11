@@ -133,7 +133,7 @@ As expressions are composed, they are automatically converted to canonical form:
 
 .. code:: python
 
-    from wrenfold.enumerations import NumberSet
+    from wrenfold import NumberSet
 
     z = sym.symbol('z', set=NumberSet.RealNonNegative)
     ((3 * z) ** 4) ** (sym.one / 4)

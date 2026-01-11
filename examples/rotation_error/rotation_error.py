@@ -7,12 +7,11 @@ averaging optimization.
 
 import argparse
 
-from wrenfold import code_generation
+import wrenfold as wf
 from wrenfold.geometry import Quaternion
-from wrenfold.type_annotations import FloatScalar, Vector4
 
 
-def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: FloatScalar):
+def rotation_error(q0_xyzw: wf.Vector4, q1_xyzw: wf.Vector4, weight: wf.FloatScalar):
     """
     Tangent-space difference between two scalar-last quaternions, scaled by
     a positive weight value.
@@ -25,9 +24,9 @@ def rotation_error(q0_xyzw: Vector4, q1_xyzw: Vector4, weight: FloatScalar):
     D1 = error.jacobian(q1.to_vector_wxyz()) * q1.right_retract_derivative()
 
     return [
-        code_generation.OutputArg(error, name="error"),
-        code_generation.OutputArg(D0, name="d0", is_optional=True),
-        code_generation.OutputArg(D1, name="d1", is_optional=True),
+        wf.OutputArg(error, name="error"),
+        wf.OutputArg(D0, name="d0", is_optional=True),
+        wf.OutputArg(D1, name="d1", is_optional=True),
     ]
 
 
@@ -35,17 +34,17 @@ def main(args: argparse.Namespace):
     # For this example, we'll generate our function twice:
     # - Once with the default CppGenerator (functions use generics in signatures).
     # - And once with `CppMatrixTypeBehavior.Eigen` (functions use Eigen types in signatures).
-    generator = code_generation.CppGenerator()
-    eigen_generator = code_generation.CppGenerator(code_generation.CppMatrixTypeBehavior.Eigen)
-    code = code_generation.generate_function(func=rotation_error, generator=generator)
+    generator = wf.CppGenerator()
+    eigen_generator = wf.CppGenerator(wf.CppMatrixTypeBehavior.Eigen)
+    code = wf.generate_function(func=rotation_error, generator=generator)
     code += "\n\n"
-    code += code_generation.generate_function(
+    code += wf.generate_function(
         func=rotation_error,
         generator=eigen_generator,
         name=f"{rotation_error.__name__}_eigen",
     )
     code = generator.apply_preamble(code, namespace="gen", imports="#include <Eigen/Core>")
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

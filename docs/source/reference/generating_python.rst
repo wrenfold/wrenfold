@@ -9,9 +9,11 @@ To directly generate a python callable, we can use :func:`~wrenfold.code_generat
 
 .. code:: python
 
+    import wrenfold as wf
+
     # `step_np_func` will be a callable that accepts scalar `x`:
     # `step_code` is a string of python code.
-    step_np_func, step_code = code_generation.generate_python(func=step_clamped)
+    step_np_func, step_code = wf.generate_python(func=step_clamped)
 
     y, df = step_np_func(x=0.32, compute_df=True)
 
@@ -31,12 +33,12 @@ conditional logic. For example:
 .. code:: python
 
     # Jax does not support float64, so we make sure we generate code that uses float32 types.
-    geneator = code_generation.PythonGenerator(
-        target=code_generation.PythonGeneratorTarget.JAX,
-        float_width=code_generation.PythonGeneratorFloatWidth.Float32
+    geneator = wf.PythonGenerator(
+        target=wf.PythonGeneratorTarget.JAX,
+        float_width=wf.PythonGeneratorFloatWidth.Float32
     )
 
-    step_jax_func, step_code = code_generation.generate_python(
+    step_jax_func, step_code = wf.generate_python(
         func=step_clamped, generator=generator, convert_ternaries=False)
 
     print(step_code)
@@ -83,17 +85,18 @@ function to ``numba.njit``:
 .. code:: python
 
     import numba
+    import wrenfold as wf
 
     # NumPy is the default argument for `generator`, but in this instance (as an example) we will
     # customize the generation to use float32 for all types:
-    generator = code_generation.PythonGenerator(
-        float_width=code_generation.PythonGeneratorFloatWidth.Float32
+    generator = wf.PythonGenerator(
+        float_width=wf.PythonGeneratorFloatWidth.Float32
     )
 
-    step_func, _ = code_generation.generate_python(func=step_clamped, generator=generator)
+    step_func, _ = wf.generate_python(func=step_clamped, generator=generator)
 
     jit_compiled_func = numba.njit(step_func)
 
     # For the float64 version we can simply do:
-    step_func, _ = code_generation.generate_python(func=step_clamped)
+    step_func, _ = wf.generate_python(func=step_clamped)
     jit_compiled_func = numba.njit(step_func)

@@ -18,8 +18,8 @@ import argparse
 import collections
 import typing as T
 
+import wrenfold as wf
 from wrenfold import code_generation, sym
-from wrenfold.type_annotations import FloatScalar
 
 
 def weight(x: sym.Expr, i: int, k: int, knots: T.Sequence[sym.Expr]) -> sym.Expr:
@@ -181,7 +181,7 @@ def create_polynomial_functions(
     descriptions: list[code_generation.FunctionDescription] = []
     for i in range(0, len(polynomials)):
 
-        def bspline(arg: FloatScalar, arg_scale: FloatScalar):
+        def bspline(arg: wf.FloatScalar, arg_scale: wf.FloatScalar):
             # Output the function, plus (order - 2) derivatives that are continuous.
             # The last non-zero derivative is discontinuous.
             rows = [polynomials[i].subs(x, arg)]  # noqa: B023
@@ -189,7 +189,7 @@ def create_polynomial_functions(
                 rows.append(rows[-1].diff(arg) * arg_scale)
 
             return [
-                code_generation.OutputArg(expression=sym.vector(*rows).transpose(), name=f"b_{i}")  # noqa: B023
+                wf.OutputArg(expression=sym.vector(*rows).transpose(), name=f"b_{i}")  # noqa: B023
             ]
 
         if is_cumulative:
@@ -344,16 +344,17 @@ def main(args: argparse.Namespace):
 
     definitions = [code_generation.transpile(d) for d in descriptions]
     if args.language == "cpp":
-        generator = code_generation.CppGenerator()
+        generator = wf.CppGenerator()
         code = generator.generate(definitions)
         code = generator.apply_preamble(code, namespace="gen")
     elif args.language == "rust":
-        code = code_generation.RustGenerator().generate(definitions)
-        code = code_generation.RustGenerator.apply_preamble(code)
+        generator = wf.RustGenerator()
+        code = generator.generate(definitions)
+        code = generator.apply_preamble(code)
     else:
         raise RuntimeError("Invalid language selection")
 
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

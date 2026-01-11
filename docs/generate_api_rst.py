@@ -86,6 +86,7 @@ def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
 
 def main(args: argparse.Namespace):
     output_dir = Path(args.output_dir)
+
     generate_rst_for_module(module=sym, module_name="sym", output_dir=output_dir)
     generate_rst_for_module(module=geometry, module_name="geometry", output_dir=output_dir)
     generate_rst_for_module(module=ast, module_name="ast", output_dir=output_dir)

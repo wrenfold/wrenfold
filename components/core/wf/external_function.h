@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "wf/any_expression.h"
-#include "wf/code_generation/function_description.h"
+#include "wf/code_generation/argument.h"
 #include "wf/code_generation/types.h"
 
 namespace wf {

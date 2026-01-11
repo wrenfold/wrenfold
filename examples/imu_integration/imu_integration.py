@@ -13,9 +13,9 @@ In practice, there is a larger space of design choices you could make. For insta
 import argparse
 import typing as T
 
-from wrenfold import code_generation, sym
+import wrenfold as wf
+from wrenfold import sym
 from wrenfold.geometry import Quaternion, left_jacobian_of_so3
-from wrenfold.type_annotations import FloatScalar, Vector3, Vector4
 
 
 def blockwise_jacobians(
@@ -46,14 +46,14 @@ def blockwise_jacobians(
 
 
 def integrate_imu(
-    i_R_j_xyzw: Vector4,
-    i_p_j: Vector3,
-    i_v_j: Vector3,
-    gyro_bias: Vector3,
-    accelerometer_bias: Vector3,
-    angular_velocity: Vector3,
-    linear_acceleration: Vector3,
-    dt: FloatScalar,
+    i_R_j_xyzw: wf.Vector4,
+    i_p_j: wf.Vector3,
+    i_v_j: wf.Vector3,
+    gyro_bias: wf.Vector3,
+    accelerometer_bias: wf.Vector3,
+    angular_velocity: wf.Vector3,
+    linear_acceleration: wf.Vector3,
+    dt: wf.FloatScalar,
 ):
     """
     We take an incremental navigation state represented by the 9DOF product of:
@@ -114,25 +114,25 @@ def integrate_imu(
     k_D_bias = -k_D_measurements
 
     return [
-        code_generation.OutputArg(i_R_k.normalized().to_vector_xyzw(), name="i_R_k"),
-        code_generation.OutputArg(i_p_k, name="i_p_k"),
-        code_generation.OutputArg(i_v_k, name="i_v_k"),
-        code_generation.OutputArg(k_D_j, name="k_D_j", is_optional=True),
-        code_generation.OutputArg(k_D_measurements, name="k_D_measurements", is_optional=True),
-        code_generation.OutputArg(k_D_bias, name="k_D_bias", is_optional=True),
+        wf.OutputArg(i_R_k.normalized().to_vector_xyzw(), name="i_R_k"),
+        wf.OutputArg(i_p_k, name="i_p_k"),
+        wf.OutputArg(i_v_k, name="i_v_k"),
+        wf.OutputArg(k_D_j, name="k_D_j", is_optional=True),
+        wf.OutputArg(k_D_measurements, name="k_D_measurements", is_optional=True),
+        wf.OutputArg(k_D_bias, name="k_D_bias", is_optional=True),
     ]
 
 
 def compute_pim_delta_from_endpoints(
-    world_R_i_xyzw: Vector4,
-    world_t_i: Vector3,
-    world_v_i: Vector3,
-    world_R_k_xyzw: Vector4,
-    world_t_k: Vector3,
-    world_v_k: Vector3,
-    duration: FloatScalar,
-    gravity_world: Vector3,
-) -> tuple[Quaternion, Vector3, Vector3]:
+    world_R_i_xyzw: wf.Vector4,
+    world_t_i: wf.Vector3,
+    world_v_i: wf.Vector3,
+    world_R_k_xyzw: wf.Vector4,
+    world_t_k: wf.Vector3,
+    world_v_k: wf.Vector3,
+    duration: wf.FloatScalar,
+    gravity_world: wf.Vector3,
+) -> tuple[Quaternion, wf.Vector3, wf.Vector3]:
     """
     Given two 9-DOF navigation states of the form (world_R_imu, world_t_imu, world_v_imu), compute
     what the preintegrated IMU measurements should be, assuming no noise or integration error.
@@ -199,17 +199,17 @@ def compute_pim_delta_from_endpoints(
 
 
 def unweighted_imu_preintegration_error(
-    world_R_i_xyzw: Vector4,
-    world_t_i: Vector3,
-    world_v_i: Vector3,
-    world_R_k_xyzw: Vector4,
-    world_t_k: Vector3,
-    world_v_k: Vector3,
-    i_R_k_measured_xyzw: Vector4,
-    i_t_k_measured: Vector3,
-    i_v_k_measured: Vector3,
-    duration: FloatScalar,
-    gravity_world: Vector3,
+    world_R_i_xyzw: wf.Vector4,
+    world_t_i: wf.Vector3,
+    world_v_i: wf.Vector3,
+    world_R_k_xyzw: wf.Vector4,
+    world_t_k: wf.Vector3,
+    world_v_k: wf.Vector3,
+    i_R_k_measured_xyzw: wf.Vector4,
+    i_t_k_measured: wf.Vector3,
+    i_v_k_measured: wf.Vector3,
+    duration: wf.FloatScalar,
+    gravity_world: wf.Vector3,
 ):
     """
     Given two 9-DOF navigation states of the form (world_R_imu, world_t_imu, world_v_imu), we
@@ -274,28 +274,18 @@ def unweighted_imu_preintegration_error(
 
     # Compute the errors, and jacobians wrt estimated states:
     return [
-        code_generation.OutputArg(error, name="error"),
-        code_generation.OutputArg(error_D_rotation_i, name="error_D_rotation_i", is_optional=True),
-        code_generation.OutputArg(
-            error.jacobian(world_t_i), name="error_D_translation_i", is_optional=True
-        ),
-        code_generation.OutputArg(
-            error.jacobian(world_v_i), name="error_D_velocity_i", is_optional=True
-        ),
-        code_generation.OutputArg(error_D_rotation_k, name="error_D_rotation_k", is_optional=True),
-        code_generation.OutputArg(
-            error.jacobian(world_t_k), name="error_D_translation_k", is_optional=True
-        ),
-        code_generation.OutputArg(
-            error.jacobian(world_v_k), name="error_D_velocity_k", is_optional=True
-        ),
-        code_generation.OutputArg(
-            error_D_measurements, name="error_D_measurements", is_optional=True
-        ),
+        wf.OutputArg(error, name="error"),
+        wf.OutputArg(error_D_rotation_i, name="error_D_rotation_i", is_optional=True),
+        wf.OutputArg(error.jacobian(world_t_i), name="error_D_translation_i", is_optional=True),
+        wf.OutputArg(error.jacobian(world_v_i), name="error_D_velocity_i", is_optional=True),
+        wf.OutputArg(error_D_rotation_k, name="error_D_rotation_k", is_optional=True),
+        wf.OutputArg(error.jacobian(world_t_k), name="error_D_translation_k", is_optional=True),
+        wf.OutputArg(error.jacobian(world_v_k), name="error_D_velocity_k", is_optional=True),
+        wf.OutputArg(error_D_measurements, name="error_D_measurements", is_optional=True),
     ]
 
 
-def integration_test_sequence(t: FloatScalar):
+def integration_test_sequence(t: wf.FloatScalar):
     """
     A motion sequence parameterized as a function of time `t`. We use this as a test sequence
     for evaluating our IMU integration code.
@@ -324,27 +314,27 @@ def integration_test_sequence(t: FloatScalar):
     linear_acceleration_body = world_R_body_mat.transpose() * (acceleration + sym.vector(0, 0, g))
 
     return [
-        code_generation.OutputArg(world_R_body.to_vector_xyzw(), name="world_R_body"),
-        code_generation.OutputArg(position, name="world_t_body"),
-        code_generation.OutputArg(velocity, name="world_v_body"),
-        code_generation.OutputArg(angular_velocity_body, name="angular_velocity_body"),
-        code_generation.OutputArg(linear_acceleration_body, name="linear_acceleration_body"),
+        wf.OutputArg(world_R_body.to_vector_xyzw(), name="world_R_body"),
+        wf.OutputArg(position, name="world_t_body"),
+        wf.OutputArg(velocity, name="world_v_body"),
+        wf.OutputArg(angular_velocity_body, name="angular_velocity_body"),
+        wf.OutputArg(linear_acceleration_body, name="linear_acceleration_body"),
     ]
 
 
 def main(args: argparse.Namespace):
     code = ""
-    generator = code_generation.CppGenerator()
+    generator = wf.CppGenerator()
     for function in [
         integrate_imu,
         unweighted_imu_preintegration_error,
         integration_test_sequence,
     ]:
-        code += code_generation.generate_function(function, generator=generator)
+        code += wf.generate_function(function, generator=generator)
         code += "\n\n"
 
     code = generator.apply_preamble(code, namespace="gen")
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

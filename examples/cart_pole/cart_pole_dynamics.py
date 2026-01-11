@@ -6,8 +6,8 @@ import dataclasses
 import sys
 import typing as T
 
-from wrenfold import code_generation, sym, type_annotations, type_info
-from wrenfold.enumerations import NumberSet
+import wrenfold as wf
+from wrenfold import sym, type_info
 
 from .sympy_helpers import get_euler_lagrange_coefficients, get_mat_inverse
 
@@ -16,17 +16,17 @@ from .sympy_helpers import get_euler_lagrange_coefficients, get_mat_inverse
 class CartPoleParamsSymbolic:
     """Parameters of the cart-double-pole system."""
 
-    m_b: type_annotations.FloatScalar  # Mass of the base/cart (kg)
-    m_1: type_annotations.FloatScalar  # Mass of the first pole (kg).
-    m_2: type_annotations.FloatScalar  # Mass of the second pole (kg).
-    l_1: type_annotations.FloatScalar  # Length of the first pole (m).
-    l_2: type_annotations.FloatScalar  # Length of the second pole (m).
-    g: type_annotations.FloatScalar  # Gravity (m/s^2).
-    mu_b: type_annotations.FloatScalar  # Coefficient of static friction.
-    v_mu_b: type_annotations.FloatScalar  # Velocity cutoff of smooth friction model (m/s).
-    c_d: type_annotations.FloatScalar  # Aero-coefficient of poles (N / (m/s)^2).
-    x_s: type_annotations.FloatScalar  # Bounding spring position (m).
-    k_s: type_annotations.FloatScalar  # Bounding spring constant (N / m).
+    m_b: wf.FloatScalar  # Mass of the base/cart (kg)
+    m_1: wf.FloatScalar  # Mass of the first pole (kg).
+    m_2: wf.FloatScalar  # Mass of the second pole (kg).
+    l_1: wf.FloatScalar  # Length of the first pole (m).
+    l_2: wf.FloatScalar  # Length of the second pole (m).
+    g: wf.FloatScalar  # Gravity (m/s^2).
+    mu_b: wf.FloatScalar  # Coefficient of static friction.
+    v_mu_b: wf.FloatScalar  # Velocity cutoff of smooth friction model (m/s).
+    c_d: wf.FloatScalar  # Aero-coefficient of poles (N / (m/s)^2).
+    x_s: wf.FloatScalar  # Bounding spring position (m).
+    k_s: wf.FloatScalar  # Bounding spring constant (N / m).
 
 
 def get_cart_double_pole_dynamics() -> T.Callable:
@@ -36,7 +36,7 @@ def get_cart_double_pole_dynamics() -> T.Callable:
     We derive the necessary expressions symbolically, and then create the function
     `cart_double_pole_dynamics` that specifies exactly what we want code-generated.
     """
-    t = sym.symbol("t", set=NumberSet.Real)
+    t = sym.symbol("t", set=wf.NumberSet.Real)
 
     # Position of the base + angles as a function of time.
     # We create symbolic functions to represent these, and then substitute in the function arguments
@@ -52,24 +52,24 @@ def get_cart_double_pole_dynamics() -> T.Callable:
 
     # Mass of the base, and two weights + lever arm lengths:
     m_b, m_1, m_2, l_1, l_2 = sym.make_symbols(
-        "m_b", "m_1", "m_2", "l_1", "l_2", set=NumberSet.RealPositive
+        "m_b", "m_1", "m_2", "l_1", "l_2", set=wf.NumberSet.RealPositive
     )
 
     # Gravity:
-    g = sym.symbol("g", set=NumberSet.Real)
+    g = sym.symbol("g", set=wf.NumberSet.Real)
 
     # Control input on the base:
-    u_b = sym.symbol("u_b", set=NumberSet.Real)
+    u_b = sym.symbol("u_b", set=wf.NumberSet.Real)
 
     # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
-    mu_b, v_mu_b = sym.make_symbols("mu_b", "v_mu_b", set=NumberSet.Real)
+    mu_b, v_mu_b = sym.make_symbols("mu_b", "v_mu_b", set=wf.NumberSet.Real)
 
     # Air drag coefficient on the mass:
     # This is summarized as: rho * C_d * A, where rho is air density, and A is cross-sectional area.
-    c_d = sym.symbol("c_d_1", set=NumberSet.Real)
+    c_d = sym.symbol("c_d_1", set=wf.NumberSet.Real)
 
     # Position and spring coefficient on the boundary of the workspace.
-    x_s, k_s = sym.make_symbols("x_s", "k_s", set=NumberSet.Real)
+    x_s, k_s = sym.make_symbols("x_s", "k_s", set=wf.NumberSet.Real)
 
     # Positions of base, and two weights.
     b = sym.vector(b_x, 0)
@@ -151,8 +151,8 @@ def get_cart_double_pole_dynamics() -> T.Callable:
 
     def cart_double_pole_dynamics(
         params: CartPoleParamsSymbolic,
-        x: type_annotations.Vector6,
-        u: type_annotations.FloatScalar,
+        x: wf.Vector6,
+        u: wf.FloatScalar,
     ):
         """
         A function we can code-generate that specifies how to compute the derivative of `x` as a
@@ -189,15 +189,15 @@ def get_cart_double_pole_dynamics() -> T.Callable:
         J_x = sym.jacobian(x_dot_out, x)
 
         return [
-            code_generation.OutputArg(x_dot_out, name="x_dot"),
-            code_generation.OutputArg(total_energy, name="energy", is_optional=True),
-            code_generation.OutputArg(J_x, name="J_x", is_optional=True),
+            wf.OutputArg(x_dot_out, name="x_dot"),
+            wf.OutputArg(total_energy, name="energy", is_optional=True),
+            wf.OutputArg(J_x, name="J_x", is_optional=True),
         ]
 
     return cart_double_pole_dynamics
 
 
-class CustomRustGenerator(code_generation.RustGenerator):
+class CustomRustGenerator(wf.RustGenerator):
     """Custom formatter to place `CartPoleParams` in the crate:: scope."""
 
     def format_custom_type(self, custom: type_info.CustomType):
@@ -207,11 +207,11 @@ class CustomRustGenerator(code_generation.RustGenerator):
 
 
 def main():
-    code = code_generation.generate_function(
+    code = wf.generate_function(
         func=get_cart_double_pole_dynamics(), generator=CustomRustGenerator()
     )
     code = CustomRustGenerator.apply_preamble(code=code)
-    code_generation.mkdir_and_write_file(code, sys.argv[1])
+    wf.mkdir_and_write_file(code, sys.argv[1])
 
 
 if __name__ == "__main__":

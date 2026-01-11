@@ -5,6 +5,7 @@
 #include "wf/expressions/function_expressions.h"
 #include "wf/expressions/substitute_expression.h"
 #include "wf/functions.h"
+#include "wf/matrix_functions.h"
 
 #include "wf_test_support/test_macros.h"
 

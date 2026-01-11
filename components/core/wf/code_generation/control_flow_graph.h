@@ -4,6 +4,7 @@
 #pragma once
 #include <vector>
 
+#include "wf/code_generation/function_description.h"
 #include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/operation_counts.h"
 #include "wf/enumerations.h"

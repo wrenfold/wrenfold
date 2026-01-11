@@ -147,10 +147,10 @@ Alternatively, we can request Eigen types be used in the function signature:
 
 .. code:: python
 
-    from wrenfold import code_generation
+    import wrenfold as wf
 
-    generator = code_generation.CppGenerator(code_generation.CppMatrixTypeBehavior.Eigen)
-    cpp = code_generation.generate_function(func=step, generator=code_generation.CppGenerator())
+    generator = wf.CppGenerator(code_generation.CppMatrixTypeBehavior.Eigen)
+    cpp = wf.generate_function(func=step, generator=wf.CppGenerator())
     print(cpp)
 
 Which produces:

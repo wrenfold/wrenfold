@@ -2,13 +2,11 @@
 Symbolic expressions that are shared among the provided examples.
 """
 
-from wrenfold import code_generation, sym, type_annotations
-from wrenfold.enumerations import NumberSet
+import wrenfold as wf
+from wrenfold import sym
 
 
-def kb_fisheye_distortion(
-    theta: type_annotations.FloatScalar, coeffs: type_annotations.Vector4
-) -> sym.Expr:
+def kb_fisheye_distortion(theta: wf.FloatScalar, coeffs: wf.Vector4) -> sym.Expr:
     """Evaluate the Kannala-Brandt fisheye distortion curve (theta -> radius)."""
     k1, k2, k3, k4 = coeffs
     radius = theta * (1 + k1 * theta**2 + k2 * theta**4 + k3 * theta**6 + k4 * theta**8)
@@ -16,8 +14,8 @@ def kb_fisheye_distortion(
 
 
 def kb_fisheye_invert_distortion(
-    radius: type_annotations.FloatScalar,
-    coeffs: type_annotations.Vector4,
+    radius: wf.FloatScalar,
+    coeffs: wf.Vector4,
     num_iters: int = 6,
 ) -> sym.Expr:
     """
@@ -37,7 +35,7 @@ def kb_fisheye_invert_distortion(
     theta = 0
     for iteration in range(0, num_iters):
         # Evaluate the forward projection model:
-        theta_sym = sym.symbol("theta", NumberSet.RealNonNegative)
+        theta_sym = sym.symbol("theta", wf.NumberSet.RealNonNegative)
         r_predicted = kb_fisheye_distortion(theta=theta_sym, coeffs=coeffs)
 
         # Compute derivative wrt theta.
@@ -57,9 +55,9 @@ def kb_fisheye_invert_distortion(
 
 
 def kb_camera_projection(
-    p_cam: type_annotations.Vector3,
-    K: type_annotations.Vector4,
-    coeffs: type_annotations.Vector4,
+    p_cam: wf.Vector3,
+    K: wf.Vector4,
+    coeffs: wf.Vector4,
 ):
     """
     Evaluate the projection model of a Kannala-Brandt camera model. Only the 4 radial distortion
@@ -92,9 +90,9 @@ def kb_camera_projection(
 
 
 def kb_camera_unprojection(
-    p_pixels: type_annotations.Vector2,
-    K: type_annotations.Vector4,
-    coeffs: type_annotations.Vector4,
+    p_pixels: wf.Vector2,
+    K: wf.Vector4,
+    coeffs: wf.Vector4,
 ):
     """
     Evaluate the un-projection model of a Kannala-Brandt camera model. This function computes the
@@ -114,16 +112,16 @@ def kb_camera_unprojection(
     theta = kb_fisheye_invert_distortion(radius, coeffs)
 
     # Angle to the point in the image plane:
-    phi = sym.where(radius > 0, sym.atan2(p_image[1], p_image[0]), 0)
+    phi = sym.where(radius > 0, sym.atan2(p_image[1], p_image[0]), sym.integer(0))
 
     # Convert back to a unit vector:
     return sym.vector(sym.cos(phi) * sym.sin(theta), sym.sin(phi) * sym.sin(theta), sym.cos(theta))
 
 
 def kb_camera_projection_with_jacobians(
-    p_cam: type_annotations.Vector3,
-    K: type_annotations.Vector4,
-    coeffs: type_annotations.Vector4,
+    p_cam: wf.Vector3,
+    K: wf.Vector4,
+    coeffs: wf.Vector4,
 ):
     """
     Define a symbolic function that implements the Kannala-Brandt camera model with Jacobians.
@@ -135,17 +133,17 @@ def kb_camera_projection_with_jacobians(
     p_pixels_D_K = sym.jacobian(p_pixels, K)
     p_pixels_D_coeffs = sym.jacobian(p_pixels, coeffs)
     return [
-        code_generation.OutputArg(p_pixels, name="p_pixels"),
-        code_generation.OutputArg(p_pixels_D_p_cam, name="p_pixels_D_p_cam", is_optional=True),
-        code_generation.OutputArg(p_pixels_D_K, name="p_pixels_D_K", is_optional=True),
-        code_generation.OutputArg(p_pixels_D_coeffs, name="p_pixels_D_coeffs", is_optional=True),
+        wf.OutputArg(p_pixels, name="p_pixels"),
+        wf.OutputArg(p_pixels_D_p_cam, name="p_pixels_D_p_cam", is_optional=True),
+        wf.OutputArg(p_pixels_D_K, name="p_pixels_D_K", is_optional=True),
+        wf.OutputArg(p_pixels_D_coeffs, name="p_pixels_D_coeffs", is_optional=True),
     ]
 
 
 def kb_camera_unprojection_with_jacobians(
-    p_pixels: type_annotations.Vector2,
-    K: type_annotations.Vector4,
-    coeffs: type_annotations.Vector4,
+    p_pixels: wf.Vector2,
+    K: wf.Vector4,
+    coeffs: wf.Vector4,
 ):
     """
     Define a symbolic function that implements the Kannala-Brandt camera model with Jacobians.
@@ -158,8 +156,8 @@ def kb_camera_unprojection_with_jacobians(
     p_cam_D_coeffs = sym.jacobian(p_cam, coeffs)
 
     return [
-        code_generation.OutputArg(p_cam, name="p_cam"),
-        code_generation.OutputArg(p_cam_D_p_pixels, name="p_cam_D_p_pixels", is_optional=True),
-        code_generation.OutputArg(p_cam_D_K, name="p_cam_D_K", is_optional=True),
-        code_generation.OutputArg(p_cam_D_coeffs, name="p_cam_D_coeffs", is_optional=True),
+        wf.OutputArg(p_cam, name="p_cam"),
+        wf.OutputArg(p_cam_D_p_pixels, name="p_cam_D_p_pixels", is_optional=True),
+        wf.OutputArg(p_cam_D_K, name="p_cam_D_K", is_optional=True),
+        wf.OutputArg(p_cam_D_coeffs, name="p_cam_D_coeffs", is_optional=True),
     ]

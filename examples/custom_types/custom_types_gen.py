@@ -13,9 +13,9 @@ interface with types in an existing codebase.
 import argparse
 import dataclasses
 
-from wrenfold import ast, code_generation, sym, type_info
+import wrenfold as wf
+from wrenfold import ast, sym, type_info
 from wrenfold.geometry import Quaternion
-from wrenfold.type_annotations import FloatScalar, Vector3
 
 
 @dataclasses.dataclass
@@ -27,10 +27,10 @@ class EigenQuaternion:
     In Rust code we will use nalgebra.
     """
 
-    x: FloatScalar
-    y: FloatScalar
-    z: FloatScalar
-    w: FloatScalar
+    x: wf.FloatScalar
+    y: wf.FloatScalar
+    z: wf.FloatScalar
+    w: wf.FloatScalar
 
     def to_quaternion(self) -> Quaternion:
         """
@@ -57,7 +57,7 @@ class Pose3d:
     """
 
     rotation: EigenQuaternion
-    translation: Vector3
+    translation: wf.Vector3
 
     def to_flat_list(self) -> list[sym.Expr]:
         """Flatten to a single list of expressions."""
@@ -115,9 +115,9 @@ class Point3d:
     Another hypothetical custom type, a point in 3d space.
     """
 
-    x: FloatScalar
-    y: FloatScalar
-    z: FloatScalar
+    x: wf.FloatScalar
+    y: wf.FloatScalar
+    z: wf.FloatScalar
 
     def to_vector(self) -> sym.MatrixExpr:
         """
@@ -152,9 +152,9 @@ def transform_point(world_T_body: Pose3d, p_body: Point3d):
 
     # Custom types can be returned as well:
     return [
-        code_generation.ReturnValue(Point3d.from_vector(p_world)),
-        code_generation.OutputArg(p_world_D_pose, name="p_world_D_pose", is_optional=True),
-        code_generation.OutputArg(p_world_D_p_body, name="p_world_D_p_body", is_optional=True),
+        wf.ReturnValue(Point3d.from_vector(p_world)),
+        wf.OutputArg(p_world_D_pose, name="p_world_D_pose", is_optional=True),
+        wf.OutputArg(p_world_D_p_body, name="p_world_D_p_body", is_optional=True),
     ]
 
 
@@ -188,13 +188,13 @@ def compose_poses(a_T_b: Pose3d, b_T_c: Pose3d):
     )
 
     return [
-        code_generation.ReturnValue(a_T_c),
-        code_generation.OutputArg(composed_D_first, name="composed_D_first", is_optional=True),
-        code_generation.OutputArg(composed_D_second, name="composed_D_second", is_optional=True),
+        wf.ReturnValue(a_T_c),
+        wf.OutputArg(composed_D_first, name="composed_D_first", is_optional=True),
+        wf.OutputArg(composed_D_second, name="composed_D_second", is_optional=True),
     ]
 
 
-class CustomCppGenerator(code_generation.CppGenerator):
+class CustomCppGenerator(wf.CppGenerator):
     def format_get_field(self, element: ast.GetField) -> str:
         """
         Customize access to struct Pose3. We assume that the pose type has functions to access each
@@ -234,7 +234,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
         return self.super_format(element)
 
 
-class CustomRustGenerator(code_generation.RustGenerator):
+class CustomRustGenerator(wf.RustGenerator):
     def format_get_field(self, element: ast.GetField) -> str:
         """
         Use member accessors for the Pose3 type.
@@ -294,11 +294,11 @@ def main(args: argparse.Namespace):
 
     code = ""
     for function in [transform_point, compose_poses]:
-        code += code_generation.generate_function(func=function, generator=generator)
+        code += wf.generate_function(func=function, generator=generator)
         code += "\n\n"
 
     code = generator.apply_preamble(code=code, **preamble_args)
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

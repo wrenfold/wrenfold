@@ -2,18 +2,17 @@
 Source code for the `external_functions.rst` file.
 """
 
+import wrenfold as wf
 from wrenfold import (
     ast,
-    code_generation,
     external_functions,
     sym,
-    type_annotations,
     type_info,
 )
 
 
 # [lookup_table_start]
-class LookupTable(type_annotations.Opaque):
+class LookupTable(wf.Opaque):
     """
     A placeholder we will map to our actual type during the code-generation step.
     """
@@ -24,13 +23,13 @@ class LookupTable(type_annotations.Opaque):
 # [interpolate_table_start]
 interpolate_table = external_functions.declare_external_function(
     name="interpolate_table",
-    arguments=[("table", LookupTable), ("arg", type_annotations.FloatScalar)],
-    return_type=type_annotations.FloatScalar,
+    arguments=[("table", LookupTable), ("arg", wf.FloatScalar)],
+    return_type=wf.FloatScalar,
 )  # [interpolate_table_end]
 
 
 # [function_definition_start]
-def lookup_angle(table: LookupTable, p_0: type_annotations.Vector2, p_1: type_annotations.Vector2):
+def lookup_angle(table: LookupTable, p_0: wf.Vector2, p_1: wf.Vector2):
     """
     Compute bearing angle between two points, and use it as an argument to our lookup table.
     """
@@ -46,13 +45,13 @@ def lookup_angle(table: LookupTable, p_0: type_annotations.Vector2, p_1: type_an
     # Do some more symbolic operations with the result:
     result = table_value * (p_1 - p_0).squared_norm()
     return [
-        code_generation.ReturnValue(result),
+        wf.ReturnValue(result),
     ]
     # [function_definition_end]
 
 
 # [code_generator_start]
-class CustomCppGenerator(code_generation.CppGenerator):
+class CustomCppGenerator(wf.CppGenerator):
     def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
         Place our external function in the ``utilities`` namespace.
@@ -71,6 +70,6 @@ class CustomCppGenerator(code_generation.CppGenerator):
         return self.super_format(element)
 
 
-code = code_generation.generate_function(func=lookup_angle, generator=CustomCppGenerator())
+code = wf.generate_function(func=lookup_angle, generator=CustomCppGenerator())
 print(code)
 # [code_generator_end]

@@ -2,9 +2,10 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
-#include "wf/expressions/custom_type_expressions.h"
+#include "wf/code_generation/type_registry.h"
 #include "wf/expressions/external_function_invocation.h"
 #include "wf/external_function.h"
+#include "wf/type_annotations.h"
 #include "wf/utility/zip_tuples.h"
 
 namespace wf {

@@ -10,9 +10,12 @@ __license__ = "MIT"
 
 
 from .code_generation import (
+    BaseGenerator,
     CppGenerator,
+    CppMatrixTypeBehavior,
     OutputArg,
     PythonGenerator,
+    PythonGeneratorFloatWidth,
     PythonGeneratorTarget,
     ReturnValue,
     RustGenerator,
@@ -33,6 +36,7 @@ from .type_annotations import (
     Matrix7,
     Matrix8,
     Matrix9,
+    Opaque,
     Vector1,
     Vector2,
     Vector3,

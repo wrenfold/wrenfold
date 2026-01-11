@@ -30,9 +30,10 @@ this, we can either:
 
 .. code:: python
 
-  from wrenfold import ast, code_generation, type_info
+  import wrenfold as wf
+  from wrenfold import ast, type_info
 
-  class CustomCppGenerator(code_generation.CppGenerator):
+  class CustomCppGenerator(wf.CppGenerator):
     """Custom C++ generator to allow returning Eigen matrices."""
 
     def format_matrix_type(self, mat: type_info.MatrixType):
@@ -50,10 +51,13 @@ Next, we alter the definition of ``step_clamped`` to return a vector with our ou
 
 .. code:: python
 
-  def step_clamped(x: type_annotations.FloatScalar):
+  import wrenfold as wf
+  from wrenfold import sym
+
+  def step_clamped(x: wf.FloatScalar):
     """The clamped smoothstep polynomial."""
     # First express the polynomials in terms of `xv`.
-    xv = sym.symbol('xv', set=NumberSet.Real)
+    xv = sym.symbol('xv', set=wf.NumberSet.Real)
     f = 3 * sym.pow(xv, 2) - 2 * sym.pow(xv, 3)
     df = sym.vector(f.diff(xv), f.diff(xv, 2))
 
@@ -69,7 +73,7 @@ Then we generate the ``step_clamped`` function again using the custom generator:
 .. code:: python
 
   # Note: We pass CustomCppGenerator here instead:
-  cpp = code_generation.generate_function(func=step_clamped, generator=CustomCppGenerator())
+  cpp = wf.generate_function(func=step_clamped, generator=CustomCppGenerator())
   print(cpp)
 
 .. code:: cpp

@@ -3,7 +3,8 @@
 import argparse
 import dataclasses
 
-from wrenfold import ast, code_generation, sym, type_annotations, type_info
+import wrenfold as wf
+from wrenfold import ast, code_generation, type_info
 from wrenfold.external_functions import declare_external_function
 
 
@@ -11,38 +12,28 @@ from wrenfold.external_functions import declare_external_function
 class StructType:
     """A minimal custom type we will return from an external function."""
 
-    x: type_annotations.FloatScalar
-    y: type_annotations.FloatScalar
+    x: wf.FloatScalar
+    y: wf.FloatScalar
 
 
-class VectorOfStructs(type_annotations.Opaque):
+class VectorOfStructs(wf.Opaque):
     """
     This is a placeholder that will be generated as std::vector<StructType> or
     std::vec::Vec<StructType>.
     """
 
-    def interpolate_access(self, x: sym.Expr) -> StructType:
-        """
-        We assume a user-defined external function that accepts a value `x` and uses it to linearly
-        interpolate between values in our `VectorOfStructs`.
-        """
-        # TODO: We are creating a memory leak here, because this is a strong reference to
-        # vector_interpolate_access - which has a strong reference to `VectorOfStructs` via
-        # nanobind. It should be relatively small but this is not ideal.
-        return vector_interpolate_access(vec=self, x=x)
-
 
 vector_interpolate_access = declare_external_function(
     name="interpolate_access",
-    arguments=[("vec", VectorOfStructs), ("x", type_annotations.FloatScalar)],
+    arguments=[("vec", VectorOfStructs), ("x", wf.FloatScalar)],
     return_type=StructType,
 )
 
 
 def lookup_and_compute_inner_product(
     vec: VectorOfStructs,
-    a: type_annotations.FloatScalar,
-    b: type_annotations.FloatScalar,
+    a: wf.FloatScalar,
+    b: wf.FloatScalar,
 ):
     """
     A simplified test case that calls a user-provided function to access two elements in a vector,
@@ -51,12 +42,12 @@ def lookup_and_compute_inner_product(
     This is so we can test: Pass an opaque type to a generated function, and then forward it to an
     external function.
     """
-    first = vec.interpolate_access(x=a)
-    second = vec.interpolate_access(x=b)
+    first = vector_interpolate_access(vec=vec, x=a)
+    second = vector_interpolate_access(vec=vec, x=b)
     return first.x * second.x + first.y * second.y
 
 
-class CustomCppGenerator(code_generation.CppGenerator):
+class CustomCppGenerator(wf.CppGenerator):
     def format_call_external_function(self, element: ast.CallExternalFunction) -> str:
         """
         Place our external functions in the `external` namespace.
@@ -75,7 +66,7 @@ class CustomCppGenerator(code_generation.CppGenerator):
         return self.super_format(element)
 
 
-class CustomRustGenerator(code_generation.RustGenerator):
+class CustomRustGenerator(wf.RustGenerator):
     """
     We need a similar set of customizations for Rust as well.
     """
@@ -109,7 +100,7 @@ def main(args: argparse.Namespace):
         code = CustomRustGenerator().generate(definitions)
         code = CustomRustGenerator.apply_preamble(code=code)
 
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:

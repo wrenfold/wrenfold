@@ -7,7 +7,7 @@ import typing as T
 import jax
 import jax.numpy as jnp
 import numpy as np
-from wrenfold import code_generation
+import wrenfold as wf
 
 from ..shared_expressions import (
     kb_camera_projection_with_jacobians,
@@ -32,13 +32,13 @@ def generate_kb_camera_model_functions() -> tuple[T.Callable, T.Callable, T.Call
 
     We call ``generate_python``, which returns a callable that operates on JAX types.
     """
-    project, _ = code_generation.generate_python(
+    project, _ = wf.generate_python(
         func=kb_camera_projection_with_jacobians,
-        generator=code_generation.PythonGenerator(target=code_generation.PythonGeneratorTarget.JAX),
+        generator=wf.PythonGenerator(target=wf.PythonGeneratorTarget.JAX),
     )
-    unproject, _ = code_generation.generate_python(
+    unproject, _ = wf.generate_python(
         func=kb_camera_unprojection_with_jacobians,
-        generator=code_generation.PythonGenerator(target=code_generation.PythonGeneratorTarget.JAX),
+        generator=wf.PythonGenerator(target=wf.PythonGeneratorTarget.JAX),
     )
 
     # Batch over points (first argument), and then JIT with xla.

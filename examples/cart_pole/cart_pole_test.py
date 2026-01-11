@@ -9,7 +9,8 @@ import unittest
 import jax
 import jax.numpy as jnp
 import numpy as np
-from wrenfold import code_generation, type_info
+import wrenfold as wf
+from wrenfold import type_info
 
 from .cart_pole_dynamics import (
     CartPoleParamsSymbolic,
@@ -38,7 +39,7 @@ class CartPoleParamsNumeric:
     k_s: float
 
 
-class CustomPythonGenerator(code_generation.PythonGenerator):
+class CustomPythonGenerator(wf.PythonGenerator):
     def format_custom_type(self, target: type_info.CustomType):
         if target.python_type == CartPoleParamsSymbolic:
             return "CartPoleParamsNumeric"
@@ -60,11 +61,11 @@ class CartPoleTest(unittest.TestCase):
         Generate the cart-double-pole dynamics as a NumPy/Python function, and test that we can
         integrate the state forward while conserving energy.
         """
-        np_func, _code = code_generation.generate_python(
+        np_func, _code = wf.generate_python(
             func=get_cart_double_pole_dynamics(),
             generator=CustomPythonGenerator(
-                target=code_generation.PythonGeneratorTarget.NumPy,
-                float_width=code_generation.PythonGeneratorFloatWidth.Float32,
+                target=wf.PythonGeneratorTarget.NumPy,
+                float_width=wf.PythonGeneratorFloatWidth.Float32,
             ),
             context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
         )
@@ -117,11 +118,11 @@ class CartPoleTest(unittest.TestCase):
         Generate the cart-double-pole dynamics as a JAX function, and check our Jacobians against
         `jacfwd`.
         """
-        np_func, _code = code_generation.generate_python(
+        np_func, _code = wf.generate_python(
             func=get_cart_double_pole_dynamics(),
             generator=CustomPythonGenerator(
-                target=code_generation.PythonGeneratorTarget.JAX,
-                float_width=code_generation.PythonGeneratorFloatWidth.Float32,
+                target=wf.PythonGeneratorTarget.JAX,
+                float_width=wf.PythonGeneratorFloatWidth.Float32,
             ),
             context={"CartPoleParamsNumeric": CartPoleParamsNumeric},
         )

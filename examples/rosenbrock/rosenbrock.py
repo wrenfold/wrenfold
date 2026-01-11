@@ -4,13 +4,14 @@ Generate the Rosenbrock function and its first derivative.
 
 import argparse
 
-from wrenfold import code_generation, sym, type_annotations
+import wrenfold as wf
+from wrenfold import sym
 
 
 def rosenbrock(
-    a: type_annotations.FloatScalar,
-    b: type_annotations.FloatScalar,
-    xy: type_annotations.Vector2,
+    a: wf.FloatScalar,
+    b: wf.FloatScalar,
+    xy: wf.Vector2,
 ):
     """Evaluate the Rosenbrock function."""
     x, y = xy
@@ -22,18 +23,18 @@ def rosenbrock(
 
     J = sym.jacobian(h, xy)
     return (
-        code_generation.ReturnValue(f),
-        code_generation.OutputArg(h, name="h"),
-        code_generation.OutputArg(J, name="h_D_xy", is_optional=True),
+        wf.ReturnValue(f),
+        wf.OutputArg(h, name="h"),
+        wf.OutputArg(J, name="h_D_xy", is_optional=True),
     )
 
 
 def main(args: argparse.Namespace):
     # For this example, emit function signatures that use Eigen types directly:
-    generator = code_generation.CppGenerator(code_generation.CppMatrixTypeBehavior.Eigen)
-    code = code_generation.generate_function(rosenbrock, generator=generator)
+    generator = wf.CppGenerator(wf.CppMatrixTypeBehavior.Eigen)
+    code = wf.generate_function(rosenbrock, generator=generator)
     code = generator.apply_preamble(code, namespace="gen")
-    code_generation.mkdir_and_write_file(code=code, path=args.output)
+    wf.mkdir_and_write_file(code=code, path=args.output)
 
 
 def parse_args() -> argparse.Namespace:
