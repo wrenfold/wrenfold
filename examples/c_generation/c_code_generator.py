@@ -1,4 +1,4 @@
-import typing as T
+import typing
 
 import wrenfold as wf
 from wrenfold import ast, code_generation, type_info
@@ -19,7 +19,7 @@ class CCodeGenerator(wf.BaseGenerator):
         assert indent > 0, f"indent = {indent}"
         self._indent: str = " " * indent
 
-    def _indent_and_join(self, lines: T.Iterable[str]) -> str:
+    def _indent_and_join(self, lines: typing.Iterable[str]) -> str:
         lines_split = []
         for line in lines:
             lines_split.extend(line.splitlines())

@@ -2,7 +2,7 @@
 Code generate a camera model in JAX and test it numerically.
 """
 
-import typing as T
+import typing
 
 import jax
 import jax.numpy as jnp
@@ -26,7 +26,9 @@ def get_test_camera_coeffs() -> list[tuple[jnp.ndarray, float]]:
     return [(jnp.asarray(k).reshape([-1, 1]), max_radius) for (k, max_radius) in coeffs]
 
 
-def generate_kb_camera_model_functions() -> tuple[T.Callable, T.Callable, T.Callable, T.Callable]:
+def generate_kb_camera_model_functions() -> tuple[
+    typing.Callable, typing.Callable, typing.Callable, typing.Callable
+]:
     """
     Generate forward and backward projection functions for the Kannala-Brandt camera model.
 

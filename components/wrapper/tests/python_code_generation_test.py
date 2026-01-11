@@ -6,7 +6,7 @@ import collections
 import dataclasses
 import inspect
 import sys
-import typing as T
+import typing
 import unittest
 
 import jax
@@ -27,7 +27,7 @@ from wrenfold.geometry import Quaternion
 from .test_base import MathTestBase
 
 
-def create_evaluator(func: T.Callable) -> T.Callable:
+def create_evaluator(func: typing.Callable) -> typing.Callable:
     """
     Create a python function that evaluates a symbolic function numerically by walking the
     expression tree and substituting in floats.
@@ -94,7 +94,7 @@ def create_evaluator(func: T.Callable) -> T.Callable:
     return evaluator
 
 
-def batch_evaluator(func: T.Callable) -> T.Callable:
+def batch_evaluator(func: typing.Callable) -> typing.Callable:
     """
     Create a new callable that runs an evaluator in a for-loop so we can more easily compare
     to batched variants.
@@ -136,7 +136,7 @@ def batch_evaluator(func: T.Callable) -> T.Callable:
 
 
 def get_optional_output_flags(
-    func: T.Callable[..., wf.CodegenFuncInvocationResult],
+    func: typing.Callable[..., wf.CodegenFuncInvocationResult],
 ) -> tuple[int, dict[str, bool]]:
     """
     Get the function description and do two things:
@@ -179,7 +179,7 @@ class PythonCodeGenerationTestBase(MathTestBase):
     SUPPORTS_BATCH = True
     EXPECTED_TYPE: npt.DTypeLike | None = None
 
-    def _generator(self, func: T.Callable, batch: bool = False) -> T.Callable:
+    def _generator(self, func: typing.Callable, batch: bool = False) -> typing.Callable:
         raise NotImplementedError()
 
     def test_rotate_vector2d(self):
@@ -556,11 +556,11 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
         custom_generator_type: type[wf.PythonGenerator] | None = None,
         **kwargs,
-    ) -> T.Callable:
+    ) -> typing.Callable:
         if custom_generator_type is None:
             custom_generator_type = wf.PythonGenerator
         generator = custom_generator_type(
@@ -705,10 +705,10 @@ class NumbaCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
         **kwargs,
-    ) -> T.Callable:
+    ) -> typing.Callable:
         generator = wf.PythonGenerator(
             float_width=(
                 wf.PythonGeneratorFloatWidth.Float32
@@ -810,10 +810,10 @@ class JaxCodeGenerationTest(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
         **kwargs,
-    ) -> T.Callable:
+    ) -> typing.Callable:
         generator = wf.PythonGenerator(
             target=wf.PythonGeneratorTarget.JAX,
             float_width=(wf.PythonGeneratorFloatWidth.Float32),
@@ -849,10 +849,10 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
 
     def _generator(
         self,
-        func: T.Callable,
+        func: typing.Callable,
         batch: bool = False,
         **kwargs,
-    ) -> T.Callable:
+    ) -> typing.Callable:
         generator = wf.PythonGenerator(
             target=wf.PythonGeneratorTarget.PyTorch,
             float_width=(wf.PythonGeneratorFloatWidth.Float32),

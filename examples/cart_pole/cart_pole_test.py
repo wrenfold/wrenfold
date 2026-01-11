@@ -3,7 +3,7 @@ Generate the cart-pole dynamics as NumPy and JAX functions.
 """
 
 import dataclasses
-import typing as T
+import typing
 import unittest
 
 import jax
@@ -46,7 +46,7 @@ class CustomPythonGenerator(wf.PythonGenerator):
         return self.super_format(target)
 
 
-def rk4(x: np.ndarray, h: float, f: T.Callable[[np.ndarray], np.ndarray]):
+def rk4(x: np.ndarray, h: float, f: typing.Callable[[np.ndarray], np.ndarray]):
     """4th order runge kutta."""
     k1 = f(x)
     k2 = f(x + k1 * h / 2)

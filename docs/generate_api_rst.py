@@ -4,7 +4,7 @@ Script that generates the `python_api_docs.rst` file.
 
 import argparse
 import inspect
-import typing as T
+import typing
 from pathlib import Path
 
 # The built library needs to be on the import path by this point.
@@ -24,7 +24,7 @@ from wrenfold import (
 DOCS_DIR = Path(__file__).parent.absolute()
 
 
-def generate_rst_for_module(module: T.Any, module_name: str, output_dir: Path):
+def generate_rst_for_module(module: typing.Any, module_name: str, output_dir: Path):
     """
     Write out rst files for classes + functions in the provided module.
     """

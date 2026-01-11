@@ -11,7 +11,7 @@ In practice, there is a larger space of design choices you could make. For insta
 """
 
 import argparse
-import typing as T
+import typing
 
 import wrenfold as wf
 from wrenfold import sym
@@ -19,8 +19,8 @@ from wrenfold.geometry import Quaternion, left_jacobian_of_so3
 
 
 def blockwise_jacobians(
-    output_states: T.Iterable[sym.MatrixExpr | Quaternion],
-    input_states: T.Iterable[sym.MatrixExpr | Quaternion],
+    output_states: typing.Iterable[sym.MatrixExpr | Quaternion],
+    input_states: typing.Iterable[sym.MatrixExpr | Quaternion],
 ) -> sym.MatrixExpr:
     jacobians = []
     for out_state in output_states:

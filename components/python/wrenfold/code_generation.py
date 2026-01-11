@@ -5,7 +5,7 @@ Utility functions to support code-generation.
 import dataclasses
 import inspect
 import pathlib
-import typing as T
+import typing
 
 from pywrenfold.gen import (
     Argument,  # noqa
@@ -37,7 +37,7 @@ class ReturnValue:
         custom type.
     """
 
-    expression: sym.Expr | sym.MatrixExpr | T.Any
+    expression: sym.Expr | sym.MatrixExpr | typing.Any
 
 
 @dataclasses.dataclass
@@ -52,7 +52,7 @@ class OutputArg:
       is_optional: Specify whether the output argument is optional or not.
     """
 
-    expression: sym.Expr | sym.MatrixExpr | T.Any
+    expression: sym.Expr | sym.MatrixExpr | typing.Any
     name: str
     is_optional: bool = False
 
@@ -61,12 +61,12 @@ ReturnValueOrOutputArg = ReturnValue | OutputArg
 
 # Things that can be returned from symbolic python functions.
 CodegenFuncInvocationResult = (
-    sym.Expr | sym.MatrixExpr | ReturnValueOrOutputArg | T.Sequence[ReturnValueOrOutputArg]
+    sym.Expr | sym.MatrixExpr | ReturnValueOrOutputArg | typing.Sequence[ReturnValueOrOutputArg]
 )
 
 
 def create_function_description(
-    func: T.Callable[..., CodegenFuncInvocationResult], name: str | None = None
+    func: typing.Callable[..., CodegenFuncInvocationResult], name: str | None = None
 ) -> FunctionDescription:
     """
     Accept a python function that manipulates symbolic mathematical expressions, and convert it
@@ -205,7 +205,7 @@ def create_function_description(
 
 
 def generate_function(
-    func: T.Callable[..., CodegenFuncInvocationResult],
+    func: typing.Callable[..., CodegenFuncInvocationResult],
     generator: CppGenerator | RustGenerator | PythonGenerator | BaseGenerator,
     name: str | None = None,
     optimization_params: OptimizationParams | None = None,
@@ -282,12 +282,12 @@ def generate_function(
 
 
 def generate_python(
-    func: T.Callable[..., CodegenFuncInvocationResult],
+    func: typing.Callable[..., CodegenFuncInvocationResult],
     generator: PythonGenerator | None = None,
     convert_ternaries: bool | None = None,
-    context: dict[str, T.Any] | None = None,
+    context: dict[str, typing.Any] | None = None,
     import_target_module: bool = True,
-) -> tuple[T.Callable, str]:
+) -> tuple[typing.Callable, str]:
     """
     Code-generate a symbolic function as python code, then ``exec`` the code and return a python
     function that implements the symbolic function numerically.

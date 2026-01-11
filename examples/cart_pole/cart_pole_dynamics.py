@@ -4,7 +4,7 @@ Specify the dynamics of cart-pole system with a double-pendulum attached.
 
 import dataclasses
 import sys
-import typing as T
+import typing
 
 import wrenfold as wf
 from wrenfold import sym, type_info
@@ -29,7 +29,7 @@ class CartPoleParamsSymbolic:
     k_s: wf.FloatScalar  # Bounding spring constant (N / m).
 
 
-def get_cart_double_pole_dynamics() -> T.Callable:
+def get_cart_double_pole_dynamics() -> typing.Callable:
     """
     Return a symbolic function that evaluates the dynamics of a cart-mounted double pendulum.
 

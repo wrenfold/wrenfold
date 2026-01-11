@@ -16,13 +16,13 @@ knots are combined into piecewise continuous (to derivative k - 1) polynomials.
 
 import argparse
 import collections
-import typing as T
+import typing
 
 import wrenfold as wf
 from wrenfold import sym
 
 
-def weight(x: sym.Expr, i: int, k: int, knots: T.Sequence[sym.Expr]) -> sym.Expr:
+def weight(x: sym.Expr, i: int, k: int, knots: typing.Sequence[sym.Expr]) -> sym.Expr:
     """
     Linear interpolation weight function. The knots are assumed to be known at code-generation time,
     and must be arranged in non-decreasing order.
@@ -37,8 +37,8 @@ def B(
     x: sym.Expr,
     i: int,
     k: int,
-    degree_zero: T.Sequence[sym.Expr],
-    knots: T.Sequence[sym.Expr],
+    degree_zero: typing.Sequence[sym.Expr],
+    knots: typing.Sequence[sym.Expr],
 ) -> sym.Expr:
     """
     Construct b-spline basis function `i` of order `k + 1` using the De-Boor recursive
@@ -69,9 +69,9 @@ def B(
 
 def create_bases(
     x: sym.Expr,
-    knots: T.Sequence[sym.Expr],
+    knots: typing.Sequence[sym.Expr],
     order: int,
-    degree_zero_bases: T.Sequence[sym.Expr],
+    degree_zero_bases: typing.Sequence[sym.Expr],
 ) -> list[sym.Expr]:
     """
     Create the degree `order` b-spline basis functions.
@@ -94,8 +94,8 @@ def create_bases(
 def create_cumulative_bases(
     number_of_knots: int,
     order: int,
-    bases: T.Sequence[sym.Expr],
-    degree_zero_bases: T.Sequence[sym.Expr],
+    bases: typing.Sequence[sym.Expr],
+    degree_zero_bases: typing.Sequence[sym.Expr],
 ) -> list[sym.Expr]:
     """
     Given the result of `create_bases`, form the cumulative b-spline basis functions.
@@ -119,8 +119,8 @@ def create_cumulative_bases(
 def create_piecewise_polynomials(
     x: sym.Expr,
     order: int,
-    bases: T.Sequence[sym.Expr],
-    degree_zero_bases: T.Sequence[sym.Expr],
+    bases: typing.Sequence[sym.Expr],
+    degree_zero_bases: typing.Sequence[sym.Expr],
     is_cumulative: bool,
 ) -> list[sym.Expr]:
     """
@@ -167,7 +167,7 @@ def create_piecewise_polynomials(
 
 
 def create_polynomial_functions(
-    x: sym.Expr, polynomials: T.Sequence[sym.Expr], order: int, is_cumulative: bool
+    x: sym.Expr, polynomials: typing.Sequence[sym.Expr], order: int, is_cumulative: bool
 ) -> list[wf.FunctionDescription]:
     """
     Convert the output of `create_basis_polynomials` into function code-generated functions

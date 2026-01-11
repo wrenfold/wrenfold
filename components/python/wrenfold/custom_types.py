@@ -3,14 +3,14 @@ Supporting methods for interfacing with user-provided types.
 """
 
 import dataclasses
-import typing as T
+import typing
 
 from . import sym, type_annotations, type_info
 
 # Refer to possible types we put in the generated code.
-CodegenType: T.TypeAlias = type_info.ScalarType | type_info.MatrixType | type_info.CustomType
+CodegenType: typing.TypeAlias = type_info.ScalarType | type_info.MatrixType | type_info.CustomType
 
-U = T.TypeVar("U")
+U = typing.TypeVar("U")
 
 
 def convert_to_internal_type(
@@ -89,7 +89,7 @@ def _get_matrix_shape(matrix_type: type) -> tuple[int, int]:
         or not isinstance(shape[1], int)
     ):
         raise KeyError("Matrix types must be annotated with the SHAPE field with type (int, int)")
-    return T.cast(tuple[int, int], shape)
+    return typing.cast(tuple[int, int], shape)
 
 
 def map_expressions_into_custom_type(
@@ -135,10 +135,10 @@ def map_expressions_into_custom_type(
             )
 
     # All the constructor arguments have been assembled.
-    return T.cast(U, custom_type(**constructor_kwargs)), expressions
+    return typing.cast(U, custom_type(**constructor_kwargs)), expressions
 
 
-def map_expressions_out_of_custom_type(instance: T.Any) -> list[sym.Expr]:
+def map_expressions_out_of_custom_type(instance: typing.Any) -> list[sym.Expr]:
     """
     Given an instance of a custom dataclass type, flatten its contents into a list of expressions.
 

@@ -7,7 +7,7 @@ test is just to validate that the wrapper works and exposes the correct members.
 """
 
 import dataclasses
-import typing as T
+import typing
 import unittest
 
 import wrenfold as wf
@@ -118,7 +118,7 @@ class CustomCppGenerator(wf.CppGenerator):
 class CodeGenerationWrapperTest(MathTestBase):
     @staticmethod
     def _run_generators(
-        definition: ast.FunctionDefinition | T.Sequence[ast.FunctionDefinition],
+        definition: ast.FunctionDefinition | typing.Sequence[ast.FunctionDefinition],
     ):
         """Run the generators just to make sure we don't hit an assertion."""
         if isinstance(definition, ast.FunctionDefinition):
@@ -264,7 +264,7 @@ class CodeGenerationWrapperTest(MathTestBase):
         self.assertEqual("rotate_point", sig.name)
         self.assertEqual("p", sig.arguments[1].name)
 
-        ctype = T.cast(type_info.CustomType, sig.arguments[1].type)
+        ctype = typing.cast(type_info.CustomType, sig.arguments[1].type)
         self.assertIsInstance(ctype, type_info.CustomType)
         self.assertEqual(f"CustomType('Point2d', 2 fields, {repr(Point2d)})", repr(ctype))
         self.assertEqual("Point2d", ctype.name)
@@ -292,7 +292,7 @@ class CodeGenerationWrapperTest(MathTestBase):
         desc = wf.create_function_description(nested_type_func)
         definition = wf.transpile(desc)
 
-        ctype = T.cast(type_info.CustomType, definition.signature.arguments[1].type)
+        ctype = typing.cast(type_info.CustomType, definition.signature.arguments[1].type)
         self.assertIsInstance(ctype, type_info.CustomType)
         self.assertEqual("NestedType3", ctype.name)
         self.assertEqual(NestedType3, ctype.python_type)
