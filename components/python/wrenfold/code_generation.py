@@ -139,7 +139,9 @@ def create_function_description(
         # Map argument types to something the code-generation logic can understand:
         annotated_type = spec.annotations[arg_name]
         arg_type = custom_types.convert_to_internal_type(
-            python_type=annotated_type, cached_custom_types=cached_types
+            python_type=annotated_type,
+            cached_custom_types=cached_types,
+            context=f"Argument `{arg_name}` of function `{description.name}`",
         )
 
         input_expression = description.add_input_argument(arg_name, arg_type)
@@ -171,12 +173,15 @@ def create_function_description(
         if isinstance(val, ReturnValue):
             if dataclasses.is_dataclass(val.expression):
                 custom_type = custom_types.convert_to_internal_type(
-                    python_type=type(val.expression), cached_custom_types=cached_types
+                    python_type=type(val.expression),
+                    cached_custom_types=cached_types,
+                    context=f"Return value of function `{description.name}`",
                 )
+                assert isinstance(custom_type, type_info.CustomType)
                 description.set_return_value(
                     custom_type=custom_type,
                     expressions=custom_types.map_expressions_out_of_custom_type(
-                        instance=val.expression
+                        instance=val.expression, custom_type=custom_type
                     ),
                 )
             else:
@@ -184,14 +189,17 @@ def create_function_description(
         elif isinstance(val, OutputArg):
             if dataclasses.is_dataclass(val.expression):
                 custom_type = custom_types.convert_to_internal_type(
-                    python_type=type(val.expression), cached_custom_types=cached_types
+                    python_type=type(val.expression),
+                    cached_custom_types=cached_types,
+                    context=f"Output argument `{val.name}` of function `{description.name}`",
                 )
+                assert isinstance(custom_type, type_info.CustomType)
                 description.add_output_argument(
                     name=val.name,
                     is_optional=val.is_optional,
                     custom_type=custom_type,
                     expressions=custom_types.map_expressions_out_of_custom_type(
-                        instance=val.expression
+                        instance=val.expression, custom_type=custom_type
                     ),
                 )
             else:

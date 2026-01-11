@@ -115,6 +115,9 @@ class CustomCppGenerator(wf.CppGenerator):
         return self.super_format(element)
 
 
+BooleanAnnotation = typing.Annotated[sym.Expr, type_info.NumericType.Bool]
+
+
 class CodeGenerationWrapperTest(MathTestBase):
     @staticmethod
     def _run_generators(
@@ -302,11 +305,7 @@ class CodeGenerationWrapperTest(MathTestBase):
     def test_boolean_args_disallowed(self):
         """Test that boolean arguments are disallowed."""
 
-        class Boolean(sym.Expr):
-            # This is illegal.
-            NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Bool
-
-        def boolean_arg_func(x: Boolean, y: wf.FloatScalar):
+        def boolean_arg_func(x: BooleanAnnotation, y: wf.FloatScalar):
             return [
                 wf.ReturnValue(5 + y * x),
                 wf.OutputArg(x, name="x_out"),

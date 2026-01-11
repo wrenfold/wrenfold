@@ -44,6 +44,7 @@ from .type_annotations import (
     Matrix8,
     Matrix9,
     Opaque,
+    Shape,
     Vector1,
     Vector2,
     Vector3,
