@@ -74,11 +74,11 @@ Citation
    :caption: Documentation
 
    quick_start
-   building
    reference/index
    performance
    python_api/index
    cpp_api/index
+   building
    faq
    license
 

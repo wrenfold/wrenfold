@@ -62,7 +62,15 @@ First we express the function as a python function that manipulates wrenfold typ
     :end-before: function_def_end
 
 The argument type annotations let wrenfold know what dimensions and numerical types to expect for
-the input arguments to :math:`f`. Our python function returns two outputs:
+the input arguments to :math:`f`:
+
+  #. ``wf.FloatScalar`` indicates a single floating-point number.
+  #. ``wf.Vector2`` indicates a 2x1 column-vector of floating-point numbers.
+
+See :doc:`Type Annotations <../reference/type_annotations>` for more details on these annotations.
+
+When wrenfold invokes the function, it will fill these arguments with symbolic variables.
+Our python function returns two outputs:
 
   #. The first is the value of the Rosenbrock function, :math:`f`. We specify that this will be the
      *return value* of the generated C++ function.

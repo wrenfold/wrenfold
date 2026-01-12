@@ -28,8 +28,10 @@ Initially we will assume the input variable :math:`x` is already in the domain `
         return 3 * sym.pow(x, 2) - 2 * sym.pow(x, 3)
 
 Note the presence of the type annotation on argument ``x``. This is important, as it communicates
-type information required to create a function signature. In actuality, ``FloatScalar`` is just
-a scalar-valued expression of type :class:`wrenfold.sym.Expr`.
+type information required to create a function signature. In actuality, during symbolic evaluation
+``FloatScalar`` is a scalar-valued expression of type :class:`wrenfold.sym.Expr`. See
+:doc:`Type Annotations <../reference/type_annotations>` for more details on how to annotate input
+arguments.
 
 .. note::
 
