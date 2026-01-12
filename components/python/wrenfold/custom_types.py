@@ -14,7 +14,7 @@ U = typing.TypeVar("U")
 
 
 def _is_annotated_alias(python_type: typing.Any) -> bool:
-    # No way to annotate an annotated alias afaik.
+    # No way to annotate an annotated alias afaik, so check the origin of the annotation.
     return typing.get_origin(python_type) is typing.Annotated
 
 
@@ -91,7 +91,7 @@ def _create_custom_type(
             field_type = convert_to_internal_type(
                 python_type=field.type,
                 cached_custom_types=cached_custom_types,
-                context=f"Dataclass field `{field.name}`",
+                context=f"Dataclass field `{field.name}` on type `{python_type}`",
             )
             fields_converted.append((field.name, field_type))
 
@@ -132,60 +132,41 @@ def _get_matrix_shape(python_type: type[typing.Any]) -> tuple[int, int]:
 
 
 def map_expressions_into_custom_type(
-    expressions: list[sym.Expr], custom_type: type[U]
-) -> tuple[U, list[sym.Expr]]:
+    expressions: list[sym.Expr], custom_type: type_info.CustomType
+) -> tuple[typing.Any, list[sym.Expr]]:
     """
-    Given a flat list of expressions, construct an instance of `custom_type` by recursively
-    filling its members with the provided expressions. Thus, we construct a symbolic instance
-    of the user-provided type.
-
-    Expressions are inserted into fields in the order the fields appear.
+    Given a flat list of expressions, construct an instance of the python type represented by
+    `custom_type`. We descend through the type recursively,  filling its members with the provided
+    expressions. Expressions are inserted into fields in the order the fields appear.
 
     OMIT_FROM_SPHINX
     """
-    assert dataclasses.is_dataclass(custom_type), (
+    python_type = custom_type.python_type
+    assert python_type is not None and dataclasses.is_dataclass(python_type), (
         f"Provided type `{custom_type}` is not a dataclass"
     )
 
     constructor_kwargs = dict()
-    for field in dataclasses.fields(custom_type):
+    for field in custom_type.fields:
         if not expressions:
             # This shouldn't ever happen, the C++ side has allocated enough expressions based on
             # the number and type of fields.
             raise RuntimeError("Ran out of expressions while building custom type")
-
-        if _is_annotated_alias(
-            field.type,
-        ) and not isinstance(field.type, str):
-            origin_type = field.type.__origin__
-            if origin_type is sym.Expr:
-                constructor_kwargs[field.name] = expressions[0]
-                expressions = expressions[1:]
-            elif origin_type is sym.MatrixExpr:
-                mat_rows, mat_cols = _get_matrix_shape(python_type=field.type)
-                mat = sym.matrix(expressions[: (mat_rows * mat_cols)]).reshape(mat_rows, mat_cols)
-                constructor_kwargs[field.name] = mat
-                expressions = expressions[mat.size :]
-            else:
-                raise TypeError(
-                    f"Invalid type used in annotation: `{field.type}`. "
-                    f"This error was thrown while processing field `{field.name}` on type "
-                    f"`{custom_type}`"
-                )
-        elif isinstance(field.type, type) and dataclasses.is_dataclass(field.type):
-            # Recurse
+        if isinstance(field.type, type_info.ScalarType):
+            constructor_kwargs[field.name] = expressions[0]
+            expressions = expressions[1:]
+        elif isinstance(field.type, type_info.MatrixType):
+            rows, cols = field.type.shape
+            mat = sym.matrix(expressions[: (rows * cols)]).reshape(rows, cols)
+            constructor_kwargs[field.name] = mat
+            expressions = expressions[mat.size :]
+        else:
             constructor_kwargs[field.name], expressions = map_expressions_into_custom_type(
                 expressions=expressions, custom_type=field.type
             )
-        elif isinstance(field.type, type) and issubclass(field.type, (sym.Expr, sym.MatrixExpr)):
-            raise _scalar_matrix_type_err(f"Field `{field.name}` on type `{custom_type}`")
-        else:
-            raise TypeError(
-                f"Invalid member type `{field.name}: {field.type}` used in type `{custom_type}`"
-            )
 
     # All the constructor arguments have been assembled.
-    return typing.cast(U, custom_type(**constructor_kwargs)), expressions
+    return python_type(**constructor_kwargs), expressions
 
 
 def map_expressions_out_of_custom_type(

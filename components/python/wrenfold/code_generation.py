@@ -100,6 +100,8 @@ def create_function_description(
       >>> description = wf.create_function_description(func=foo)
       >>> print(description)
       FunctionDescription('foo', 3 args)
+      >>> print(description.arguments)
+      [Argument(x: floating_point), Argument(y: floating_point), Argument(z: floating_point)]
 
       The description can then be transpiled to a target language:
 
@@ -153,7 +155,7 @@ def create_function_description(
                     provenance=input_expression, num=arg_type.total_size
                 )
                 kwargs[arg_name], _ = custom_types.map_expressions_into_custom_type(
-                    expressions=arg_elements, custom_type=annotated_type
+                    expressions=arg_elements, custom_type=arg_type
                 )
         else:
             kwargs[arg_name] = input_expression

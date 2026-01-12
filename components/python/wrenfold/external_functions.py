@@ -188,6 +188,6 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
             provenance=result, num=returned_custom_type.total_size
         )
         result, _ = custom_types.map_expressions_into_custom_type(
-            expressions=expressions, custom_type=returned_custom_type.python_type
+            expressions=expressions, custom_type=returned_custom_type
         )
         return result
