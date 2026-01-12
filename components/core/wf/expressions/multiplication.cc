@@ -130,6 +130,13 @@ void multiplication_parts::operator()(const T& value, const scalar_expr& input_e
     }
   } else if constexpr (type_list_contains_v<T, type_list_from_variant_t<constant_coeff>>) {
     coeff_ = multiply_numeric_constants{}(coeff_, value);
+  } else if constexpr (std::is_same_v<T, built_in_function_invocation>) {
+    if (value.enum_value() == built_in_function::exp) {
+      // To handle exp(x), rewrite it as e**x. We convert it back in `create_multiplication`.
+      insert_power(constants::euler, value.args()[0]);
+    } else {
+      insert_power(input_expression, constants::one);
+    }
   } else {
     // Everything else: Just raise the power by +1.
     insert_power(input_expression, constants::one);

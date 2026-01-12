@@ -399,6 +399,24 @@ static std::optional<scalar_expr> maybe_distribute_rational_exponent(const multi
   }
 }
 
+// Check if the base is an exponential.
+// We can do exp(f(x)) ** y --> exp(f(x) * y), if
+// - y is an integer constant (including zero), or
+// - f(x) is real (such that exp(f(x)) > 0)
+// This is not all the cases, but catches a few common ones.
+static std::optional<scalar_expr> maybe_multiply_onto_exp_function_argument(
+    const scalar_expr& base, const scalar_expr& exp) {
+  if (const auto b_exp = get_if<const built_in_function_invocation>(base);
+      b_exp != nullptr && b_exp->enum_value() == built_in_function::exp) {
+    const scalar_expr& f_x = b_exp->args()[0];
+    if (determine_numeric_set(base) == number_set::real_positive ||
+        exp.is_type<integer_constant>()) {
+      return wf::exp(f_x * exp);
+    }
+  }
+  return std::nullopt;
+}
+
 scalar_expr power::create(scalar_expr base, scalar_expr exp) {
   if (auto result = pow_maybe_simplify(base, exp); result.has_value()) {
     return *std::move(result);
@@ -426,10 +444,24 @@ std::optional<scalar_expr> pow_maybe_simplify(const scalar_expr& base, const sca
     }
   }
 
+  // Check if the base is euler's constant
+  if (const symbolic_constant* base_sc = get_if<const symbolic_constant>(base);
+      base_sc != nullptr && base_sc->name() == symbolic_constant_enum::euler) {
+    // Convert to exp function:
+    return wf::exp(exp);
+  }
+
   // Check if the base is itself a power:
-  if (const power* a_pow = get_if<const power>(base);
-      a_pow != nullptr && can_multiply_exponents(*a_pow, exp)) {
-    return power::create(a_pow->base(), a_pow->exponent() * exp);
+  if (const power* base_pow = get_if<const power>(base);
+      base_pow != nullptr && can_multiply_exponents(*base_pow, exp)) {
+    return power::create(base_pow->base(), base_pow->exponent() * exp);
+  }
+
+  // Check if the base is exp(...) and we can multiply the exponent into the exponential.
+  if (std::optional<scalar_expr> exp_function =
+          maybe_multiply_onto_exp_function_argument(base, exp);
+      exp_function.has_value()) {
+    return exp_function;
   }
 
   // TODO: Check for `b > 0`, then 0**b --> 0

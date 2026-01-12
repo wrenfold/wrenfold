@@ -91,6 +91,14 @@ TEST(DerivativesTest, TestPower) {
       pow(cos(x), sin(x)).diff(x));
 }
 
+TEST(DerivativesTest, TestExp) {
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(0, exp(x).diff(y));
+  ASSERT_IDENTICAL(x * exp(x * y), exp(x * y).diff(y));
+  ASSERT_IDENTICAL(-sin(x) * exp(cos(x)), exp(cos(x)).diff(x));
+  ASSERT_IDENTICAL(2 * x, log(exp(pow(x, 2))).diff(x));
+}
+
 TEST(DerivativesTest, TestLog) {
   const scalar_expr x{"x"};
   const scalar_expr y{"y"};
