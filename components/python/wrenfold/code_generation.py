@@ -146,8 +146,8 @@ def create_function_description(
             context=f"Argument `{arg_name}` of function `{description.name}`",
         )
 
-        input_expression = description.add_input_argument(arg_name, arg_type)
         if isinstance(arg_type, type_info.CustomType):
+            input_expression = description.add_input_argument(arg_name, arg_type)
             if issubclass(annotated_type, type_annotations.Opaque):
                 kwargs[arg_name] = annotated_type(provenance=input_expression)
             else:
@@ -158,7 +158,7 @@ def create_function_description(
                     expressions=arg_elements, custom_type=arg_type
                 )
         else:
-            kwargs[arg_name] = input_expression
+            kwargs[arg_name] = description.add_input_argument(arg_name, arg_type)
 
     # run the function
     result_expressions: CodegenFuncInvocationResult = func(**kwargs)

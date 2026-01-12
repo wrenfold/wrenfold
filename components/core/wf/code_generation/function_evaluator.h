@@ -48,10 +48,14 @@ function_description build_function_description(Func&& func, const std::string_v
   // Add all the input arguments:
   function_description description{std::string(function_name)};
   zip_tuples(
-      [&description](type_variant arg_type, const arg& arg_name) {
-        description.add_input_argument(arg_name.name(), std::move(arg_type));
+      [&description](const type_variant& arg_type, const arg& arg_name) {
+        std::visit(
+            [&](const auto& arg_type_concrete) {
+              description.add_input_argument(arg_name.name(), arg_type_concrete);
+            },
+            arg_type);
       },
-      std::move(arg_types), arg_names);
+      arg_types, arg_names);
 
   // Record all the output arguments:
   zip_tuples(
