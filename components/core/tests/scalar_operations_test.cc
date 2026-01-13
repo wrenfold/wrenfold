@@ -216,6 +216,18 @@ TEST(ScalarOperationsTest, TestMultiplication) {
                    sin(x) * sin(x) / log(z * y));
 }
 
+TEST(ScalarOperationsTest, TestMultiplicationExpConversion) {
+  // Test that exp is combined correctly when multiplying.
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(exp(2 * x), exp(x) * exp(x));
+  ASSERT_IDENTICAL(1, exp(x) * exp(-x));
+  ASSERT_IDENTICAL(exp(2 * x), exp(x * 3_s / 2) * exp(x * 1_s / 2));
+  ASSERT_IDENTICAL(exp(2 * x) * exp(y), exp(-y) * exp(x) * exp(y) * exp(x) * exp(y));
+  ASSERT_IDENTICAL(exp(cos(y) + pow(x, 2)) * constants::pi,
+                   exp(cos(y)) * constants::pi * exp(pow(x, 2)));
+  ASSERT_IDENTICAL(exp(pow(x, 2) + pow(y, 2)), exp(pow(x, 2)) * exp(pow(y, 2)));
+}
+
 TEST(ScalarOperationsTest, TestMultiplicationImaginaryUnit) {
   // Test multiplications involving `i`:
   const auto [x, y] = make_symbols("x", "y");
@@ -471,6 +483,7 @@ TEST(ScalarOperationsTest, TestPowerCombinationFloat) {
   ASSERT_IDENTICAL(make_pow(make_pow(x, 2), z), pow(pow(x, 2), z));
   ASSERT_IDENTICAL(make_pow(make_pow(x, 1.52), 2.0), pow(pow(x, 1.52), 2.0));
   ASSERT_IDENTICAL(make_pow(make_pow(x, -1.01), 5 / 7_s), pow(pow(x, -1.01), 5 / 7_s));
+  ASSERT_IDENTICAL(make_pow(make_pow(x, 7 / 3_s), -5.12), pow(pow(x, 7 / 3_s), -5.12));
 }
 
 // Inner power is negative
@@ -741,6 +754,40 @@ TEST(ScalarOperationsTest, TestPowerUndefined) {
   ASSERT_IDENTICAL(undef, pow(undef, 7_s / 11));
   ASSERT_IDENTICAL(undef, pow(2.123, undef));
   ASSERT_IDENTICAL(undef, pow(undef, -0.1231));
+}
+
+TEST(ScalarOperationsTest, TestPowerEulerConstant) {
+  // Test powers of `e` are re-written in terms of the exponential function.
+  const auto [x, y] = make_symbols("x", "y");
+  ASSERT_IDENTICAL(exp(x), pow(constants::euler, x));
+  ASSERT_IDENTICAL(1, pow(constants::euler, 0));
+  ASSERT_IDENTICAL(constants::undefined, pow(constants::euler, constants::complex_infinity));
+}
+
+TEST(ScalarOperationsTest, TestPowerCombinationEulerConstant) {
+  const scalar_expr x{"x"};
+  const scalar_expr y{"y", number_set::real};
+  const scalar_expr z{"z", number_set::complex};
+
+  ASSERT_IDENTICAL(exp(2 * x), pow(exp(x), 2));
+  ASSERT_IDENTICAL(exp(-x), pow(exp(x), -1));
+  ASSERT_IDENTICAL(constants::one, pow(exp(x), 0));
+  ASSERT_IDENTICAL(exp(-13 * x), pow(exp(x), -13));
+  ASSERT_IDENTICAL(exp(3 * z), pow(exp(z), 3));
+
+  // For these cases we cannot establish that the argument to exp is real.
+  for (const auto& s : {x, z}) {
+    ASSERT_IDENTICAL(make_pow(exp(s), 0.123), pow(exp(s), 0.123));
+    ASSERT_IDENTICAL(make_pow(exp(s), 2_s / 3), pow(exp(s), 2_s / 3));
+    ASSERT_IDENTICAL(make_pow(exp(s), 14_s / 3), pow(exp(s), 14_s / 3));
+    ASSERT_IDENTICAL(make_pow(exp(s), -5_s / 7), pow(exp(s), -5_s / 7));
+  }
+
+  ASSERT_IDENTICAL(exp(y * 0.123), pow(exp(y), 0.123));
+  ASSERT_IDENTICAL(exp(-y), pow(exp(y), -1));
+  ASSERT_IDENTICAL(exp(y * 2_s / 3), pow(exp(y), 2_s / 3));
+  ASSERT_IDENTICAL(exp(y * 14_s / 3), pow(exp(y), 14_s / 3));
+  ASSERT_IDENTICAL(exp(y * -5_s / 7), pow(exp(y), -5_s / 7));
 }
 
 // Test creating relational expressions
@@ -1333,6 +1380,11 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
     ASSERT_EQ(number_set::unknown, determine_numeric_set(asinh(val)));
     ASSERT_EQ(number_set::unknown, determine_numeric_set(atanh(val)));
   }
+
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(exp(real)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(exp(real_non_negative)));
+  ASSERT_EQ(number_set::real_positive, determine_numeric_set(exp(real_positive)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(exp(complex)));
 
   // not implemented
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real)));
