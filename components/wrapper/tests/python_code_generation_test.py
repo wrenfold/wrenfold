@@ -10,9 +10,14 @@ import typing
 import unittest
 
 import jax
-import numba
 import numpy as np
 import numpy.typing as npt
+
+try:
+    import numba
+except ImportError:
+    print("Numba not installed, numba tests will be skipped.")
+    numba = None
 
 try:
     import torch as th
@@ -966,12 +971,17 @@ def main():
         NumPyCodeGenerationF64Test,
         NumPyCodeGenerationF32OutputArgsTest,
         NumPyCodeGenerationF64OutputArgsTest,
-        NumbaCodeGenerationF32Test,
-        NumbaCodeGenerationF64Test,
-        NumbaCodeGenerationF32OutputArgsTest,
-        NumbaCodeGenerationF64OutputArgsTest,
         JaxCodeGenerationTest,
     ]
+    if numba is not None:
+        test_cases.extend(
+            [
+                NumbaCodeGenerationF32Test,
+                NumbaCodeGenerationF64Test,
+                NumbaCodeGenerationF32OutputArgsTest,
+                NumbaCodeGenerationF64OutputArgsTest,
+            ]
+        )
     if th is not None:
         test_cases.append(PyTorchCodeGenerationTest)
 
