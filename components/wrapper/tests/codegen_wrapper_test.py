@@ -115,6 +115,35 @@ class CustomCppGenerator(wf.CppGenerator):
         return self.super_format(element)
 
 
+BooleanAnnotation = typing.Annotated[sym.Expr, type_info.NumericType.Bool]
+InvalidScalarAnnotation = typing.Annotated[sym.Expr, "No numeric type specified"]
+InvalidMatrixAnnotation1 = typing.Annotated[sym.MatrixExpr, "No shape specified"]
+InvalidMatrixAnnotation2 = typing.Annotated[
+    sym.MatrixExpr, wf.Shape(2, 1), wf.Shape(5, 6), "Two shapes specified"
+]
+
+
+@dataclasses.dataclass
+class InvalidType1:
+    """Invalid because we annotated with sym.Expr directly."""
+
+    foo: sym.Expr
+
+
+@dataclasses.dataclass
+class InvalidType2:
+    """Invalid because we annotated with sym.MatrixExpr directly."""
+
+    foo: sym.MatrixExpr
+
+
+class InvalidType3:
+    """Invalid because it is not a dataclass."""
+
+    foo: wf.FloatScalar
+    bar: wf.Matrix3
+
+
 class CodeGenerationWrapperTest(MathTestBase):
     @staticmethod
     def _run_generators(
@@ -302,11 +331,7 @@ class CodeGenerationWrapperTest(MathTestBase):
     def test_boolean_args_disallowed(self):
         """Test that boolean arguments are disallowed."""
 
-        class Boolean(sym.Expr):
-            # This is illegal.
-            NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Bool
-
-        def boolean_arg_func(x: Boolean, y: wf.FloatScalar):
+        def boolean_arg_func(x: BooleanAnnotation, y: wf.FloatScalar):
             return [
                 wf.ReturnValue(5 + y * x),
                 wf.OutputArg(x, name="x_out"),
@@ -316,6 +341,48 @@ class CodeGenerationWrapperTest(MathTestBase):
             TypeError,
             lambda: wf.generate_function(func=boolean_arg_func, generator=wf.RustGenerator()),
         )
+
+    def test_invalid_types_disallowed(self):
+        """Test that invalid dataclasses are caught."""
+
+        def invalid_1(x: InvalidType1):
+            return x.foo
+
+        def invalid_2(x: wf.FloatScalar):
+            return InvalidType1(x)
+
+        self.assertRaises(TypeError, lambda: wf.create_function_description(func=invalid_1))
+        self.assertRaises(TypeError, lambda: wf.create_function_description(func=invalid_2))
+
+        def invalid_3(x: sym.Expr):
+            return x + 2
+
+        def invalid_4(x: sym.MatrixExpr):
+            return x[0, 0] + x[1, 0]
+
+        self.assertRaises(TypeError, lambda: wf.create_function_description(func=invalid_3))
+        self.assertRaises(TypeError, lambda: wf.create_function_description(func=invalid_4))
+
+        def invalid_5(x: InvalidType3) -> InvalidType3:
+            return x
+
+        self.assertRaises(TypeError, lambda wf: wf.create_function_description(func=invalid_5))
+
+    def test_incomplete_annotations_disallowed(self):
+        """Test that incomplete or invalid type annotations are caught."""
+
+        def invalid_1(x: InvalidScalarAnnotation):
+            return x * 5
+
+        def invalid_2(x: InvalidMatrixAnnotation1):
+            return x[0] * 2
+
+        def invalid_3(x: InvalidMatrixAnnotation2):
+            return sym.cos(x[0, 0])
+
+        self.assertRaises(TypeError, lambda: wf.create_function_description(func=invalid_1))
+        self.assertRaises(TypeError, lambda: wf.create_function_description(func=invalid_2))
+        self.assertRaises(TypeError, lambda: wf.create_function_description(func=invalid_3))
 
 
 if __name__ == "__main__":

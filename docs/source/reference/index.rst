@@ -12,6 +12,7 @@ User guide
    generating_code
    integrating_code
    returning_matrices
+   type_annotations
    generating_python
    conditionals
    rotations

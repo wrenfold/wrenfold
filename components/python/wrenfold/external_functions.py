@@ -72,12 +72,16 @@ def declare_external_function(
     ] = []
     for arg_name, python_arg_type in arguments:
         internal_type = custom_types.convert_to_internal_type(
-            python_type=python_arg_type, cached_custom_types=type_cache
+            python_type=python_arg_type,
+            cached_custom_types=type_cache,
+            context=f"Argument `{arg_name}` of external function `{name}`",
         )
         converted_args.append((arg_name, internal_type))
 
     converted_return_type = custom_types.convert_to_internal_type(
-        python_type=return_type, cached_custom_types=type_cache
+        python_type=return_type,
+        cached_custom_types=type_cache,
+        context=f"Return value of external function `{name}`",
     )
 
     # Create c++ object that will represent this external function.
@@ -139,14 +143,14 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
         if not isinstance(arg_type, type_info.CustomType):
             raise TypeError(
                 f"Argument `{arg_name}` of function `{func.name}` should be of type {arg_type}, "
-                + f"but we received type {type(arg)}."
+                f"but we received type {type(arg)}."
             )
 
         # Check that the type of `arg` matches the type we constructed our `custom_type` with:
         if type(arg) is not arg_type.python_type:
             raise TypeError(
                 f"Argument `{arg_name}` of function `{func.name}` should be of type "
-                + f"{arg_type.python_type}, but we received {type(arg)}"
+                f"{arg_type.python_type}, but we received {type(arg)}"
             )
 
         if isinstance(arg, type_annotations.Opaque):
@@ -159,7 +163,9 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
                 )
             converted_args.append(arg._provenance)
         else:
-            expressions = custom_types.map_expressions_out_of_custom_type(instance=arg)
+            expressions = custom_types.map_expressions_out_of_custom_type(
+                instance=arg, custom_type=arg_type
+            )
             converted_args.append(sym.create_custom_type_construction(arg_type, expressions))
 
     result: sym.AnyExpression = func.call(converted_args)
@@ -172,6 +178,7 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
     assert isinstance(returned_custom_type, type_info.CustomType), (
         f"Return type should be custom type: {returned_custom_type}"
     )
+    assert returned_custom_type.python_type is not None
 
     if issubclass(returned_custom_type.python_type, type_annotations.Opaque):
         return returned_custom_type.python_type(provenance=result)
@@ -181,6 +188,6 @@ def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
             provenance=result, num=returned_custom_type.total_size
         )
         result, _ = custom_types.map_expressions_into_custom_type(
-            expressions=expressions, custom_type=returned_custom_type.python_type
+            expressions=expressions, custom_type=returned_custom_type
         )
         return result

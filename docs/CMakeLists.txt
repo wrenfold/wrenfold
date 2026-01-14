@@ -120,6 +120,7 @@ if(${SPHINX_FOUND})
       source/reference/rotations.py
       source/reference/rotations.rst
       source/reference/symbolic_manipulation.rst
+      source/reference/type_annotations.rst
       source/reference/sympy_interop.rst)
 
   # Add command that runs sphinx-build. This depends explicitly on wf_stubs so

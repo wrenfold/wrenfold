@@ -15,10 +15,20 @@ const any_expression& function_description::find_output_expressions(const output
   return it->second;
 }
 
-std::variant<scalar_expr, matrix_expr, compound_expr> function_description::add_input_argument(
-    const std::string_view name, type_variant type) {
-  const argument& arg = add_argument(name, std::move(type), argument_direction::input);
-  return arg.create_symbolic_input();
+scalar_expr function_description::add_input_argument(std::string_view name, scalar_type type) {
+  const argument& arg = add_argument(name, type, argument_direction::input);
+  return detail::create_function_input(type, arg.name());
+}
+
+matrix_expr function_description::add_input_argument(std::string_view name, matrix_type type) {
+  const argument& arg = add_argument(name, type, argument_direction::input);
+  return detail::create_function_input(type, arg.name());
+}
+
+compound_expr function_description::add_input_argument(std::string_view name,
+                                                       const custom_type& type) {
+  const argument& arg = add_argument(name, type, argument_direction::input);
+  return detail::create_function_input(type, arg.name());
 }
 
 void function_description::add_output_argument(const std::string_view name, type_variant type,

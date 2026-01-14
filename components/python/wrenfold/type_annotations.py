@@ -2,131 +2,51 @@
 Type annotations for decorating function arguments so that the code-generator can instantiate the
 correct inputs.
 
-You can define new vector/matrix annotations anywhere. They need only inherit from MatrixExpr and
-expose the SHAPE tuple.
+You can define new vector/matrix annotations in your own code by following the pattern below:
+
+>>> from typing import Annotated
+>>> from wrenfold import Shape
+>>> Matrix2x3 = Annotated[sym.MatrixExpr, Shape(rows=2, cols=3)]
 """
 
-from . import sym, type_info
+import dataclasses
+from typing import Annotated
+
+from . import sym
+from .type_info import NumericType
+
+FloatScalar = Annotated[sym.Expr, NumericType.Float, "Denote a floating-point scalar variable."]
+
+IntScalar = Annotated[sym.Expr, NumericType.Integer, "Denote an integer valued scalar variable."]
 
 
-class FloatScalar(sym.Expr):
-    """Denote a floating-point scalar variable."""
+@dataclasses.dataclass(frozen=True)
+class Shape:
+    """Used to annotate Matrix arguments to symbolic functions."""
 
-    NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Float
-
-
-class IntScalar(sym.Expr):
-    """Denote an integer valued scalar variable."""
-
-    NUMERIC_PRIMITIVE_TYPE = type_info.NumericType.Integer
+    rows: int
+    cols: int
 
 
-class Vector1(sym.MatrixExpr):
-    """A 1x1 column vector."""
+Vector1 = Annotated[sym.MatrixExpr, Shape(rows=1, cols=1), "A 1x1 column vector."]
+Vector2 = Annotated[sym.MatrixExpr, Shape(rows=2, cols=1), "A 2x1 column vector."]
+Vector3 = Annotated[sym.MatrixExpr, Shape(rows=3, cols=1), "A 3x1 column vector."]
+Vector4 = Annotated[sym.MatrixExpr, Shape(rows=4, cols=1), "A 4x1 column vector."]
+Vector5 = Annotated[sym.MatrixExpr, Shape(rows=5, cols=1), "A 5x1 column vector."]
+Vector6 = Annotated[sym.MatrixExpr, Shape(rows=6, cols=1), "A 6x1 column vector."]
+Vector7 = Annotated[sym.MatrixExpr, Shape(rows=7, cols=1), "A 7x1 column vector."]
+Vector8 = Annotated[sym.MatrixExpr, Shape(rows=8, cols=1), "A 8x1 column vector."]
+Vector9 = Annotated[sym.MatrixExpr, Shape(rows=9, cols=1), "A 9x1 column vector."]
 
-    SHAPE = (1, 1)
-
-
-class Vector2(sym.MatrixExpr):
-    """A 2x1 column vector."""
-
-    SHAPE = (2, 1)
-
-
-class Vector3(sym.MatrixExpr):
-    """A 3x1 column vector."""
-
-    SHAPE = (3, 1)
-
-
-class Vector4(sym.MatrixExpr):
-    """A 4x1 column vector."""
-
-    SHAPE = (4, 1)
-
-
-class Vector5(sym.MatrixExpr):
-    """A 5x1 column vector."""
-
-    SHAPE = (5, 1)
-
-
-class Vector6(sym.MatrixExpr):
-    """A 6x1 column vector."""
-
-    SHAPE = (6, 1)
-
-
-class Vector7(sym.MatrixExpr):
-    """A 7x1 column vector."""
-
-    SHAPE = (7, 1)
-
-
-class Vector8(sym.MatrixExpr):
-    """A 8x1 column vector."""
-
-    SHAPE = (8, 1)
-
-
-class Vector9(sym.MatrixExpr):
-    """A 9x1 column vector."""
-
-    SHAPE = (9, 1)
-
-
-class Matrix1(sym.MatrixExpr):
-    """A 1x1 square matrix."""
-
-    SHAPE = (1, 1)
-
-
-class Matrix2(sym.MatrixExpr):
-    """A 2x2 square matrix."""
-
-    SHAPE = (2, 2)
-
-
-class Matrix3(sym.MatrixExpr):
-    """A 3x3 square matrix."""
-
-    SHAPE = (3, 3)
-
-
-class Matrix4(sym.MatrixExpr):
-    """A 4x4 square matrix."""
-
-    SHAPE = (4, 4)
-
-
-class Matrix5(sym.MatrixExpr):
-    """A 5x5 square matrix."""
-
-    SHAPE = (5, 5)
-
-
-class Matrix6(sym.MatrixExpr):
-    """A 6x6 square matrix."""
-
-    SHAPE = (6, 6)
-
-
-class Matrix7(sym.MatrixExpr):
-    """A 7x7 square matrix."""
-
-    SHAPE = (7, 7)
-
-
-class Matrix8(sym.MatrixExpr):
-    """A 8x8 square matrix."""
-
-    SHAPE = (8, 8)
-
-
-class Matrix9(sym.MatrixExpr):
-    """A 9x9 square matrix."""
-
-    SHAPE = (9, 9)
+Matrix1 = Annotated[sym.MatrixExpr, Shape(rows=1, cols=1), "A 1x1 square matrix."]
+Matrix2 = Annotated[sym.MatrixExpr, Shape(rows=2, cols=2), "A 2x2 square matrix."]
+Matrix3 = Annotated[sym.MatrixExpr, Shape(rows=3, cols=3), "A 3x3 square matrix."]
+Matrix4 = Annotated[sym.MatrixExpr, Shape(rows=4, cols=4), "A 4x4 square matrix."]
+Matrix5 = Annotated[sym.MatrixExpr, Shape(rows=5, cols=5), "A 5x5 square matrix."]
+Matrix6 = Annotated[sym.MatrixExpr, Shape(rows=6, cols=6), "A 6x6 square matrix."]
+Matrix7 = Annotated[sym.MatrixExpr, Shape(rows=7, cols=7), "A 7x7 square matrix."]
+Matrix8 = Annotated[sym.MatrixExpr, Shape(rows=8, cols=8), "A 8x8 square matrix."]
+Matrix9 = Annotated[sym.MatrixExpr, Shape(rows=9, cols=9), "A 9x9 square matrix."]
 
 
 class Opaque:

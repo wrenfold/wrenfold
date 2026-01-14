@@ -44,8 +44,9 @@ class function_description {
   // Returns the argument that the python side should pass to the user method.
   // For custom types, we return a vector of expressions and the python side must map these to
   // fields on the user's custom type.
-  std::variant<scalar_expr, matrix_expr, compound_expr> add_input_argument(std::string_view name,
-                                                                           type_variant type);
+  scalar_expr add_input_argument(std::string_view name, scalar_type type);
+  matrix_expr add_input_argument(std::string_view name, matrix_type type);
+  compound_expr add_input_argument(std::string_view name, const custom_type& type);
 
   // Record an output.
   void add_output_argument(std::string_view name, type_variant type, bool is_optional,

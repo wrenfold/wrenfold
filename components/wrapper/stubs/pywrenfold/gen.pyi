@@ -155,19 +155,19 @@ class FunctionDescription:
     def __repr__(self) -> str: ...
 
     @overload
-    def add_input_argument(self, name: str, type: pywrenfold.type_info.ScalarType) -> pywrenfold.sym.Expr | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr:
+    def add_input_argument(self, name: str, type: pywrenfold.type_info.ScalarType) -> pywrenfold.sym.Expr:
         """
         Add a scalar input argument. Returns placeholder value to pass to the python function.
         """
 
     @overload
-    def add_input_argument(self, name: str, type: pywrenfold.type_info.MatrixType) -> pywrenfold.sym.Expr | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr:
+    def add_input_argument(self, name: str, type: pywrenfold.type_info.MatrixType) -> pywrenfold.sym.MatrixExpr:
         """
         Add a matrix input argument. Returns placeholder value to pass to the python function.
         """
 
     @overload
-    def add_input_argument(self, name: str, type: pywrenfold.type_info.CustomType) -> pywrenfold.sym.Expr | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr:
+    def add_input_argument(self, name: str, type: pywrenfold.type_info.CustomType) -> pywrenfold.sym.CompoundExpr:
         """Add an input argument with a custom user-specified type."""
 
     @overload

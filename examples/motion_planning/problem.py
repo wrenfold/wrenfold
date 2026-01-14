@@ -1,8 +1,9 @@
 import argparse
+import typing
 from dataclasses import dataclass
 
 import wrenfold as wf
-from wrenfold import sym, type_info
+from wrenfold import sym, type_annotations, type_info
 
 # Modify to change the planning horizon and time discretization of problem
 # A larger N will result in a more accurate trajectory, but will take longer to solve
@@ -22,15 +23,14 @@ N = int(HORIZON / DT)
 #     pub acceleration: na::Vector3<f64>,
 #     pub control: na::Vector3<f64>,
 # }
-class State(sym.MatrixExpr):
-    SHAPE = (12, 1)
+STATE_DIM = 12
+State = typing.Annotated[sym.MatrixExpr, type_annotations.Shape(STATE_DIM, 1)]
 
 
 # A trajectory is a sequence of states
 # TODO: When wrenfold supports sequences of custom types,
 # a trajectory can be a sequence of `State`s instead of a matrix
-class Trajectory(sym.MatrixExpr):
-    SHAPE = (12 * N, 1)
+Trajectory = typing.Annotated[sym.MatrixExpr, type_annotations.Shape(STATE_DIM * N, 1)]
 
 
 @dataclass
@@ -125,14 +125,14 @@ def problem(
     desired_final_state: State,
     weights: Weights,
     problem_info: ProblemInfo,
-):
+) -> sym.Expr:
     """
     Fixed size optimization problem for trajectory optimization
     """
-    cost = 0.0
+    cost = sym.float_constant(0.0)
     for i in range(0, N):
-        index_offset = i * State.SHAPE[0]
-        index_next_offset = index_offset + State.SHAPE[0]
+        index_offset = i * STATE_DIM
+        index_next_offset = index_offset + STATE_DIM
         state = trajectory[index_offset:index_next_offset, :]
 
         # Final state cost
@@ -140,7 +140,7 @@ def problem(
 
         # Dynamics cost
         if i < N - 1:
-            index_next_next_offset = index_next_offset + State.SHAPE[0]
+            index_next_next_offset = index_next_offset + STATE_DIM
             next_state = trajectory[index_next_offset:index_next_next_offset, :]
             cost += dynamics_objective(
                 state, next_state, weights.dynamics, problem_info.mass, problem_info.dt

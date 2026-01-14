@@ -62,12 +62,6 @@ void wrap_geometry_operations(py::module_& m) {
              return fmt::format("Quaternion({}, {}, {}, {})", self.w(), self.x(), self.y(),
                                 self.z());
            })
-      .def(
-          "is_identical_to",
-          [](const quaternion& self, const quaternion& other) {
-            return self.is_identical_to(other);
-          },
-          "other"_a, "Test if two quaternions have identical expression trees.")
       // Expression operations:
       .def("subs", &quaternion::subs, py::arg("target"), py::arg("replacement"),
            "Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.")
