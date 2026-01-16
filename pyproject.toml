@@ -20,6 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 [project.urls]
@@ -51,10 +52,10 @@ wheel.license-files = [
 build.verbose = true
 
 [tool.cibuildwheel]
-skip = ["*musllinux_*", "*-win32", "*_i686", "pp*"]
+skip = ["*musllinux_*", "*-win32", "*_i686", "pp*", "cp314*"]
 manylinux-x86_64-image = "manylinux_2_28"
 test-command = ["python \"{package}/support/test_wheel.py\""]
-test-requires = ["numpy", "sympy", "jax", "numba"]
+test-requires = ["numpy", "sympy", "jax"]
 
 [dependency-groups]
 dev = [
@@ -64,7 +65,12 @@ dev = [
     "pre-commit>=4.2.0",
     "sphinx==8.1.3",
 ]
-test = ["jax>=0.4.30", "numpy>=2.0.2", "sympy>=1.14.0", "numba>=0.63"]
+test = [
+    "jax>=0.4.30",
+    "numpy>=2.0.2",
+    "sympy>=1.14.0",
+    "numba>=0.63; python_version < '3.14'",
+]
 torch = ["torch>=2.8"]
 ipdb = ["ipdb"]
 
