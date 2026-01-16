@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -1471,7 +1471,7 @@ wheels = [
 
 [[package]]
 name = "wrenfold"
-version = "0.4.1"
+version = "0.5.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
@@ -1487,7 +1487,7 @@ ipdb = [
 ]
 test = [
     { name = "jax" },
-    { name = "numba" },
+    { name = "numba", marker = "python_full_version < '3.14'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sympy" },
@@ -1509,7 +1509,7 @@ dev = [
 ipdb = [{ name = "ipdb" }]
 test = [
     { name = "jax", specifier = ">=0.4.30" },
-    { name = "numba", specifier = ">=0.63" },
+    { name = "numba", marker = "python_full_version < '3.14'", specifier = ">=0.63" },
     { name = "numpy", specifier = ">=2.0.2" },
     { name = "sympy", specifier = ">=1.14.0" },
 ]
