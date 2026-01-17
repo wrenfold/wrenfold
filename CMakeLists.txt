@@ -90,6 +90,7 @@ add_subdirectory(components)
 
 # Add examples and docs.
 if(WF_BUILD_EXTRAS)
+  check_python_import("jax" JAX_FOUND)
   add_subdirectory(examples)
   add_subdirectory(docs)
 endif()

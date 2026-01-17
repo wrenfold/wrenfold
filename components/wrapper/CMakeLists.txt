@@ -22,6 +22,7 @@ function(add_wrapper_module)
     NB_STATIC
     PROTECT_STACK
     NOMINSIZE
+    FREE_THREADED
     ${MODULE_SOURCES})
   set_property(
     TARGET ${MODULE_NAME}
