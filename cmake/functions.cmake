@@ -288,3 +288,24 @@ function(add_python_test PYTHON_SOURCE_FILE)
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   message(STATUS "Added python test: ${TEST_NAME} (${SCRIPT_MODULE})")
 endfunction()
+
+function(check_python_import PACKAGE_NAME OUTPUT_VARIABLE)
+  if(NOT DEFINED Python_EXECUTABLE)
+    message(FATAL_ERROR "The Python executable could not be located.")
+  endif()
+  set(EXIT_CODE)
+  execute_process(
+    COMMAND ${Python_EXECUTABLE} -B -c "import ${PACKAGE_NAME}"
+    OUTPUT_QUIET ERROR_QUIET
+    RESULT_VARIABLE EXIT_CODE)
+  if(NOT EXIT_CODE EQUAL 0)
+    message(WARNING "Python package is not available: ${PACKAGE_NAME}")
+    set(${OUTPUT_VARIABLE}
+        OFF
+        PARENT_SCOPE)
+  else()
+    set(${OUTPUT_VARIABLE}
+        ON
+        PARENT_SCOPE)
+  endif()
+endfunction()

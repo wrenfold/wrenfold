@@ -9,9 +9,14 @@ import sys
 import typing
 import unittest
 
-import jax
 import numpy as np
 import numpy.typing as npt
+
+try:
+    import jax
+except ImportError:
+    print("Jax not installed, jax tests will be skipped.")
+    jax = None
 
 try:
     import numba
@@ -971,8 +976,10 @@ def main():
         NumPyCodeGenerationF64Test,
         NumPyCodeGenerationF32OutputArgsTest,
         NumPyCodeGenerationF64OutputArgsTest,
-        JaxCodeGenerationTest,
     ]
+    if jax is not None:
+        test_cases.append(JaxCodeGenerationTest)
+
     if numba is not None:
         test_cases.extend(
             [
