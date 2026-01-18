@@ -102,7 +102,7 @@ jobs:
         run: pip install git-archive-all
 
       - name: Create complete source archive
-        run: git-archive-all -v wrenfold-source-${{ github.ref_name }}.tar.gz
+        run: git-archive-all --force-submodules -v wrenfold-source-${{ github.ref_name }}.tar.gz
 
       - name: "Build Changelog"
         id: build_changelog
