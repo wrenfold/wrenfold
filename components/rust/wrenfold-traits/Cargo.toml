@@ -1,6 +1,6 @@
 [package]
 name = "wrenfold-traits"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 authors = ["Gareth <gcross.code@icloud.com>"]
@@ -14,7 +14,7 @@ categories = ["science::robotics", "computer-vision", "mathematics"]
 publish = true
 
 [dependencies]
-nalgebra = { version = "0.33.0", optional = true }
+nalgebra = { version = "0.34", optional = true }
 
 [features]
 nalgebra = ["dep:nalgebra"]

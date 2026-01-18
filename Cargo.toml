@@ -18,11 +18,11 @@ members = [
 
 [workspace.dependencies]
 wrenfold-test-utils = { path = "components/rust/wrenfold-test-utils"  }
-wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.1.0", features = ["nalgebra"] }
+wrenfold-traits = { path = "components/rust/wrenfold-traits", version = "0.2.0", features = ["nalgebra"] }
 bspline_rust_test = { path = "examples/bspline/bspline_rust_test" }
 
 # External crates used for tests.
-nalgebra = { version = "0.33" }
+nalgebra = { version = "0.34" }
 approx = { version = "0.5.1" }
 serde = { version = "1.0" }
 pkg-config = { version = "0.3.29" }
