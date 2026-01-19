@@ -1,6 +1,6 @@
 [project]
 name = "wrenfold"
-version = "0.5.0"
+version = "0.5.1"
 requires-python = ">=3.10"
 authors = [{ name = "Gareth Cross", email = "gcross.code@icloud.com" }]
 description = "Tools for code-generating mathematical functions."
