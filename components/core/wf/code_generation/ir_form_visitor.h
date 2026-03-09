@@ -5,7 +5,6 @@
 #include <unordered_map>
 
 #include "wf/code_generation/control_flow_graph.h"
-#include "wf/code_generation/ir_block.h"
 #include "wf/code_generation/ir_consumer_vector.h"
 #include "wf/expression.h"
 #include "wf/expression_cache.h"
