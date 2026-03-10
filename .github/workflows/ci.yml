@@ -49,7 +49,7 @@ jobs:
               cxx_env: "g++-14"
             }
           - {
-              os: macos-14,
+              os: macos-15,
               shell: "bash -el {0}",
               compiler_packages: "",
               name_suffix: "default",
@@ -95,9 +95,9 @@ jobs:
         run: ${{ steps.pyinstall.outputs.python-path }} -m pip install torch
 
       - name: Install doxygen
-        uses: ssciwr/doxygen-install@v1
+        uses: ssciwr/doxygen-install@v2
         with:
-          version: "1.12.0"
+          version: "1.16.1"
 
       - if: runner.os == 'Linux'
         name: Add repositories for GCC
