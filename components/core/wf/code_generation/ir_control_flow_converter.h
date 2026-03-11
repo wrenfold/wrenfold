@@ -9,6 +9,13 @@
 
 namespace wf {
 
+// Hash the integer names of a pair of blocks.
+struct hash_block_pair {
+  constexpr std::size_t operator()(const std::pair<std::size_t, std::size_t>& p) const noexcept {
+    return hash_combine(p.first, p.second);
+  }
+};
+
 // Convert ir that contains `cond` (ternary) statements into a control flow graph that contains
 // jumps, blocks, and phi functions.
 class ir_control_flow_converter {
@@ -54,6 +61,7 @@ class ir_control_flow_converter {
   std::vector<ir::value::unique_ptr> values_;
   std::vector<ir::block::unique_ptr> blocks_;
   std::unordered_set<ir::const_value_ptr> visited_;
+  std::unordered_map<std::pair<std::size_t, std::size_t>, bool, hash_block_pair> is_dominated_by_;
   ir::block::unique_ptr input_block_;
   bool convert_ternaries_;
 };

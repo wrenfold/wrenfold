@@ -135,17 +135,23 @@ void ir_control_flow_converter::queue_operands(std::deque<ir::value_ptr>& queue,
   }
 }
 
-// Return true if `parent_block` is executed on all paths through `test_block`.
-static bool parent_is_on_all_paths_through_block(const ir::block_ptr test_block,
-                                                 const ir::block_ptr parent_block) noexcept {
-  if (test_block == parent_block) {
+// Return true if `upstream_block` is executed on all paths to `test_block`.
+static bool block_is_dominated_by(const ir::const_block_ptr test_block,
+                                  const ir::const_block_ptr upstream_block,
+                                  std::unordered_map<std::pair<std::size_t, std::size_t>, bool,
+                                                     hash_block_pair>& cache) noexcept {
+  if (test_block == upstream_block) {
     return true;
   }
+  if (const auto it = cache.find({test_block->name(), upstream_block->name()}); it != cache.end()) {
+    return it->second;
+  }
   const auto& ancestors = test_block->ancestors();
-  return !ancestors.empty() &&
-         std::all_of(ancestors.begin(), ancestors.end(), [&](const ir::block_ptr b) {
-           return parent_is_on_all_paths_through_block(b, parent_block);
-         });
+  const bool result = !ancestors.empty() && all_of(ancestors, [&](const ir::const_block_ptr b) {
+    return block_is_dominated_by(b, upstream_block, cache);
+  });
+  cache[{test_block->name(), upstream_block->name()}] = result;
+  return result;
 }
 
 std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
@@ -176,7 +182,7 @@ std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
     // other scopes that need this value.
     if (const bool is_valid_to_insert =
             top->all_consumers_satisfy([&](const ir::value_ptr consumer) {
-              return parent_is_on_all_paths_through_block(consumer->parent(), output_block);
+              return block_is_dominated_by(consumer->parent(), output_block, is_dominated_by_);
             });
         !is_valid_to_insert) {
       deferred.push_back(top);
