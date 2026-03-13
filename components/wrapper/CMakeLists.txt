@@ -238,6 +238,6 @@ endif()
 install_stubs(MODULE_NAME pywrenfold STUBS_DIR
               "${CMAKE_CURRENT_SOURCE_DIR}/stubs")
 
-if(WF_BUILD_EXTRAS)
+if(WF_BUILD_TESTS)
   add_subdirectory(tests)
 endif()

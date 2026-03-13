@@ -6,7 +6,7 @@ target_include_directories(
                        $<INSTALL_INTERFACE:include>)
 target_link_libraries(wf_runtime INTERFACE wf_coverage_config)
 
-if(WF_BUILD_EXTRAS)
+if(WF_BUILD_TESTS)
   add_subdirectory(tests)
 endif()
 

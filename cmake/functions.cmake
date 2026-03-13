@@ -86,7 +86,7 @@ add_custom_target(wf_cpp_non_codegen_tests)
 # Add a test written in C++. GENERATOR_TARGET: Make this test depend on the
 # specified code-generator target. SOURCE_FILES: Source files of the test.
 function(add_cpp_test NAME)
-  set(options "")
+  set(options NO_MAIN)
   set(oneValueArgs GENERATOR_TARGET)
   set(multiValueArgs SOURCE_FILES INCLUDE_DIRECTORIES TEST_DEFINITIONS)
   cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}"
@@ -102,9 +102,15 @@ function(add_cpp_test NAME)
     message(STATUS "Adding test: ${NAME}")
   endif()
 
+  if(ARGS_NO_MAIN)
+    set(SOURCES ${ARGS_SOURCE_FILES} ${GENERATOR_OUTPUT})
+  else()
+    set(SOURCES ${ARGS_SOURCE_FILES} ${GENERATOR_OUTPUT}
+                $<TARGET_OBJECTS:wf_custom_main>)
+  endif()
+
   # add executable for the test:
-  add_executable(${NAME} ${ARGS_SOURCE_FILES} ${GENERATOR_OUTPUT}
-                         $<TARGET_OBJECTS:wf_custom_main>)
+  add_executable(${NAME} ${SOURCES})
   if(NOT ${ARGS_GENERATOR_TARGET} STREQUAL "")
     add_dependencies(${NAME} ${ARGS_GENERATOR_TARGET})
   else()
@@ -123,18 +129,14 @@ function(add_cpp_test NAME)
   endif()
 
   target_link_libraries(
-    ${NAME}
-    wf_core
-    wf_runtime
-    wf_test_support
-    gtest
-    eigen
-    fmt::fmt-header-only)
+    ${NAME} PRIVATE wf_core wf_runtime wf_test_support gtest Eigen3::Eigen
+                    fmt::fmt-header-only)
   target_compile_options(${NAME} PRIVATE ${WF_SHARED_WARNING_FLAGS}
                                          ${ARGS_TEST_DEFINITIONS})
   if(NOT MSVC)
     target_compile_options(${NAME} PRIVATE -Wno-unused-comparison)
   endif()
+  target_compile_definitions(${NAME} PRIVATE -DWF_SPAN_EIGEN_SUPPORT)
 
   add_test(${NAME} ${NAME})
 endfunction()

@@ -4,7 +4,6 @@
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numerical_jacobian.h"
 
-#define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span.h"
 
 #include "generated.h"

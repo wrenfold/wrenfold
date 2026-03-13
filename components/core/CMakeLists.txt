@@ -187,8 +187,11 @@ target_include_directories(
   wf_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                  $<INSTALL_INTERFACE:include>)
 
-if(WF_BUILD_EXTRAS)
+if(WF_BUILD_TESTS)
   add_subdirectory(test_support)
   add_subdirectory(tests)
+endif()
+
+if(WF_BUILD_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()

@@ -6,7 +6,6 @@
 
 #include "test_expressions.h"  //  Symbolic test functions.
 
-#define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span.h"
 
 // We build this twice - once using generic span arguments and once using eigen.

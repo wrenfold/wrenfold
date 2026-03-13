@@ -70,7 +70,7 @@ jobs:
           -Wno-deprecated
           -G Ninja
           -DWF_BUILD_STUBS=OFF
-          -DWF_DOCS_REQUIRED=OFF
+          -DWF_BUILD_DOCS=OFF
           -DWF_CODE_COVERAGE=ON
           -DWF_BUILD_WITH_TRACING=ON
           -DPython_ROOT_DIR=${{ env.Python_ROOT_DIR }}
