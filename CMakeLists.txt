@@ -89,8 +89,9 @@ if(WF_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-# Custom target that groups together all the rust code-generation.
+# Custom targets that groups together all the rust/cpp code-generation.
 add_custom_target(wf_rust_generation ALL)
+add_custom_target(wf_cpp_generation ALL)
 
 # Add core library+wrapper+tests.
 add_subdirectory(components)
