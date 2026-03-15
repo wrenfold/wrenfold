@@ -27,7 +27,7 @@ void snavely_reprojection_error(const T0& camera, const T1& point, const T2& mea
   // multiply: 288
   // negate: 20
   // total: 465
-  
+
   const Scalar v00016 = _camera(2, 0);
   const Scalar v00014 = _camera(1, 0);
   const Scalar v00012 = _camera(0, 0);
