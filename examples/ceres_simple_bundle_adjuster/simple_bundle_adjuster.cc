@@ -44,7 +44,7 @@
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 #include "ceres/sized_cost_function.h"
-#include "generated/snavely_reprojection_error.h"
+#include "generated/snavely_reprojection_error.generated.h"
 
 // Read a Bundle Adjustment in the Large dataset.
 class BALProblem {

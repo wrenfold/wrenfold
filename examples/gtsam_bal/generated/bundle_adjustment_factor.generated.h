@@ -23,7 +23,7 @@ void bundle_adjustment_factor(const gtsam::SfmCamera& camera, const T1& p_world,
   // multiply: 303
   // negate: 11
   // total: 458
-
+  
   const Scalar v00008 = camera.pose().rotation().toQuaternion().y();
   const Scalar v00021 = camera.pose().rotation().toQuaternion().z();
   const Scalar v00003 = camera.pose().rotation().toQuaternion().x();

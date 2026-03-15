@@ -1,6 +1,6 @@
 add_py_code_generator(
   bundle_adjustment_factor_generate bundle_adjustment_factor.py
-  OUTPUT_FILE_NAME bundle_adjustment_factor.h)
+  OUTPUT_FILE_NAME bundle_adjustment_factor.generated.h)
 
 copy_generated_file(GENERATOR_TARGET bundle_adjustment_factor_generate
                     DESTINATION_DIR generated TARGET_GROUP wf_cpp_generation)
