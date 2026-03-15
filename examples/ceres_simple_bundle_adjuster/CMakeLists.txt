@@ -5,7 +5,7 @@ add_py_code_generator(
 copy_generated_file(GENERATOR_TARGET snavely_reprojection_error_generate
                     DESTINATION_DIR generated TARGET_GROUP wf_cpp_generation)
 
-find_package(Ceres)
+find_package(Ceres QUIET)
 
 if(NOT Ceres_FOUND)
   message(WARNING "Ceres not located, skipping example.")

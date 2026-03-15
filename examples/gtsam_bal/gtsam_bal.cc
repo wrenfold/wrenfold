@@ -6,7 +6,6 @@
 
 #include <fmt/core.h>
 
-#include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/inference/Symbol.h>
 #include <gtsam/linear/NoiseModel.h>
 #include <gtsam/nonlinear/Expression.h>

@@ -2,14 +2,14 @@
 Generate a GTSAM reprojection error for use with BAL datasets.
 """
 
+import argparse
 import dataclasses
-import typing as T
 from pathlib import Path
 
 from wrenfold import ast, code_generation, sym, type_info
 from wrenfold.type_annotations import FloatScalar, Vector2, Vector3
 
-from ..pose3 import Pose3, Rot3
+from .pose3 import Pose3, Rot3
 
 
 @dataclasses.dataclass
@@ -31,8 +31,8 @@ class Cal3Bundler:
 
         We could improve this by adding a conditional here that handles p[2] <= 0.
         """
-        xp = p[0] / p[2]
-        yp = p[1] / p[2]
+        xp = p[0, 0] / p[2, 0]
+        yp = p[1, 0] / p[2, 0]
 
         r2 = xp * xp + yp * yp
         distortion = 1 + r2 * (self.k1 + self.k2 * r2)
@@ -61,10 +61,10 @@ class GtsamCppGenerator(code_generation.CppGenerator):
         """
         Customize access to `gtsam::Pose3` and `Cal3Bundler`.
         """
-        if (element.struct_type.python_type == Pose3 and element.field_name == "rotation"):
+        if element.struct_type.python_type == Pose3 and element.field_name == "rotation":
             # Retrieve Rot3, and then the Eigen Quaternion:
             return f"{self.format(element.arg)}.rotation().toQuaternion()"
-        elif (element.struct_type.python_type == Cal3Bundler and element.field_name == "f"):
+        elif element.struct_type.python_type == Cal3Bundler and element.field_name == "f":
             # fx() == fy() for the Cal3Bundler type:
             return f"{self.format(element.arg)}.fx()"
 
@@ -95,7 +95,8 @@ def bundle_adjustment_factor(camera: SfmCamera, p_world: Vector3):
 
     # Convert it to be with respect to the right-tangent space of the camera pose:
     p_image_D_camera_tangent = p_image_D_camera * sym.diag(
-        [camera.pose.right_retract_derivative(), sym.eye(3)])
+        [camera.pose.right_retract_derivative(), sym.eye(3)]
+    )
     assert p_image_D_camera_tangent.shape == (2, 9)
 
     # Compute jacobian wrt the point:
@@ -109,11 +110,18 @@ def bundle_adjustment_factor(camera: SfmCamera, p_world: Vector3):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "output_file",
+        type=Path,
+        help="Path to write the generated code to.",
+    )
+    args = parser.parse_args()
+
     generator = GtsamCppGenerator()
     code = code_generation.generate_function(func=bundle_adjustment_factor, generator=generator)
     code = generator.apply_preamble(code, namespace="gen")
-    output_path = (Path(__file__).parent.absolute() / "generated" / "bundle_adjustment_factor.h")
-    code_generation.mkdir_and_write_file(code=code, path=output_path)
+    code_generation.mkdir_and_write_file(code=code, path=args.output_file)
 
 
 if __name__ == "__main__":
