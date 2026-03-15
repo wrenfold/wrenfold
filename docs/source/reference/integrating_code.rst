@@ -7,8 +7,8 @@ our new function.
 
 .. note::
 
-    For examples of integrating generated functions with GTSAM, Ceres, and Sophus see the
-    `wrenfold-extra-examples <https://github.com/wrenfold/wrenfold-extra-examples>`_ repository.
+    For examples of integrating generated functions with GTSAM or Ceres see the
+    `examples <https://github.com/wrenfold/wrenfold/tree/main/examples>`_.
 
 C++
 ---

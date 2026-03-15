@@ -91,7 +91,7 @@ wrenfold draws inspiration from [SymForce](https://symforce.org), but differs in
 * **Improved flexibility**: Symbolic expressions can include conditional logic. This enables a broader range of functions to be generated.
 * **Ease of integration**: wrenfold aims to make it straightforward to customize the code-generation step to suit your project. For example, you can [use existing types in your codebase in generated method signatures](https://wrenfold.org/reference/custom_types.html).
 * **Faster code generation**: Faster code generation translates to quicker iteration on experiments. The generation cost should ideally be negligible compared to compile time for the code itself.
-* **Narrower scope**: wrenfold does not implement a numerical optimizer. Rather we aim to make it simple to integrate generated code into your project's existing preferred optimizer (see the [extended examples](https://github.com/wrenfold/wrenfold-extra-examples)). It should be relatively straightforward to use wrenfold functions with GTSAM, Ceres, the SymForce optimizer, or your own custom implementation.
+* **Narrower scope**: wrenfold does not implement a numerical optimizer. Rather we aim to make it simple to integrate generated code into your project's existing preferred optimizer (see the [ceres_simple_bundle_adjuster](./examples/ceres_simple_bundle_adjuster/), [gtsam_bal](./examples/gtsam_bal/), or [pyceres](./examples/pyceres_examples/) examples). It should be relatively straightforward to use wrenfold functions with GTSAM, Ceres, the SymForce optimizer, or your own custom implementation.
 
 wrenfold is primarily written in C++, and exposes a python API via [nanobind](https://nanobind.readthedocs.io). It can presently generate code in C++17, Rust, and Python (NumPy, PyTorch, and JAX are all supported).
 <!--- intro_end --->
@@ -131,8 +131,7 @@ To get started:
 - Refer to the [quick start guide](https://wrenfold.org/quick_start.html) and [user guide](https://wrenfold.org/reference/index.html).
 - Take a look at some of the examples:
   - There are some examples of symbolic expressions [in this repository](examples). For instance, an implementation of [imu integration](examples/imu_integration/imu_integration.py) or the dynamics of a [cart-pole/double-pendulum](examples/cart_pole/cart_pole_dynamics.py) system.
-  - Each example includes a unit test that invokes the generated code.
-- The [wrenfold-extra-examples](https://github.com/wrenfold/wrenfold-extra-examples) repository includes examples of integrating generated code into existing optimizers like [GTSAM](http://gtsam.org) and [Ceres](http://ceres-solver.org).
+  - Most examples include a unit test that invokes the generated code.
 
 ## Building from source
 

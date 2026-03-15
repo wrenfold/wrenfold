@@ -16,7 +16,7 @@ python snavely_peprojection_error.py <OUTPUT FILE>
 
 To run this example, download one of the [BAL datasets](https://grail.cs.washington.edu/projects/bal/) and pass it to the `simple_bundle_adjuster` binary.
 
-For example, assuming the `wrenfold-extra-examples` project has been built:
+For example, assuming the repository has been built:
 ```bash
 wget https://grail.cs.washington.edu/projects/bal/data/ladybug/problem-49-7776-pre.txt.bz2
 bzip2 -d problem-49-7776-pre.txt.bz2

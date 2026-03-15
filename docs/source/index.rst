@@ -31,8 +31,6 @@ Getting started
 #. Begin with the :doc:`quick start guide <quick_start>`.
 #. Peruse the :doc:`user guide <reference/index>`.
 #. Check out `examples <https://github.com/wrenfold/wrenfold/tree/main/examples>`_ in the repository.
-   There are also `additional examples <https://github.com/wrenfold/wrenfold-extra-examples>`_ that
-   demonstrate integration of generated code into third-party optimizers.
 
 Goals
 -----
