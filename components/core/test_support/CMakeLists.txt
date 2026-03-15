@@ -18,6 +18,7 @@ endif()
 
 target_link_libraries(wf_test_support INTERFACE wf_runtime gtest Eigen3::Eigen
                                                 fmt::fmt-header-only)
+target_compile_definitions(wf_test_support INTERFACE -DWF_SPAN_EIGEN_SUPPORT)
 
 # Object target for custom main() for gtest
 add_library(wf_custom_main OBJECT custom_main.cc)

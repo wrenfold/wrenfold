@@ -1,7 +1,6 @@
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numerical_jacobian.h"
 
-#define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span.h"
 
 #include "generated.h"
@@ -58,13 +57,15 @@ TEST(PyRotationErrorTest, TestRotationErrorEigen) {
   EXPECT_EIGEN_NEAR(Vector3d::Zero(), error, 2.0e-16);
 
   const auto D0_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
-    gen::rotation_error_eigen<double>(manifold<Quaterniond>::retract(q0, w).coeffs(), q1.coeffs(), 2.0, error, nullptr, nullptr);
+    gen::rotation_error_eigen<double>(manifold<Quaterniond>::retract(q0, w).coeffs(), q1.coeffs(),
+                                      2.0, error, nullptr, nullptr);
     return error;
   });
   EXPECT_EIGEN_NEAR(D0_num, D0, 1.0e-12);
 
   const auto D1_num = numerical_jacobian(Vector3d::Zero(), [&](const Vector3d& w) {
-    gen::rotation_error_eigen<double>(q0.coeffs(), manifold<Quaterniond>::retract(q1, w).coeffs(), 2.0, error, nullptr, nullptr);
+    gen::rotation_error_eigen<double>(q0.coeffs(), manifold<Quaterniond>::retract(q1, w).coeffs(),
+                                      2.0, error, nullptr, nullptr);
     return error;
   });
   EXPECT_EIGEN_NEAR(D1_num, D1, 1.0e-12);

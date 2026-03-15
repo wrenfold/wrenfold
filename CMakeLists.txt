@@ -7,15 +7,21 @@ if(DEFINED SKBUILD_PROJECT_NAME AND DEFINED SKBUILD_PROJECT_VERSION)
     DESCRIPTION "Tools for generating code from symbolic math."
     LANGUAGES CXX C)
   message(STATUS "Building project version: ${SKBUILD_PROJECT_VERSION}")
-  set(WF_BUILD_EXTRAS_DEFAULT OFF)
+  set(WF_BUILD_TESTS_DEFAULT OFF)
+  set(WF_BUILD_EXAMPLES_DEFAULT OFF)
+  set(WF_BUILD_BENCHMARKS_DEFAULT OFF)
   set(WF_BUILD_STUBS_DEFAULT OFF)
 else()
   project(wrenfold CXX C)
   if(PROJECT_IS_TOP_LEVEL)
-    set(WF_BUILD_EXTRAS_DEFAULT ON)
+    set(WF_BUILD_TESTS_DEFAULT ON)
+    set(WF_BUILD_EXAMPLES_DEFAULT ON)
+    set(WF_BUILD_BENCHMARKS_DEFAULT ON)
     set(WF_BUILD_STUBS_DEFAULT ON)
   else()
-    set(WF_BUILD_EXTRAS_DEFAULT OFF)
+    set(WF_BUILD_TESTS_DEFAULT OFF)
+    set(WF_BUILD_EXAMPLES_DEFAULT OFF)
+    set(WF_BUILD_BENCHMARKS_DEFAULT OFF)
     set(WF_BUILD_STUBS_DEFAULT OFF)
   endif()
 endif()
@@ -34,11 +40,12 @@ find_package(
 message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
 message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
 
-option(WF_BUILD_EXTRAS "Build tests, benchmarks, examples, and docs."
-       ${WF_BUILD_EXTRAS_DEFAULT})
+option(WF_BUILD_TESTS "Build tests." ${WF_BUILD_TESTS_DEFAULT})
+option(WF_BUILD_EXAMPLES "Build examples." ${WF_BUILD_EXAMPLES_DEFAULT})
+option(WF_BUILD_BENCHMARKS "Build benchmarks." ${WF_BUILD_BENCHMARKS_DEFAULT})
 option(WF_BUILD_STUBS "Build stubs for the pywrenfold module."
        ${WF_BUILD_STUBS_DEFAULT})
-option(WF_DOCS_REQUIRED "Fail if sphinx/doxygen cannot be found." OFF)
+option(WF_BUILD_DOCS "Build documentation." OFF)
 option(WF_CODE_COVERAGE "Build in code coverage mode." OFF)
 
 # Add third party code
@@ -82,15 +89,18 @@ if(WF_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-# Custom target that groups together all the rust code-generation.
+# Custom targets that groups together all the rust/cpp code-generation.
 add_custom_target(wf_rust_generation ALL)
+add_custom_target(wf_cpp_generation ALL)
 
-# Add libraries
+# Add core library+wrapper+tests.
 add_subdirectory(components)
 
-# Add examples and docs.
-if(WF_BUILD_EXTRAS)
+if(WF_BUILD_EXAMPLES)
   check_python_import("jax" JAX_FOUND)
   add_subdirectory(examples)
+endif()
+
+if(WF_BUILD_DOCS)
   add_subdirectory(docs)
 endif()

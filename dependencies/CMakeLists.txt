@@ -17,7 +17,7 @@ function(add_gtest)
   endif()
 endfunction()
 
-if(WF_BUILD_EXTRAS)
+if(WF_BUILD_TESTS)
   add_gtest()
 endif()
 
@@ -34,7 +34,7 @@ function(add_google_benchmark)
   endif()
 endfunction()
 
-if(WF_BUILD_EXTRAS)
+if(WF_BUILD_BENCHMARKS)
   add_google_benchmark()
 endif()
 

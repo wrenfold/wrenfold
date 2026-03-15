@@ -5,9 +5,9 @@ repos:
       - id: check-yaml
         exclude: '(^dependencies/)|(support/conda/.*\.yaml)'
       - id: end-of-file-fixer
-        exclude: '(^dependencies/)|(.*\.rs$)|(.*\.pyi$)'
+        exclude: '(^dependencies/)|(.*\.rs$)|(.*\.pyi$)|(.*\.generated\.h$)'
       - id: trailing-whitespace
-        exclude: '^dependencies/|(.*\.rs$)'
+        exclude: '^dependencies/|(.*\.rs$)|(.*\.generated\.h$)'
       - id: check-toml
         exclude: '^dependencies/'
 

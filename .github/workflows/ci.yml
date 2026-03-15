@@ -136,7 +136,7 @@ jobs:
           -Wno-deprecated
           -G Ninja
           -DWF_BUILD_STUBS=ON
-          -DWF_DOCS_REQUIRED=ON
+          -DWF_BUILD_DOCS=ON
           -DPython_ROOT_DIR=${{ env.Python_ROOT_DIR }}
           -DPython_FIND_STRATEGY=LOCATION
           -DPython_FIND_REGISTRY=NEVER

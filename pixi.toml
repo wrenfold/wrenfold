@@ -1,0 +1,15 @@
+[workspace]
+authors = ["gareth-cross <gcross.code@icloud.com>"]
+channels = ["conda-forge"]
+name = "wrenfold"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "==3.13"
+ceres-solver = ">=2.2.0,<3"
+sympy = ">=1.14.0,<2"
+numpy = ">=2.4.2,<3"
+sophus = ">=1!1.24.6,<1!2"

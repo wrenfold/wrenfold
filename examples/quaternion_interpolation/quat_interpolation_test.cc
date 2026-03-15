@@ -8,7 +8,6 @@ WF_BEGIN_THIRD_PARTY_INCLUDES
 #include <fmt/ostream.h>
 WF_END_THIRD_PARTY_INCLUDES
 
-#define WF_SPAN_EIGEN_SUPPORT
 #include "wrenfold/span.h"
 
 #include "generated.h"
