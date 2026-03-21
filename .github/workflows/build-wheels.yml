@@ -21,7 +21,7 @@ jobs:
         sys:
           - { os: windows-latest, shell: pwsh }
           - { os: ubuntu-latest, shell: bash }
-          - { os: macos-14, shell: bash }
+          - { os: macos-15, shell: bash }
 
     defaults:
       run:
@@ -116,6 +116,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: ${{ startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref, 'refs/tags/test-build-wheels-tag') }}
         with:
+          token: ${{ secrets.WF_RELEASE_TOKEN }}
           files: |
             wheels/*.whl
             wrenfold-wheels.tar.gz
