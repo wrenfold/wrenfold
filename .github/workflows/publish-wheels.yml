@@ -1,0 +1,34 @@
+name: publish-wheels
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-wheels:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.release.draft }}
+    steps:
+      - name: Download release asset
+        run: gh release download --repo wrenfold/wrenfold --pattern 'wrenfold-wheels.tar.gz'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract wheels
+        run: tar -xzf wrenfold-wheels.tar.gz
+
+      - name: List extracted wheels
+        run: ls -R wheels/
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install twine
+        run: pip install twine
+
+      - name: Publish to PyPI
+        run: twine upload wheels/*.whl
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.WF_PYPI_TOKEN }}
