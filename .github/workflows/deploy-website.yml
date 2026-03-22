@@ -1,0 +1,77 @@
+name: deploy-website
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - "*"
+  workflow_dispatch:
+  workflow_call:
+jobs:
+  build:
+    name: build-docs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: "bash -el {0}"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        id: pyinstall
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Print python location
+        shell: bash
+        run: echo ${{ steps.pyinstall.outputs.python-path }}
+
+      - name: Install python packages
+        run: |
+          ${{ steps.pyinstall.outputs.python-path }} -m pip install -r requirements.txt
+
+      - name: Install doxygen
+        uses: ssciwr/doxygen-install@v2
+        with:
+          version: "1.16.1"
+
+      - name: Create build directory
+        run: cmake -E make_directory ${{github.workspace}}/build
+
+      - name: Configure
+        working-directory: ${{github.workspace}}/build
+        run: >
+          cmake ${{github.workspace}}
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -Wno-deprecated
+          -G Ninja
+          -DWF_BUILD_STUBS=OFF
+          -DWF_BUILD_DOCS=ON
+          -DPython_ROOT_DIR=${{ env.Python_ROOT_DIR }}
+          -DPython_FIND_STRATEGY=LOCATION
+          -DPython_FIND_REGISTRY=NEVER
+          -DPython_FIND_FRAMEWORK=NEVER
+          -DPython_FIND_VIRTUALENV=NEVER
+
+      - name: Build
+        working-directory: ${{github.workspace}}/build
+        run: |
+          threads=`nproc`
+          cmake --build . --config RelWithDebInfo --parallel $threads
+
+      - name: Build docs
+        working-directory: ${{github.workspace}}/build
+        run: cmake --build . --config RelWithDebInfo --target wf_docs
+
+      - name: Deploy docs
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >
+            pages deploy ${{github.workspace}}/build/docs/build
+            --project-name=wrenfold
+            --branch=main
