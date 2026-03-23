@@ -3,25 +3,45 @@
 sym
 ===
 
-.. autodata:: wrenfold.sym.E
+.. py:data:: wrenfold.sym.AnyExpression
 
-.. autodata:: wrenfold.sym.I
+  ``pywrenfold.sym.Expr | pywrenfold.sym.BooleanExpr | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr``
 
-.. autodata:: wrenfold.sym.false
+.. py:data:: wrenfold.sym.E
 
-.. autodata:: wrenfold.sym.imaginary_unit
+  Euler's constant.
 
-.. autodata:: wrenfold.sym.nan
+.. py:data:: wrenfold.sym.I
+
+  The imaginary constant. Used to denote complex numbers.
+
+.. py:data:: wrenfold.sym.false
+
+  Boolean false.
+
+.. py:data:: wrenfold.sym.imaginary_unit
+
+  The imaginary constant. Used to denote complex numbers.
+
+.. py:data:: wrenfold.sym.nan
+
+  Used to represent mathematically undefined expressions.
 
 .. autodata:: wrenfold.sym.one
 
-.. autodata:: wrenfold.sym.pi
+.. py:data:: wrenfold.sym.pi
 
-.. autodata:: wrenfold.sym.true
+  Pi
+
+.. py:data:: wrenfold.sym.true
+
+  Boolean true.
 
 .. autodata:: wrenfold.sym.zero
 
-.. autodata:: wrenfold.sym.zoo
+.. py:data:: wrenfold.sym.zoo
+
+  Complex infinity. One of the poles of the Riemann sphere.
 
 .. autofunction:: wrenfold.sym.abs
 

@@ -13,11 +13,11 @@ import dataclasses
 from typing import Annotated
 
 from . import sym
-from .type_info import NumericType
+from .type_info import NumericType as _NumericType
 
-FloatScalar = Annotated[sym.Expr, NumericType.Float, "Denote a floating-point scalar variable."]
+FloatScalar = Annotated[sym.Expr, _NumericType.Float, "Denote a floating-point scalar variable."]
 
-IntScalar = Annotated[sym.Expr, NumericType.Integer, "Denote an integer valued scalar variable."]
+IntScalar = Annotated[sym.Expr, _NumericType.Integer, "Denote an integer valued scalar variable."]
 
 
 @dataclasses.dataclass(frozen=True)

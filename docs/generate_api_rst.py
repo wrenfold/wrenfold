@@ -28,9 +28,10 @@ def generate_rst_for_module(module: typing.Any, module_name: str, output_dir: Pa
     """
     Write out rst files for classes + functions in the provided module.
     """
-    functions = []
-    classes = []
-    data = []
+    functions: list[str] = []
+    classes: list[tuple[str, list[str]]] = []
+    data: list[tuple[str, str | None]] = []
+    type_unions: list[tuple[str, str]] = []
     for member_name in sorted(dir(module)):
         if member_name.startswith("_"):
             continue
@@ -51,12 +52,50 @@ def generate_rst_for_module(module: typing.Any, module_name: str, output_dir: Pa
             classes.append((member_name, class_static_functions))
 
         elif inspect.isbuiltin(member) or inspect.isfunction(member) or callable(member):
-            functions.append(member_name)
+            to_string = str(member)
+            if to_string == "typing.Annotated":
+                continue
+            elif to_string.startswith("typing.Annotated"):
+                metadata = getattr(member, "__metadata__", [])
+                if len(metadata) and isinstance(metadata[-1], str):
+                    data.append((member_name, metadata[-1]))
+                else:
+                    data.append((member_name, "Annotation is missing a docstring."))
+            else:
+                functions.append(member_name)
         elif isinstance(member, (sym.Expr, sym.BooleanExpr)):
-            data.append(member_name)
+            # Some custom handling for constants that have incorrect __doc__ values.
+            if isinstance(member, sym.Expr) and member.is_identical_to(sym.I):
+                custom_str = "The imaginary constant. Used to denote complex numbers."
+            elif isinstance(member, sym.Expr) and member.is_identical_to(sym.pi):
+                custom_str = "Pi"
+            elif isinstance(member, sym.Expr) and member.is_identical_to(sym.E):
+                custom_str = "Euler's constant."
+            elif isinstance(member, sym.Expr) and member.is_identical_to(sym.zoo):
+                custom_str = "Complex infinity. One of the poles of the Riemann sphere."
+            elif isinstance(member, sym.Expr) and member.is_identical_to(sym.nan):
+                custom_str = "Used to represent mathematically undefined expressions."
+            elif isinstance(member, sym.BooleanExpr) and member.is_identical_to(sym.true):
+                custom_str = "Boolean true."
+            elif isinstance(member, sym.BooleanExpr) and member.is_identical_to(sym.false):
+                custom_str = "Boolean false."
+            else:
+                custom_str = None
+            data.append((member_name, custom_str))
+        elif typing.get_origin(member) is typing.Union:
+            type_unions.append((member_name, str(member)))
 
     parts = [f"{module_name}\n{'=' * len(module_name)}"]
-    parts.extend(f".. autodata:: wrenfold.{module_name}.{d}" for d in data)
+
+    for tu_name, tu_annotation in type_unions:
+        parts.extend([f".. py:data:: wrenfold.{module_name}.{tu_name}", f"  ``{tu_annotation}``"])
+
+    for d, override_str in data:
+        if override_str is None:
+            parts.append(f".. autodata:: wrenfold.{module_name}.{d}")
+        else:
+            parts.extend([f".. py:data:: wrenfold.{module_name}.{d}", f"  {override_str}"])
+
     parts.extend(f".. autofunction:: wrenfold.{module_name}.{func}" for func in functions)
 
     # Based on: https://github.com/wjakob/nanobind/discussions/707
