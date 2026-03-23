@@ -1,9 +1,5 @@
 name: deploy-website
 on:
-  pull_request:
-    types: [opened, synchronize]
-    branches:
-      - "*"
   workflow_dispatch:
   workflow_call:
 jobs:
