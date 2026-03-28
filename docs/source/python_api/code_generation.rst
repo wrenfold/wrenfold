@@ -3,7 +3,13 @@
 code_generation
 ===============
 
-.. autofunction:: wrenfold.code_generation.CodegenFuncInvocationResult
+.. py:data:: wrenfold.code_generation.CodegenFuncInvocationResult
+
+  ``pywrenfold.sym.Expr | pywrenfold.sym.MatrixExpr | wrenfold.code_generation.ReturnValue | wrenfold.code_generation.OutputArg | typing.Sequence[wrenfold.code_generation.ReturnValue | wrenfold.code_generation.OutputArg]``
+
+.. py:data:: wrenfold.code_generation.ReturnValueOrOutputArg
+
+  ``wrenfold.code_generation.ReturnValue | wrenfold.code_generation.OutputArg``
 
 .. autofunction:: wrenfold.code_generation.create_function_description
 

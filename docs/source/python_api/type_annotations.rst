@@ -3,107 +3,348 @@
 type_annotations
 ================
 
-.. autoclass:: wrenfold.type_annotations.FloatScalar
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+.. py:data:: wrenfold.type_annotations.FloatScalar
 
-.. autoclass:: wrenfold.type_annotations.IntScalar
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+  Denote a floating-point scalar variable.
 
-.. autoclass:: wrenfold.type_annotations.Matrix1
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+.. py:data:: wrenfold.type_annotations.IntScalar
 
-.. autoclass:: wrenfold.type_annotations.Matrix2
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+  Denote an integer valued scalar variable.
 
-.. autoclass:: wrenfold.type_annotations.Matrix3
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+.. py:data:: wrenfold.type_annotations.Matrix1
 
-.. autoclass:: wrenfold.type_annotations.Matrix4
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+  A 1x1 square matrix.
 
-.. autoclass:: wrenfold.type_annotations.Matrix5
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+.. py:data:: wrenfold.type_annotations.Matrix1x2
 
-.. autoclass:: wrenfold.type_annotations.Matrix6
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+  A 1x2 matrix.
 
-.. autoclass:: wrenfold.type_annotations.Matrix7
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+.. py:data:: wrenfold.type_annotations.Matrix1x3
 
-.. autoclass:: wrenfold.type_annotations.Matrix8
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+  A 1x3 matrix.
 
-.. autoclass:: wrenfold.type_annotations.Matrix9
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
+.. py:data:: wrenfold.type_annotations.Matrix1x4
+
+  A 1x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix1x5
+
+  A 1x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix1x6
+
+  A 1x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix1x7
+
+  A 1x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix1x8
+
+  A 1x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix1x9
+
+  A 1x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2
+
+  A 2x2 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2x3
+
+  A 2x3 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2x4
+
+  A 2x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2x5
+
+  A 2x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2x6
+
+  A 2x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2x7
+
+  A 2x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2x8
+
+  A 2x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix2x9
+
+  A 2x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3
+
+  A 3x3 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3x2
+
+  A 3x2 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3x4
+
+  A 3x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3x5
+
+  A 3x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3x6
+
+  A 3x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3x7
+
+  A 3x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3x8
+
+  A 3x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix3x9
+
+  A 3x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4
+
+  A 4x4 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4x2
+
+  A 4x2 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4x3
+
+  A 4x3 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4x5
+
+  A 4x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4x6
+
+  A 4x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4x7
+
+  A 4x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4x8
+
+  A 4x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix4x9
+
+  A 4x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5
+
+  A 5x5 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5x2
+
+  A 5x2 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5x3
+
+  A 5x3 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5x4
+
+  A 5x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5x6
+
+  A 5x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5x7
+
+  A 5x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5x8
+
+  A 5x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix5x9
+
+  A 5x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6
+
+  A 6x6 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6x2
+
+  A 6x2 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6x3
+
+  A 6x3 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6x4
+
+  A 6x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6x5
+
+  A 6x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6x7
+
+  A 6x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6x8
+
+  A 6x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix6x9
+
+  A 6x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7
+
+  A 7x7 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7x2
+
+  A 7x2 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7x3
+
+  A 7x3 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7x4
+
+  A 7x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7x5
+
+  A 7x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7x6
+
+  A 7x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7x8
+
+  A 7x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix7x9
+
+  A 7x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8
+
+  A 8x8 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8x2
+
+  A 8x2 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8x3
+
+  A 8x3 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8x4
+
+  A 8x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8x5
+
+  A 8x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8x6
+
+  A 8x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8x7
+
+  A 8x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix8x9
+
+  A 8x9 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9
+
+  A 9x9 square matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9x2
+
+  A 9x2 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9x3
+
+  A 9x3 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9x4
+
+  A 9x4 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9x5
+
+  A 9x5 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9x6
+
+  A 9x6 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9x7
+
+  A 9x7 matrix.
+
+.. py:data:: wrenfold.type_annotations.Matrix9x8
+
+  A 9x8 matrix.
+
+.. py:data:: wrenfold.type_annotations.Vector1
+
+  A 1x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector2
+
+  A 2x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector3
+
+  A 3x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector4
+
+  A 4x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector5
+
+  A 5x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector6
+
+  A 6x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector7
+
+  A 7x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector8
+
+  A 8x1 column vector.
+
+.. py:data:: wrenfold.type_annotations.Vector9
+
+  A 9x1 column vector.
 
 .. autoclass:: wrenfold.type_annotations.Opaque
   :members:
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
 
-.. autoclass:: wrenfold.type_annotations.Vector1
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector2
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector3
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector4
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector5
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector6
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector7
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector8
-  :members:
-  :special-members:
-  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
-
-.. autoclass:: wrenfold.type_annotations.Vector9
+.. autoclass:: wrenfold.type_annotations.Shape
   :members:
   :special-members:
   :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__
