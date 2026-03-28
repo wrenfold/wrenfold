@@ -47,6 +47,12 @@ function(add_abseil)
   set(ABSL_BUILD_TESTING OFF)
   set(ABSL_ENABLE_INSTALL OFF)
   set(ABSL_PROPAGATE_CXX_STD ON)
+
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
+                                               "AppleClang")
+    add_compile_options(-Wno-deprecated-builtins)
+  endif()
+
   if(NOT TARGET absl::span)
     add_subdirectory(abseil-cpp EXCLUDE_FROM_ALL)
   endif()
