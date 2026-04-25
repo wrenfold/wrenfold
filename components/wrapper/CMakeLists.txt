@@ -204,6 +204,7 @@ add_wrapper_module(
   pywrenfold/docs/symbolic_functions_wrapper.h
   pywrenfold/enums_wrapper.cc
   pywrenfold/exceptions_wrapper.cc
+  pywrenfold/expression_wrapper_helpers.h
   pywrenfold/expressions_wrapper.cc
   pywrenfold/geometry_wrapper.cc
   pywrenfold/matrix_wrapper.cc

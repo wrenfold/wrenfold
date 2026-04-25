@@ -27,15 +27,78 @@
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
 #include "wf/utility/error_types.h"
+#include "wf/utility/visit_switch.h"
 #include "wf/utility_visitors.h"
 
 #include "args_visitor.h"
 #include "docs/scalar_wrapper.h"
+#include "expression_wrapper_helpers.h"
 #include "visitor_wrappers.h"
 #include "wrapper_utils.h"
 
 namespace py = nanobind;
 using namespace py::literals;
+
+namespace wf {
+using scalar_expr_wrapper = expr_wrapper<scalar_expr>;
+}  // namespace wf
+
+namespace nanobind::detail {
+
+template <>
+struct type_caster<wf::scalar_expr> {
+  static constexpr auto Name = const_name("scalar_expr");
+
+  template <typename T_>
+  using Cast = movable_cast_t<T_>;
+
+  template <typename T_>
+  static constexpr bool can_cast() {
+    return true;
+  }
+
+  template <typename T_, enable_if_t<std::is_same_v<std::remove_cv_t<T_>, wf::scalar_expr>> = 0>
+  static handle from_cpp(T_* p, rv_policy policy, cleanup_list* list) {
+    if (!p) return none().release();
+    return from_cpp(*p, policy, list);
+  }
+
+  explicit operator wf::scalar_expr*() { return value ? &*value : nullptr; }
+
+  explicit operator wf::scalar_expr&() { return (wf::scalar_expr&)*value; }
+
+  explicit operator wf::scalar_expr&&() { return *std::move(value); }
+
+  // Stored in std::optional because this cannot be default initialized.
+  std::optional<wf::scalar_expr> value;
+
+  // Convert scalar_expr_wrapper (and its derivec types) to plain scalar_expr.
+  bool from_python(handle src, uint8_t flags, cleanup_list* cleanup) noexcept {
+    using Caster = make_caster<wf::scalar_expr_wrapper>;
+    Caster caster;
+    if (!caster.from_python(src, flags_for_local_caster<wf::scalar_expr_wrapper>(flags), cleanup)) {
+      return false;
+    }
+    value = std::move(caster.operator cast_t<wf::scalar_expr_wrapper>().contents);
+    return true;
+  }
+
+  template <typename T_>
+  static handle from_cpp(T_&& value, rv_policy policy, cleanup_list* cleanup) noexcept {
+    static_assert(std::is_same_v<std::decay_t<T_>, wf::scalar_expr>);
+
+    using scalar_expr_types = typename wf::scalar_expr::types;
+    return wf::detail::visit_switch<wf::type_list_size_v<scalar_expr_types>>(
+        value.type_index(), [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> handle {
+          using ith_type = wf::type_list_element_t<I, scalar_expr_types>;
+          using wrapped_expr_type = wf::expr_wrapper_typed<ith_type, wf::scalar_expr>;
+          using Caster = make_caster<wrapped_expr_type>;
+          return Caster::from_cpp(wrapped_expr_type{std::forward<T_>(value)}, policy, cleanup);
+        });
+  }
+};
+
+}  // namespace nanobind::detail
 
 namespace wf {
 
@@ -171,9 +234,9 @@ static std::variant<std::int64_t, double, std::complex<double>> eval_wrapper(
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
 void wrap_scalar_operations(py::module_& m) {
   // Primary expression type:
-  wrap_class<scalar_expr>(m, "Expr")
+  wrap_class<expr_wrapper<scalar_expr>>(m, "Expr")
       // Implicit construction from numerics:
-      .def(py::init_implicit<std::int64_t>())
+      // .def(py::init_implicit<std::int64_t>())
       .def(py::init_implicit<double>())
       // String conversion:
       .def("__repr__", &scalar_expr::to_string)

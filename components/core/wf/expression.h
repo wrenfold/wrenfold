@@ -177,10 +177,10 @@ precedence get_precedence(const scalar_expr& expr);
 
 // Custom literal suffix support.
 namespace custom_literals {
-inline scalar_expr operator"" _s(const unsigned long long int arg) {
+inline scalar_expr operator""_s(const unsigned long long int arg) {
   return scalar_expr{checked_int::from_unsigned_long_long(arg)};
 }
-inline scalar_expr operator"" _s(const long double arg) { return scalar_expr{arg}; }
+inline scalar_expr operator""_s(const long double arg) { return scalar_expr{arg}; }
 }  // namespace custom_literals
 
 // Create a tuple of `scalar_expr` from string arguments.
