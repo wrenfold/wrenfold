@@ -96,7 +96,7 @@ class checked_int final {
 };
 
 // Custom literal suffix.
-constexpr checked_int operator"" _chk(unsigned long long int arg) {
+constexpr checked_int operator""_chk(unsigned long long int arg) {
   return checked_int::from_unsigned_long_long(arg);
 }
 
