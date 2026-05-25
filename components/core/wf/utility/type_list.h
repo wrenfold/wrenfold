@@ -23,6 +23,8 @@ struct type_list_size<type_list<Ts...>> {
 template <typename List>
 constexpr std::size_t type_list_size_v = type_list_size<List>::value;
 
+// ---
+
 // Check if a type is in a type_list.
 template <typename T, typename... Ts>
 struct type_list_contains : std::disjunction<std::is_same<T, Ts>...> {};
@@ -30,6 +32,8 @@ template <typename T, typename... Ts>
 struct type_list_contains<T, type_list<Ts...>> : type_list_contains<T, Ts...> {};
 template <typename T, typename... Ts>
 constexpr bool type_list_contains_v = type_list_contains<T, Ts...>::value;
+
+// ---
 
 // enable-if that enables when `T` is in a list of types.
 template <typename T, typename... Ts>
@@ -40,6 +44,8 @@ struct enable_if_contains_type<T, type_list<Ts...>>
 template <typename T, typename... Ts>
 using enable_if_contains_type_t = typename enable_if_contains_type<T, Ts...>::type;
 
+// ---
+
 // enable-if that enables when `T` is _not_ in a list of types.
 template <typename T, typename... Ts>
 struct enable_if_does_not_contain_type : std::enable_if<!type_list_contains_v<T, Ts...>> {};
@@ -48,6 +54,8 @@ struct enable_if_does_not_contain_type<T, type_list<Ts...>>
     : std::enable_if<!type_list_contains_v<T, Ts...>> {};
 template <typename T, typename... Ts>
 using enable_if_does_not_contain_type_t = typename enable_if_does_not_contain_type<T, Ts...>::type;
+
+// ---
 
 // Helper to append a type to the front of a type list.
 template <typename, typename>
@@ -59,6 +67,8 @@ struct type_list_push_front<T, type_list<Args...>> {
 template <typename T, typename List>
 using type_list_push_front_t = typename type_list_push_front<T, List>::type;
 
+// ---
+
 // Get the front/head of a type list.
 template <typename T>
 struct type_list_front;
@@ -68,6 +78,8 @@ struct type_list_front<type_list<Head, Ts...>> {
 };
 template <typename T>
 using type_list_front_t = typename type_list_front<T>::type;
+
+// ---
 
 // Concatenate two type lists together into one.
 template <typename, typename>
@@ -79,6 +91,8 @@ struct type_list_concatenate<type_list<As...>, type_list<Bs...>> {
 template <typename A, typename B>
 using type_list_concatenate_t = typename type_list_concatenate<A, B>::type;
 
+// ---
+
 // Get the index of a type in a type list.
 template <typename T, typename U = void, typename... Types>
 constexpr std::size_t index_of_type_helper() {
@@ -89,11 +103,13 @@ struct type_list_index;
 template <typename T, typename... Ts>
 struct type_list_index<T, type_list<Ts...>> {
   static_assert(type_list_contains_v<T, type_list<Ts...>>,
-                "Specified type list does contain the query type.");
+                "Specified type list does not contain the query type.");
   constexpr static std::size_t value = index_of_type_helper<T, Ts...>();
 };
 template <typename T, typename List>
 constexpr std::size_t type_list_index_v = type_list_index<T, List>::value;
+
+// ---
 
 // Get the N'th element of a type list.
 template <std::size_t N, typename... Ts>
@@ -109,6 +125,51 @@ struct type_list_element<0, type_list<T, Ts...>> {
 template <std::size_t N, typename List>
 using type_list_element_t = typename type_list_element<N, List>::type;
 
+// ---
+
+/// Take the first N elements from a type list.
+template <std::size_t, typename>
+struct type_list_take_n;
+
+template <std::size_t N, typename... Args>
+struct type_list_take_n<N, type_list<Args...>> {
+  static_assert(N <= sizeof...(Args));
+  template <std::size_t... Is>
+  static auto take_n_impl(std::index_sequence<Is...>)
+      -> type_list<type_list_element_t<Is, type_list<Args...>>...>;
+  using type = decltype(take_n_impl(std::make_index_sequence<N>{}));
+};
+template <std::size_t N, typename List>
+using type_list_take_n_t = typename type_list_take_n<N, List>::type;
+
+// ---
+
+// Remove the first element of a type list.
+template <typename>
+struct type_list_pop_front;
+template <typename T, typename... Args>
+struct type_list_pop_front<type_list<T, Args...>> {
+  using type = type_list<Args...>;
+};
+template <typename List>
+using type_list_pop_front_t = typename type_list_pop_front<List>::type;
+
+// ---
+
+/// Pop the last type off a type list, returning a new type list with one fewer element.
+template <typename>
+struct type_list_pop_back;
+
+template <typename... Args>
+struct type_list_pop_back<type_list<Args...>> {
+  using type = type_list_take_n_t<sizeof...(Args) - 1, type_list<Args...>>;
+};
+
+template <typename List>
+using type_list_pop_back_t = typename type_list_pop_back<List>::type;
+
+// ---
+
 // Create a type_list from all the types in a variant.
 template <typename T>
 struct type_list_from_variant;
@@ -118,6 +179,8 @@ template <typename... Ts>
 struct type_list_from_variant<std::variant<Ts...>> {
   using type = type_list<Ts...>;
 };
+
+// ---
 
 // Create a type_list from all the types in a tuple.
 template <typename T>
@@ -129,6 +192,8 @@ struct type_list_from_tuple<std::tuple<Ts...>> {
   using type = type_list<Ts...>;
 };
 
+// ---
+
 // Create a tuple from a type list.
 template <typename T>
 struct tuple_from_type_list;
@@ -139,6 +204,8 @@ struct tuple_from_type_list<type_list<Ts...>> {
   using type = std::tuple<Ts...>;
 };
 
+// ---
+
 // Create a variant from a type list.
 template <typename T>
 struct variant_from_type_list;
@@ -148,6 +215,8 @@ template <typename... Ts>
 struct variant_from_type_list<type_list<Ts...>> {
   using type = std::variant<Ts...>;
 };
+
+// ---
 
 // Perform a map on a type list, and produce a new type list.
 template <template <typename...> typename Map, typename T>

@@ -19,6 +19,7 @@
 
 #include "docs/geometry_wrapper.h"
 #include "numpy_conversion.h"
+#include "scalar_expr_type_caster.h"
 #include "wrapper_utils.h"
 
 namespace py = nanobind;

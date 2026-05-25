@@ -71,11 +71,11 @@ NB_MODULE(PY_MODULE_NAME, m) {
 
   // For types to show up correctly in docstrings, we need to wrap `boolean_expr` first.
   auto m_sym = m.def_submodule(PY_SUBMODULE_NAME_SYM, "Wrapped mathematical operations.");
-  wrap_boolean_expression(m_sym);
+  // wrap_boolean_expression(m_sym);
   wrap_scalar_operations(m_sym);
-  wrap_matrix_operations(m_sym);
-  wrap_compound_expression(m_sym);
-  wrap_symbolic_functions(m_sym);
+  // wrap_matrix_operations(m_sym);
+  // wrap_compound_expression(m_sym);
+  // wrap_symbolic_functions(m_sym);
 
 #if 0
   auto m_expressions =
@@ -83,25 +83,25 @@ NB_MODULE(PY_MODULE_NAME, m) {
   wrap_expressions(m_expressions);
 #endif
 
-  auto m_geo = m.def_submodule(PY_SUBMODULE_NAME_GEOMETRY, "Wrapped geometry methods.");
-  wrap_geometry_operations(m_geo);
+  // auto m_geo = m.def_submodule(PY_SUBMODULE_NAME_GEOMETRY, "Wrapped geometry methods.");
+  // wrap_geometry_operations(m_geo);
 
-  auto m_types = m.def_submodule(PY_SUBMODULE_NAME_TYPE_INFO, "Wrapped code-generation types.");
-  wrap_types(m_types);
+  // auto m_types = m.def_submodule(PY_SUBMODULE_NAME_TYPE_INFO, "Wrapped code-generation types.");
+  // wrap_types(m_types);
 
-  auto m_sympy_conversion =
-      m.def_submodule(PY_SUBMODULE_NAME_SYMPY_CONVERSION, "Wrapped sympy conversion methods.");
-  wrap_sympy_conversion(m_sympy_conversion);
+  // auto m_sympy_conversion =
+  //     m.def_submodule(PY_SUBMODULE_NAME_SYMPY_CONVERSION, "Wrapped sympy conversion methods.");
+  // wrap_sympy_conversion(m_sympy_conversion);
 
-  // We need to wrap `Argument` and `ArgumentDirection` first so they are available for `ast`.
-  auto m_gen = m.def_submodule(PY_SUBMODULE_NAME_GEN, "Wrapped code-generation methods.");
-  wrap_argument(m_gen);
+  // // We need to wrap `Argument` and `ArgumentDirection` first so they are available for `ast`.
+  // auto m_gen = m.def_submodule(PY_SUBMODULE_NAME_GEN, "Wrapped code-generation methods.");
+  // wrap_argument(m_gen);
 
-  auto m_ast = m.def_submodule(PY_SUBMODULE_NAME_AST, "Wrapped AST types.");
-  wrap_ast(m_ast);
+  // auto m_ast = m.def_submodule(PY_SUBMODULE_NAME_AST, "Wrapped AST types.");
+  // wrap_ast(m_ast);
 
-  wrap_codegen_operations(m_gen);
-  wrap_code_formatting_operations(m_gen);
+  // wrap_codegen_operations(m_gen);
+  // wrap_code_formatting_operations(m_gen);
 
   m.def(
       "set_tracing_output_path",

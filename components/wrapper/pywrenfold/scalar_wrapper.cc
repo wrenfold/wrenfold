@@ -4,6 +4,8 @@
 #include <optional>
 #include <vector>
 
+#include "scalar_expr_type_caster.h"
+
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
@@ -27,78 +29,17 @@
 #include "wf/functions.h"
 #include "wf/numerical_casts.h"
 #include "wf/utility/error_types.h"
-#include "wf/utility/visit_switch.h"
 #include "wf/utility_visitors.h"
 
 #include "args_visitor.h"
 #include "docs/scalar_wrapper.h"
 #include "expression_wrapper_helpers.h"
+
 #include "visitor_wrappers.h"
 #include "wrapper_utils.h"
 
 namespace py = nanobind;
 using namespace py::literals;
-
-namespace wf {
-using scalar_expr_wrapper = expr_wrapper<scalar_expr>;
-}  // namespace wf
-
-namespace nanobind::detail {
-
-template <>
-struct type_caster<wf::scalar_expr> {
-  static constexpr auto Name = const_name("scalar_expr");
-
-  template <typename T_>
-  using Cast = movable_cast_t<T_>;
-
-  template <typename T_>
-  static constexpr bool can_cast() {
-    return true;
-  }
-
-  template <typename T_, enable_if_t<std::is_same_v<std::remove_cv_t<T_>, wf::scalar_expr>> = 0>
-  static handle from_cpp(T_* p, rv_policy policy, cleanup_list* list) {
-    if (!p) return none().release();
-    return from_cpp(*p, policy, list);
-  }
-
-  explicit operator wf::scalar_expr*() { return value ? &*value : nullptr; }
-
-  explicit operator wf::scalar_expr&() { return (wf::scalar_expr&)*value; }
-
-  explicit operator wf::scalar_expr&&() { return *std::move(value); }
-
-  // Stored in std::optional because this cannot be default initialized.
-  std::optional<wf::scalar_expr> value;
-
-  // Convert scalar_expr_wrapper (and its derivec types) to plain scalar_expr.
-  bool from_python(handle src, uint8_t flags, cleanup_list* cleanup) noexcept {
-    using Caster = make_caster<wf::scalar_expr_wrapper>;
-    Caster caster;
-    if (!caster.from_python(src, flags_for_local_caster<wf::scalar_expr_wrapper>(flags), cleanup)) {
-      return false;
-    }
-    value = std::move(caster.operator cast_t<wf::scalar_expr_wrapper>().contents);
-    return true;
-  }
-
-  template <typename T_>
-  static handle from_cpp(T_&& value, rv_policy policy, cleanup_list* cleanup) noexcept {
-    static_assert(std::is_same_v<std::decay_t<T_>, wf::scalar_expr>);
-
-    using scalar_expr_types = typename wf::scalar_expr::types;
-    return wf::detail::visit_switch<wf::type_list_size_v<scalar_expr_types>>(
-        value.type_index(), [&]<std::size_t I>(std::integral_constant<std::size_t, I>) -> handle {
-          using ith_type = wf::type_list_element_t<I, scalar_expr_types>;
-          using wrapped_expr_type = wf::expr_wrapper_typed<ith_type, wf::scalar_expr>;
-          using Caster = make_caster<wrapped_expr_type>;
-          return Caster::from_cpp(wrapped_expr_type{std::forward<T_>(value)}, policy, cleanup);
-        });
-  }
-};
-
-}  // namespace nanobind::detail
 
 namespace wf {
 
@@ -139,6 +80,10 @@ static std::variant<scalar_expr, py::list> create_symbols_from_str(const std::st
     variables.append(make_expr<variable>(std::move(name), set));
   }
   if (variables.size() == 1) {
+    using Caster = nb::detail::make_caster<scalar_expr>;
+    static_assert(Caster::something2);
+    Caster something;
+
     return py::cast<scalar_expr>(variables[0]);
   }
   return variables;
@@ -234,10 +179,10 @@ static std::variant<std::int64_t, double, std::complex<double>> eval_wrapper(
 // ReSharper disable CppIdenticalOperandsInBinaryExpression
 void wrap_scalar_operations(py::module_& m) {
   // Primary expression type:
-  wrap_class<expr_wrapper<scalar_expr>>(m, "Expr")
+  wrap_expression_class<expr_wrapper<scalar_expr>>(m, "Expr")
       // Implicit construction from numerics:
       // .def(py::init_implicit<std::int64_t>())
-      .def(py::init_implicit<double>())
+      // .def(py::init_implicit<double>())
       // String conversion:
       .def("__repr__", &scalar_expr::to_string)
       .def("expression_tree_str", &scalar_expr::to_expression_tree_string,
@@ -284,77 +229,84 @@ void wrap_scalar_operations(py::module_& m) {
       .def(py::self - py::self)
       .def(py::self * py::self)
       .def(py::self / py::self)
-      .def(-py::self)
-      .def("__pow__", &wf::pow, py::is_operator(), py::arg("other"))
-      .def(
-          "__pow__",
-          [](const scalar_expr& self, std::int64_t other) { return wf::pow(self, other); },
-          py::is_operator(), py::arg("other"))
-      .def(
-          "__pow__", [](const scalar_expr& self, double other) { return wf::pow(self, other); },
-          py::is_operator(), py::arg("other"))
-      .def(
-          "__rpow__",
-          [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
-          py::is_operator(), py::arg("other"))
-      .def(
-          "__rpow__",
-          [](const scalar_expr& self, const std::int64_t other) { return pow(other, self); },
-          py::is_operator(), py::arg("other"))
-      .def(
-          "__rpow__", [](const scalar_expr& self, const double other) { return pow(other, self); },
-          py::is_operator(), py::arg("other"))
-      .def("__abs__", [](const scalar_expr& self) { return abs(self); })
-      .def(py::self > py::self)
-      .def(py::self >= py::self)
-      .def(py::self < py::self)
-      .def(py::self <= py::self)
-      // Operators involving integers
-      .def(py::self + std::int64_t())
-      .def(py::self - std::int64_t())
-      .def(py::self * std::int64_t())
-      .def(py::self / std::int64_t())
-      .def(py::self > std::int64_t())
-      .def(py::self >= std::int64_t())
-      .def(py::self < std::int64_t())
-      .def(py::self <= std::int64_t())
-      .def(std::int64_t() + py::self)
-      .def(std::int64_t() - py::self)
-      .def(std::int64_t() * py::self)
-      .def(std::int64_t() / py::self)
-      .def(std::int64_t() > py::self)
-      .def(std::int64_t() >= py::self)
-      .def(std::int64_t() < py::self)
-      .def(std::int64_t() <= py::self)
-      // Operators involving doubles
-      .def(py::self + double())
-      .def(py::self - double())
-      .def(py::self * double())
-      .def(py::self / double())
-      .def(py::self > double())
-      .def(py::self >= double())
-      .def(py::self < double())
-      .def(py::self <= double())
-      .def(double() + py::self)
-      .def(double() - py::self)
-      .def(double() * py::self)
-      .def(double() / py::self)
-      .def(double() > py::self)
-      .def(double() >= py::self)
-      .def(double() < py::self)
-      .def(double() <= py::self)
-      // Override conversion to boolean, so we don't coerce non-boolean expressions.
-      .def(
-          "__bool__",
-          [](const scalar_expr& self) {
-            throw type_error(
-                "Expression of type `{}` cannot be coerced to boolean. Only expressions "
-                "sym.true "
-                "and sym.false can be evaluated for truthiness.",
-                self.type_name());
-          },
-          "Coerce expression to bool.")
-      .doc() = "A scalar-valued symbolic expression.";
+      .def(-py::self);
+
+  wrap_typed_expression_class<variable, scalar_expr>(m, "Variable");
+
+  wrap_typed_expression_class<integer_constant, scalar_expr>(m, "IntegerConstant");
+
+  wrap_typed_expression_class<float_constant, scalar_expr>(m, "FloatConstant");
+
+  // .def("__pow__", &wf::pow, py::is_operator(), py::arg("other"))
+  // .def(
+  //     "__pow__",
+  //     [](const scalar_expr& self, std::int64_t other) { return wf::pow(self, other); },
+  //     py::is_operator(), py::arg("other"))
+  // .def(
+  //     "__pow__", [](const scalar_expr& self, double other) { return wf::pow(self, other); },
+  //     py::is_operator(), py::arg("other"))
+  // .def(
+  //     "__rpow__",
+  //     [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
+  //     py::is_operator(), py::arg("other"))
+  // .def(
+  //     "__rpow__",
+  //     [](const scalar_expr& self, const std::int64_t other) { return pow(other, self); },
+  //     py::is_operator(), py::arg("other"))
+  // .def(
+  //     "__rpow__", [](const scalar_expr& self, const double other) { return pow(other, self);
+  //     }, py::is_operator(), py::arg("other"))
+  // .def("__abs__", [](const scalar_expr& self) { return abs(self); })
+  // // .def(py::self > py::self)
+  // // .def(py::self >= py::self)
+  // // .def(py::self < py::self)
+  // // .def(py::self <= py::self)
+  // // // Operators involving integers
+  // // .def(py::self + std::int64_t())
+  // // .def(py::self - std::int64_t())
+  // // .def(py::self * std::int64_t())
+  // // .def(py::self / std::int64_t())
+  // // .def(py::self > std::int64_t())
+  // // .def(py::self >= std::int64_t())
+  // // .def(py::self < std::int64_t())
+  // // .def(py::self <= std::int64_t())
+  // // .def(std::int64_t() + py::self)
+  // // .def(std::int64_t() - py::self)
+  // // .def(std::int64_t() * py::self)
+  // // .def(std::int64_t() / py::self)
+  // // .def(std::int64_t() > py::self)
+  // // .def(std::int64_t() >= py::self)
+  // // .def(std::int64_t() < py::self)
+  // // .def(std::int64_t() <= py::self)
+  // // // Operators involving doubles
+  // // .def(py::self + double())
+  // // .def(py::self - double())
+  // // .def(py::self * double())
+  // // .def(py::self / double())
+  // // .def(py::self > double())
+  // // .def(py::self >= double())
+  // // .def(py::self < double())
+  // // .def(py::self <= double())
+  // // .def(double() + py::self)
+  // // .def(double() - py::self)
+  // // .def(double() * py::self)
+  // // .def(double() / py::self)
+  // // .def(double() > py::self)
+  // // .def(double() >= py::self)
+  // // .def(double() < py::self)
+  // // .def(double() <= py::self)
+  // // Override conversion to boolean, so we don't coerce non-boolean expressions.
+  // .def(
+  //     "__bool__",
+  //     [](const scalar_expr& self) {
+  //       throw type_error(
+  //           "Expression of type `{}` cannot be coerced to boolean. Only expressions "
+  //           "sym.true "
+  //           "and sym.false can be evaluated for truthiness.",
+  //           self.type_name());
+  //     },
+  //     "Coerce expression to bool.")
+  // .doc() = "A scalar-valued symbolic expression.";
 
   // Methods for declaring expressions:
   m.def("symbol", &create_symbol, py::arg("name"), py::arg("set") = wf::number_set::unknown,
@@ -457,14 +409,14 @@ void wrap_scalar_operations(py::module_& m) {
       docstrings::eliminate_subexpressions.data());
 
   // Special constants:
-  m.attr("E") = constants::euler;
-  m.attr("pi") = constants::pi;
-  m.attr("zoo") = constants::complex_infinity;
-  m.attr("one") = constants::one;
-  m.attr("zero") = constants::zero;
-  m.attr("imaginary_unit") = constants::imaginary_unit;
-  m.attr("I") = constants::imaginary_unit;
-  m.attr("nan") = constants::undefined;
+  // m.attr("E") = constants::euler;
+  // m.attr("pi") = constants::pi;
+  // m.attr("zoo") = constants::complex_infinity;
+  // m.attr("one") = constants::one;
+  // m.attr("zero") = constants::zero;
+  // m.attr("imaginary_unit") = constants::imaginary_unit;
+  // m.attr("I") = constants::imaginary_unit;
+  // m.attr("nan") = constants::undefined;
 
   // Direct constructors for addition+multiplication.
   m.def(
