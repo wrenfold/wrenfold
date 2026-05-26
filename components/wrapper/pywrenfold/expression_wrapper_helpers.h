@@ -15,30 +15,47 @@ namespace nb = nanobind;
 template <typename T>
 class expr_wrapper;
 
+// ---
+
+// Copy const and ref qualifiers from `Src` to `Dest`.
+template <typename Src, typename Dest>
+struct copy_const_ref_qualifiers {
+  static_assert(!std::is_rvalue_reference_v<Src>);
+  static constexpr bool is_ref_src = std::is_reference_v<Src>;
+  static constexpr bool is_const_src = std::is_const_v<std::remove_reference_t<Src>>;
+
+  using maybe_const_type = std::conditional_t<is_const_src, std::add_const_t<Dest>, Dest>;
+  using type = std::conditional_t<is_ref_src, std::add_lvalue_reference_t<maybe_const_type>,
+                                  maybe_const_type>;
+};
+
+template <typename Src, typename Dest>
+using copy_const_ref_qualifiers_t = typename copy_const_ref_qualifiers<Src, Dest>::type;
+
+static_assert(std::is_same_v<copy_const_ref_qualifiers_t<int, double>, double>);
+static_assert(std::is_same_v<copy_const_ref_qualifiers_t<const int, double>, const double>);
+static_assert(std::is_same_v<copy_const_ref_qualifiers_t<int&, double>, double&>);
+static_assert(std::is_same_v<copy_const_ref_qualifiers_t<const int&, double>, const double&>);
+
+//---
+
 template <typename T, typename = void>
 struct convert_expression_arg_type {
   using type = T;
 };
 
-//
-template <typename Src, typename Dest>
-struct copy_const_ref_qualifiers {
-  static constexpr bool is_ref_src = std::is_reference_v<Src>;
-  static constexpr bool is_const_src = std::is_const_v<std::remove_reference_t<Src>>;
-};
-
 template <typename T>
 struct convert_expression_arg_type<T, enable_if_inherits_expression_base_t<std::decay_t<T>>> {
-  using type = expr_wrapper<std::decay_t<T>>;
+  using type = copy_const_ref_qualifiers_t<T, expr_wrapper<std::decay_t<T>>>;
 };
 
 template <typename T>
 using convert_expression_arg_type_t = typename convert_expression_arg_type<T>::type;
-
 namespace detail {
 
 template <typename... Args>
-auto convert_expression_args_to_wrapped_type(Args&&... args) {
+std::tuple<convert_expression_arg_type_t<Args>...> convert_expression_args_to_wrapped_type(
+    Args&&... args) {
   const auto convert = []<typename T>(T&& arg) {
     if constexpr (inherits_expression_base_v<std::decay_t<T>>) {
       using U = std::remove_cv_t<std::remove_reference_t<T>>;
