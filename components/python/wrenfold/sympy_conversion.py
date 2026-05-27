@@ -142,7 +142,7 @@ class Conversions:
         we need to use two conditionals here to match it.
         """
         x, zero_val = self(expr.args[0]), self(expr.args[1])
-        return sym.where(x > 0, 1, sym.where(x < 0, -1, zero_val))
+        return sym.where(x > 0, 1, sym.where(x < 0, 0, zero_val))
 
     def convert_derivative(self, expr) -> sym.Expr:
         """

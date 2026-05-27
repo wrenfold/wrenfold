@@ -280,11 +280,11 @@ class SympyConversionTest(MathTestBase):
         x = sym.symbol("x")
         # sympy --> wf
         self.assertIdenticalFromSp(
-            sym.where(x > 0, 1, sym.where(x < 0, -1, sym.rational(1, 2))),
+            sym.where(x > 0, 1, sym.where(x < 0, 0, sym.rational(1, 2))),
             sp.Heaviside(spy(x)),
         )
         self.assertIdenticalFromSp(
-            sym.where(x > 0, 1, sym.where(x < 0, -1, sym.nan)),
+            sym.where(x > 0, 1, sym.where(x < 0, 0, sym.nan)),
             sp.Heaviside(spy(x), sp.nan),
         )
 
