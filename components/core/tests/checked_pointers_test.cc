@@ -382,4 +382,15 @@ TEST(MaybeNullTest, TestWithThrowingPtr) {
   static_assert(noexcept(std::declval<maybe_null_catapult>().get_unchecked()));
 }
 
+TEST(NonNullTest, TestNullptrComparisons) {
+  int x = 42;
+  non_null<int*> ptr(&x);
+
+  // Verify comparing non_null against nullptr does not recurse infinitely or crash:
+  ASSERT_FALSE(ptr == nullptr);
+  ASSERT_FALSE(nullptr == ptr);
+  ASSERT_TRUE(ptr != nullptr);
+  ASSERT_TRUE(nullptr != ptr);
+}
+
 }  // namespace wf
