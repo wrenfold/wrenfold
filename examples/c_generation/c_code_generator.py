@@ -91,7 +91,7 @@ class CCodeGenerator(wf.BaseGenerator):
         if call.function == wf.StdMathFunction.Signum:
             # There is no standard sign function in C.
             sign_arg = self.format(call.args[0])
-            return f"(double)(int(0.0 < {sign_arg}) - int({sign_arg} < 0.0))"
+            return f"(double)((int)(0.0 < {sign_arg}) - (int)({sign_arg} < 0.0))"
         functions = {
             wf.StdMathFunction.Cos: "cos",
             wf.StdMathFunction.Sin: "sin",
@@ -247,15 +247,15 @@ class CCodeGenerator(wf.BaseGenerator):
                     args.append(f"const output_span2d_t* {arg.name}")
             elif isinstance(arg.type, type_info.CustomType):
                 if arg.is_input:
-                    args.append(f"const {self.format(arg.type)}*")
+                    args.append(f"const {self.format(arg.type)}* {arg.name}")
                 else:
-                    args.append(f"{self.format(arg.type)}*")
+                    args.append(f"{self.format(arg.type)}* {arg.name}")
             else:
                 assert isinstance(arg.type, type_info.ScalarType)
                 if arg.is_input:
-                    args.append(f"const {self.format(arg.type)}")
+                    args.append(f"const {self.format(arg.type)} {arg.name}")
                 else:
-                    args.append(f"{self.format(arg.type)}*")
+                    args.append(f"{self.format(arg.type)}* {arg.name}")
 
         return_type = "void"
         if sig.return_type is not None:
