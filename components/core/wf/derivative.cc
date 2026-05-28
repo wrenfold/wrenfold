@@ -174,11 +174,11 @@ scalar_expr derivative_visitor::operator()(const built_in_function_invocation& f
       // tanh(f(x)) --> (1 - tanh(f(x)**2) * f'(x) (or  1/cosh^2(f(x)) * f'(x))
       return (1 - pow(func_abstract, 2)) * d_args[0];
     case built_in_function::arccosh: {
-      // cosh(f(x)) --> 1 / sqrt(f(x)**2 - 1) * 1 / sqrt(f(x)**2 + 1) * f'(x)
+      // arccosh(f(x)) --> 1 / sqrt(f(x) - 1) * 1 / sqrt(f(x) + 1) * f'(x)
       return pow(sqrt(args[0] + 1) * sqrt(args[0] - 1), constants::negative_one) * d_args[0];
     }
     case built_in_function::arcsinh: {
-      // sinh(f(x)) --> 1 / sqrt(f(x)**2 + 1) * f'(x)
+      // arcsinh(f(x)) --> 1 / sqrt(f(x)**2 + 1) * f'(x)
       return pow(pow(args[0], 2) + 1, negative_one_half) * d_args[0];
     }
     case built_in_function::arctanh: {
