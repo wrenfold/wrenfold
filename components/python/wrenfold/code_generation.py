@@ -424,7 +424,9 @@ def generate_python(
     # the file to /tmp: https://stackoverflow.com/questions/66884520/
     # We pass the function out via a dict: https://github.com/python/cpython/issues/118888
 
-    globals_in = globals()
+    # Copy globals() so we don't pollute this module's namespace with the user's `context`
+    # or the lazily-imported target module (jnp/th/np) below.
+    globals_in = dict(globals())
     if context is not None:
         globals_in.update(context)
 
