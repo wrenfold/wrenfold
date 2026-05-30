@@ -98,7 +98,7 @@ class non_null {
 };
 
 // Test for inequality.
-// We need to explicitly implement nullptr_t comparison, since the implicit construtor is deleted.
+// We need to explicitly implement nullptr_t comparison, since the implicit constructor is deleted.
 template <typename T, typename U>
 constexpr bool operator!=(const non_null<T>& a,
                           const non_null<U>& b) noexcept(noexcept(a.get() != b.get())) {
@@ -123,13 +123,13 @@ constexpr bool operator==(const non_null<T>& a,
 }
 template <typename T>
 constexpr bool operator==(const non_null<T>& a,
-                          std::nullptr_t) noexcept(noexcept(!operator==(a, nullptr))) {
-  return !operator==(a, nullptr);
+                          std::nullptr_t) noexcept(noexcept(a.get() == nullptr)) {
+  return a.get() == nullptr;
 }
 template <typename T>
 constexpr bool operator==(std::nullptr_t,
-                          const non_null<T>& b) noexcept(noexcept(!operator==(b, nullptr))) {
-  return !operator==(b, nullptr);
+                          const non_null<T>& b) noexcept(noexcept(b.get() == nullptr)) {
+  return b.get() == nullptr;
 }
 
 // `maybe_null` wraps a pointer-like object `T` and checks for nullity whenever the object is
