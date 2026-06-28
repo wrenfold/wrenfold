@@ -559,7 +559,10 @@ TEST(IrTest, TestConditionals5) {
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  ASSERT_EQ(57, output_ir.num_operations()) << output_ir;
+  // The converter duplicates operations that are unsafe to speculate (here `log`, `pow` and the
+  // division introduced by differentiation) into the branches that guard them, rather than hoisting
+  // them into an outer scope. This is why the operation count increases relative to the input IR.
+  ASSERT_EQ(60, output_ir.num_operations()) << output_ir;
   ASSERT_EQ(7, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }
@@ -727,7 +730,8 @@ TEST(IrTest, TestCreateRotationMatrix) {
   check_expressions(expected_expressions, ir);
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  EXPECT_EQ(241, output_ir.num_operations()) << output_ir;
+  // Operations that are unsafe to speculate are duplicated into the branches that guard them.
+  EXPECT_EQ(257, output_ir.num_operations()) << output_ir;
   EXPECT_EQ(3, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 
@@ -766,7 +770,8 @@ TEST(IrTest, TestLocalCoordinates) {
   EXPECT_EQ(92, ir_factorized.count_additions()) << ir_factorized;
 
   const control_flow_graph output_ir = std::move(ir).convert_conditionals_to_control_flow();
-  EXPECT_EQ(297, output_ir.num_operations()) << output_ir;
+  // Operations that are unsafe to speculate are duplicated into the branches that guard them.
+  EXPECT_EQ(323, output_ir.num_operations()) << output_ir;
   EXPECT_EQ(6, output_ir.num_conditionals()) << output_ir;
   check_expressions_with_output_permutations(expected_expressions, output_ir);
 }

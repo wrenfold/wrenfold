@@ -366,12 +366,12 @@ where
   // Operation counts:
   // add: 65
   // branch: 3
-  // call: 4
+  // call: 7
   // compare: 1
   // divide: 4
-  // multiply: 110
+  // multiply: 111
   // negate: 13
-  // total: 200
+  // total: 204
   
   let v0007: f64 = w.get(2, 0);
   let v0003: f64 = w.get(0, 0);
@@ -380,30 +380,26 @@ where
   let v0479: f64 = v0003 * v0003;
   let v0475: f64 = v0005 * v0005;
   let v0009: f64 = v0475 + v0479 + v0483;
+  let v0208: f64 = (1i64) as f64 + v0009 * 0.25f64;
   let v0014: f64 = 0.5f64;
-  let v0010: f64 = (v0009).sqrt();
-  let v0024: f64 = ((1i64) as f64 + v0009 * 0.25f64).sqrt();
-  let v0016: f64 = v0010 * v0014;
-  let v0025: f64 = (1i64) as f64 / v0024;
-  let v0017: f64 = (v0016).sin();
-  let v0013: f64 = (1i64) as f64 / v0010;
-  let v0478: f64 = v0014 * v0025;
-  let v0472: f64 = v0013 * v0017;
-  let v0037: f64 = (v0016).cos();
-  let v0011: bool = (1e-16f64) < (v0010);
+  let v0011: bool = (1e-16f64) < ((v0009).sqrt());
   let v0027: f64;
   let v0034: f64;
   let v0038: f64;
   let v0042: f64;
   if v0011 {
+    let v0820: f64 = (v0009).sqrt();
+    let v0016: f64 = v0014 * v0820;
+    let v0472: f64 = ((1i64) as f64 / v0820) * (v0016).sin();
     v0027 = v0005 * v0472;
     v0034 = v0007 * v0472;
-    v0038 = v0037;
+    v0038 = (v0016).cos();
     v0042 = v0003 * v0472;
   } else {
+    let v0478: f64 = v0014 * ((1i64) as f64 / (v0208).sqrt());
     v0027 = v0005 * v0478;
     v0034 = v0007 * v0478;
-    v0038 = v0025;
+    v0038 = (1i64) as f64 / (v0208).sqrt();
     v0042 = v0003 * v0478;
   }
   if let Some(R_D_w) = R_D_w {
@@ -417,31 +413,38 @@ where
     let v0130: f64;
     let v0138: f64;
     if v0011 {
-      let v0535: f64 = -((1i64) as f64 / (v0010 * v0010 * v0010));
-      let v0513: f64 = ((1i64) as f64 / v0009) * (v0014 * v0037);
-      let v0250: f64 = v0017 * v0535 + v0513;
+      let v0755: f64 = (v0009).sqrt();
+      let v0744: f64 = v0014 * v0755;
+      let v0535: f64 = -((1i64) as f64 / (v0755 * v0755 * v0755));
+      let v0709: f64 = (v0744).sin();
+      let v0513: f64 = ((1i64) as f64 / v0009) * (v0014 * (v0744).cos());
+      let v0678: f64 = (1i64) as f64 / v0755;
+      let v0250: f64 = v0535 * v0709 + v0513;
+      let v0651: f64 = v0678 * v0709;
       let v0481: f64 = v0003 * v0250;
-      let v0509: f64 = -0.5f64 * v0472;
+      let v0509: f64 = -0.5f64 * v0651;
       v0077 = v0005 * v0481;
       v0084 = v0007 * v0481;
-      v0094 = v0475 * v0513 + v0017 * (v0013 + v0475 * v0535);
+      v0094 = v0475 * v0513 + (v0475 * v0535 + v0678) * v0709;
       v0100 = v0005 * (v0007 * v0250);
-      v0109 = v0250 * v0483 + v0472;
+      v0109 = v0250 * v0483 + v0651;
       v0116 = v0003 * v0509;
-      v0124 = v0250 * v0479 + v0472;
+      v0124 = v0250 * v0479 + v0651;
       v0130 = v0005 * v0509;
       v0138 = v0007 * v0509;
     } else {
-      let v0075: f64 = (1i64) as f64 / (v0024 * v0024 * v0024);
+      let v0794: f64 = (v0208).sqrt();
+      let v0075: f64 = (1i64) as f64 / (v0794 * v0794 * v0794);
       let v0473: f64 = -0.125f64 * v0075;
+      let v0759: f64 = v0014 * ((1i64) as f64 / v0794);
       let v0114: f64 = -0.25f64;
       v0077 = v0473 * (v0003 * v0005);
       v0084 = v0473 * (v0003 * v0007);
-      v0094 = v0473 * v0475 + v0478;
+      v0094 = v0473 * v0475 + v0759;
       v0100 = v0473 * (v0005 * v0007);
-      v0109 = v0473 * v0483 + v0478;
+      v0109 = v0473 * v0483 + v0759;
       v0116 = v0114 * (v0003 * v0075);
-      v0124 = v0473 * v0479 + v0478;
+      v0124 = v0473 * v0479 + v0759;
       v0130 = v0114 * (v0005 * v0075);
       v0138 = v0114 * (v0007 * v0075);
     }
@@ -537,12 +540,12 @@ where
   // Operation counts:
   // add: 68
   // branch: 1
-  // call: 4
-  // compare: 1
-  // divide: 5
-  // multiply: 131
+  // call: 8
+  // compare: 2
+  // divide: 7
+  // multiply: 134
   // negate: 13
-  // total: 223
+  // total: 233
   
   let v0007: f64 = w.get(2, 0);
   let v0003: f64 = w.get(0, 0);
@@ -551,39 +554,44 @@ where
   let v0479: f64 = v0003 * v0003;
   let v0475: f64 = v0005 * v0005;
   let v0009: f64 = v0475 + v0479 + v0483;
+  let v0208: f64 = (1i64) as f64 + v0009 * 0.25f64;
   let v0014: f64 = 0.5f64;
   let v0010: f64 = (v0009).sqrt();
-  let v0024: f64 = ((1i64) as f64 + v0009 * 0.25f64).sqrt();
   let v0016: f64 = v0010 * v0014;
-  let v0025: f64 = (1i64) as f64 / v0024;
-  let v0017: f64 = (v0016).sin();
-  let v0013: f64 = (1i64) as f64 / v0010;
+  let v0025: f64 = (1i64) as f64 / (v0208).sqrt();
   let v0478: f64 = v0014 * v0025;
-  let v0472: f64 = v0013 * v0017;
+  let v0472: f64 = ((1i64) as f64 / v0010) * (v0016).sin();
   let v0011: bool = (1e-16f64) < (v0010);
-  let v0037: f64 = (v0016).cos();
   let v0042: f64 = if v0011 { (v0003 * v0472) } else { (v0003 * v0478) };
-  let v0038: f64 = if v0011 { v0037 } else { v0025 };
+  let v0038: f64 = if v0011 { (v0016).cos() } else { v0025 };
   let v0034: f64 = if v0011 { (v0007 * v0472) } else { (v0007 * v0478) };
   let v0027: f64 = if v0011 { (v0005 * v0472) } else { (v0005 * v0478) };
   if let Some(R_D_w) = R_D_w {
-    let v0535: f64 = -((1i64) as f64 / (v0010 * v0010 * v0010));
-    let v0513: f64 = ((1i64) as f64 / v0009) * (v0014 * v0037);
-    let v0075: f64 = (1i64) as f64 / (v0024 * v0024 * v0024);
-    let v0250: f64 = v0017 * v0535 + v0513;
+    let v0793: f64 = (v0009).sqrt();
+    let v0782: f64 = v0014 * v0793;
+    let v0759: f64 = (v0208).sqrt();
+    let v0535: f64 = -((1i64) as f64 / (v0793 * v0793 * v0793));
+    let v0740: f64 = (v0782).sin();
+    let v0705: f64 = (1i64) as f64 / v0793;
+    let v0513: f64 = ((1i64) as f64 / v0009) * (v0014 * (v0782).cos());
+    let v0075: f64 = (1i64) as f64 / (v0759 * v0759 * v0759);
+    let v0673: f64 = v0705 * v0740;
+    let v0250: f64 = v0535 * v0740 + v0513;
     let v0473: f64 = -0.125f64 * v0075;
     let v0114: f64 = -0.25f64;
-    let v0509: f64 = -0.5f64 * v0472;
+    let v0509: f64 = -0.5f64 * v0673;
     let v0481: f64 = v0003 * v0250;
-    let v0138: f64 = if v0011 { (v0007 * v0509) } else { (v0114 * (v0007 * v0075)) };
-    let v0084: f64 = if v0011 { (v0007 * v0481) } else { (v0473 * (v0003 * v0007)) };
-    let v0077: f64 = if v0011 { (v0005 * v0481) } else { (v0473 * (v0003 * v0005)) };
-    let v0130: f64 = if v0011 { (v0005 * v0509) } else { (v0114 * (v0005 * v0075)) };
-    let v0124: f64 = if v0011 { (v0250 * v0479 + v0472) } else { (v0473 * v0479 + v0478) };
-    let v0116: f64 = if v0011 { (v0003 * v0509) } else { (v0114 * (v0003 * v0075)) };
-    let v0109: f64 = if v0011 { (v0250 * v0483 + v0472) } else { (v0473 * v0483 + v0478) };
-    let v0100: f64 = if v0011 { (v0005 * (v0007 * v0250)) } else { (v0473 * (v0005 * v0007)) };
-    let v0094: f64 = if v0011 { (v0475 * v0513 + v0017 * (v0013 + v0475 * v0535)) } else { (v0473 * v0475 + v0478) };
+    let v0642: f64 = v0014 * ((1i64) as f64 / v0759);
+    let v0630: bool = (1e-16f64) < (v0793);
+    let v0138: f64 = if v0630 { (v0007 * v0509) } else { (v0114 * (v0007 * v0075)) };
+    let v0084: f64 = if v0630 { (v0007 * v0481) } else { (v0473 * (v0003 * v0007)) };
+    let v0077: f64 = if v0630 { (v0005 * v0481) } else { (v0473 * (v0003 * v0005)) };
+    let v0130: f64 = if v0630 { (v0005 * v0509) } else { (v0114 * (v0005 * v0075)) };
+    let v0124: f64 = if v0630 { (v0250 * v0479 + v0673) } else { (v0473 * v0479 + v0642) };
+    let v0116: f64 = if v0630 { (v0003 * v0509) } else { (v0114 * (v0003 * v0075)) };
+    let v0109: f64 = if v0630 { (v0250 * v0483 + v0673) } else { (v0473 * v0483 + v0642) };
+    let v0100: f64 = if v0630 { (v0005 * (v0007 * v0250)) } else { (v0473 * (v0005 * v0007)) };
+    let v0094: f64 = if v0630 { (v0475 * v0513 + (v0475 * v0535 + v0705) * v0740) } else { (v0473 * v0475 + v0642) };
     let v0289: f64 = v0038 * v0084;
     let v0361: f64 = v0038 * v0077;
     let v0295: f64 = v0038 * v0100;
@@ -675,27 +683,27 @@ where
   // Operation counts:
   // add: 13
   // branch: 3
-  // call: 2
+  // call: 1
   // compare: 3
-  // divide: 2
-  // multiply: 10
+  // divide: 1
+  // multiply: 5
   // negate: 5
-  // total: 38
+  // total: 31
   
   let v0002: f64 = R.get(1, 1);
   let v0001: f64 = R.get(0, 0);
-  let v0031: f64 = R.get(0, 1);
   let v0010: f64 = R.get(1, 2);
+  let v0031: f64 = R.get(0, 1);
   let v0023: f64 = R.get(2, 0);
   let v0102: f64 = v0001 + v0002;
   let v0003: f64 = R.get(2, 2);
-  let v0032: f64 = R.get(1, 0);
   let v0008: f64 = R.get(2, 1);
+  let v0032: f64 = R.get(1, 0);
   let v0022: f64 = R.get(0, 2);
   let v0107: f64 = v0003 + (1i64) as f64;
   let v0007: f64 = 0.5f64;
-  let v0062: f64 = v0032 + -v0031;
   let v0013: f64 = v0008 + -v0010;
+  let v0062: f64 = v0032 + -v0031;
   let v0048: f64 = v0022 + -v0023;
   let v0046: f64;
   let v0060: f64;
@@ -709,21 +717,18 @@ where
     v0071 = v0062 * v0092;
     v0080 = v0007 * v0017;
   } else {
-    let v0028: f64 = (v0107 + -v0102).sqrt();
-    let v0093: f64 = v0007 * ((1i64) as f64 / v0028);
-    let v0024: f64 = v0022 + v0023;
-    let v0050: f64 = v0008 + v0010;
     let v0033: f64 = v0031 + v0032;
-    let v0030: f64 = v0024 * v0093;
-    let v0051: f64 = v0050 * v0093;
-    let v0065: f64 = v0007 * v0028;
-    let v0074: f64 = v0062 * v0093;
+    let v0024: f64 = v0022 + v0023;
+    let v0085: f64 = v0107 + -v0102;
+    let v0050: f64 = v0008 + v0010;
     if (v0001) < (v0002) {
       if (v0002) < (v0003) {
-        v0046 = v0030;
-        v0060 = v0051;
-        v0071 = v0065;
-        v0080 = v0074;
+        let v0161: f64 = (v0085).sqrt();
+        let v0155: f64 = v0007 * ((1i64) as f64 / v0161);
+        v0046 = v0024 * v0155;
+        v0060 = v0050 * v0155;
+        v0071 = v0007 * v0161;
+        v0080 = v0062 * v0155;
       } else {
         let v0036: f64 = ((v0002 + (1i64) as f64) + -(v0001 + v0003)).sqrt();
         let v0094: f64 = v0007 * ((1i64) as f64 / v0036);
@@ -734,10 +739,12 @@ where
       }
     } else {
       if (v0001) < (v0003) {
-        v0046 = v0030;
-        v0060 = v0051;
-        v0071 = v0065;
-        v0080 = v0074;
+        let v0028: f64 = (v0085).sqrt();
+        let v0093: f64 = v0007 * ((1i64) as f64 / v0028);
+        v0046 = v0024 * v0093;
+        v0060 = v0050 * v0093;
+        v0071 = v0007 * v0028;
+        v0080 = v0062 * v0093;
       } else {
         let v0042: f64 = ((v0001 + (1i64) as f64) + -(v0002 + v0003)).sqrt();
         let v0095: f64 = v0007 * ((1i64) as f64 / v0042);
@@ -762,57 +769,53 @@ where
   T1: wrenfold_traits::OutputSpan2D<3, 1, ValueType = f64>,
 {
   // Operation counts:
-  // add: 19
+  // add: 21
   // branch: 8
-  // call: 7
+  // call: 6
   // compare: 6
-  // divide: 5
-  // multiply: 20
+  // divide: 3
+  // multiply: 18
   // negate: 6
-  // total: 71
+  // total: 68
   
+  let v0004: f64 = R.get(2, 2);
   let v0003: f64 = R.get(1, 1);
   let v0002: f64 = R.get(0, 0);
-  let v0004: f64 = R.get(2, 2);
-  let v0124: f64 = v0002 + v0003;
-  let v0129: f64 = v0004 + (1i64) as f64;
-  let v0029: f64 = (v0129 + -v0124).sqrt();
-  let v0038: f64 = R.get(0, 1);
-  let v0042: f64 = ((v0002 + (1i64) as f64) + -(v0003 + v0004)).sqrt();
   let v0023: f64 = R.get(1, 2);
-  let v0034: f64 = ((v0003 + (1i64) as f64) + -(v0002 + v0004)).sqrt();
+  let v0124: f64 = v0002 + v0003;
+  let v0038: f64 = R.get(0, 1);
   let v0011: f64 = R.get(2, 0);
-  let v0008: f64 = 0.5f64;
-  let v0039: f64 = R.get(1, 0);
   let v0024: f64 = R.get(2, 1);
+  let v0129: f64 = v0004 + (1i64) as f64;
+  let v0039: f64 = R.get(1, 0);
   let v0009: f64 = R.get(0, 2);
-  let v0115: f64 = v0008 * ((1i64) as f64 / v0029);
-  let v0050: f64 = v0039 + -v0038;
-  let v0116: f64 = v0008 * ((1i64) as f64 / v0042);
+  let v0113: f64 = (v0002 + (1i64) as f64) + -(v0003 + v0004);
+  let v0008: f64 = 0.5f64;
   let v0065: f64 = v0024 + -v0023;
+  let v0107: f64 = v0129 + -v0124;
+  let v0050: f64 = v0039 + -v0038;
   let v0037: bool = (v0002) < (v0004);
-  let v0117: f64 = v0008 * ((1i64) as f64 / v0034);
+  let v0110: f64 = (v0003 + (1i64) as f64) + -(v0002 + v0004);
   let v0014: f64 = v0009 + -v0011;
   let v0022: bool = (v0003) < (v0004);
   let v0021: bool = (v0002) < (v0003);
-  let v0018: f64 = (v0124 + v0129).sqrt();
+  let v0017: f64 = v0124 + v0129;
   let v0007: bool = ((0i64) as f64) < (v0004 + v0124);
   let v0089: f64;
   if v0007 {
-    v0089 = v0008 * v0018;
+    v0089 = v0008 * (v0017).sqrt();
   } else {
-    let v0083: f64 = v0050 * v0115;
     if v0021 {
       if v0022 {
-        v0089 = v0083;
+        v0089 = v0050 * (v0008 * ((1i64) as f64 / (v0107).sqrt()));
       } else {
-        v0089 = v0014 * v0117;
+        v0089 = v0014 * (v0008 * ((1i64) as f64 / (v0110).sqrt()));
       }
     } else {
       if v0037 {
-        v0089 = v0083;
+        v0089 = v0050 * (v0008 * ((1i64) as f64 / (v0107).sqrt()));
       } else {
-        v0089 = v0065 * v0116;
+        v0089 = v0065 * (v0008 * ((1i64) as f64 / (v0113).sqrt()));
       }
     }
   }
@@ -826,43 +829,48 @@ where
   let v0062: f64;
   let v0074: f64;
   if v0007 {
-    let v0114: f64 = v0008 * ((1i64) as f64 / v0018);
+    let v0114: f64 = v0008 * ((1i64) as f64 / (v0017).sqrt());
     v0047 = v0014 * v0114;
     v0062 = v0050 * v0114;
     v0074 = v0065 * v0114;
   } else {
-    let v0025: f64 = v0023 + v0024;
-    let v0058: f64 = v0009 + v0011;
     let v0040: f64 = v0038 + v0039;
-    let v0031: f64 = v0025 * v0115;
-    let v0053: f64 = v0008 * v0029;
-    let v0067: f64 = v0058 * v0115;
+    let v0058: f64 = v0009 + v0011;
+    let v0025: f64 = v0023 + v0024;
     if v0021 {
       if v0022 {
-        v0047 = v0031;
-        v0062 = v0053;
-        v0074 = v0067;
+        let v0186: f64 = (v0107).sqrt();
+        let v0182: f64 = v0008 * ((1i64) as f64 / v0186);
+        v0047 = v0025 * v0182;
+        v0062 = v0008 * v0186;
+        v0074 = v0058 * v0182;
       } else {
-        v0047 = v0008 * v0034;
-        v0062 = v0025 * v0117;
-        v0074 = v0040 * v0117;
+        let v0193: f64 = (v0110).sqrt();
+        let v0188: f64 = v0008 * ((1i64) as f64 / v0193);
+        v0047 = v0008 * v0193;
+        v0062 = v0025 * v0188;
+        v0074 = v0040 * v0188;
       }
     } else {
       if v0037 {
-        v0047 = v0031;
-        v0062 = v0053;
-        v0074 = v0067;
+        let v0207: f64 = (v0107).sqrt();
+        let v0203: f64 = v0008 * ((1i64) as f64 / v0207);
+        v0047 = v0025 * v0203;
+        v0062 = v0008 * v0207;
+        v0074 = v0058 * v0203;
       } else {
-        v0047 = v0040 * v0116;
-        v0062 = v0058 * v0116;
-        v0074 = v0008 * v0042;
+        let v0214: f64 = (v0113).sqrt();
+        let v0210: f64 = v0008 * ((1i64) as f64 / v0214);
+        v0047 = v0040 * v0210;
+        v0062 = v0058 * v0210;
+        v0074 = v0008 * v0214;
       }
     }
   }
-  let v0077: f64 = (v0047 * v0047 + v0062 * v0062 + v0074 * v0074).sqrt();
   let v0099: f64;
-  if (1e-16f64) < (v0077) {
-    v0099 = ((1i64) as f64 / v0077) * (v0077).atan2((v0089).abs()) * (2i64) as f64 * (v0093) as f64;
+  if (1e-16f64) < ((v0047 * v0047 + v0062 * v0062 + v0074 * v0074).sqrt()) {
+    let v0140: f64 = (v0047 * v0047 + v0062 * v0062 + v0074 * v0074).sqrt();
+    v0099 = ((1i64) as f64 / v0140) * (v0140).atan2((v0089).abs()) * (2i64) as f64 * (v0093) as f64;
   } else {
     v0099 = (2i64 * v0093) as f64;
   }
@@ -898,24 +906,25 @@ pub fn custom_type_1<>(p: &crate::types::Point2d) -> crate::types::Point2d
   // Operation counts:
   // add: 1
   // branch: 1
-  // call: 1
+  // call: 2
   // compare: 1
   // divide: 1
   // multiply: 4
-  // total: 9
+  // total: 10
   
   let v004: f64 = p.y();
   let v002: f64 = p.x();
-  let v007: f64 = (v002 * v002 + v004 * v004).sqrt();
+  let v006: f64 = v002 * v002 + v004 * v004;
   let v014: f64;
   let v016: f64;
-  if ((0i64) as f64) < (v007) {
-    let v012: f64 = (1i64) as f64 / v007;
+  if ((0i64) as f64) < ((v006).sqrt()) {
+    let v012: f64 = (1i64) as f64 / (v006).sqrt();
     v014 = v002 * v012;
     v016 = v004 * v012;
   } else {
-    v014 = (0i64) as f64;
-    v016 = (0i64) as f64;
+    let v020: f64 = (0i64) as f64;
+    v014 = v020;
+    v016 = v020;
   }
   crate::types::Point2d::new(v014, v016)
 }
@@ -968,23 +977,23 @@ pub fn nested_custom_type_1<>(c: &crate::types::Circle, p: &crate::types::Point2
   // Operation counts:
   // add: 3
   // branch: 1
-  // call: 1
+  // call: 2
   // compare: 1
   // multiply: 2
   // negate: 2
-  // total: 10
+  // total: 11
   
   let v002: f64 = c.center.y();
   let v001: f64 = c.center.x();
   let v012: f64 = v002 + -p.y();
   let v008: f64 = v001 + -p.x();
+  let v014: f64 = v008 * v008 + v012 * v012;
   let v016: f64 = c.radius;
-  let v015: f64 = (v008 * v008 + v012 * v012).sqrt();
   let v018: f64;
-  if (v015) <= (v016) {
+  if ((v014).sqrt()) <= (v016) {
     v018 = v016;
   } else {
-    v018 = v015;
+    v018 = (v014).sqrt();
   }
   crate::types::Circle {
     center: crate::types::Point2d::new(v001, v002),

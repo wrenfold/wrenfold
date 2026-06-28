@@ -154,6 +154,12 @@ class value {
   std::size_t replace_operand_pair(ir::const_value_ptr arg0, ir::const_value_ptr arg1,
                                    ir::value_ptr replacement);
 
+  // Replace every operand of this value that points at `target` with `replacement`. Unlike the
+  // internal `replace_operand` (used by `replace_with`), this updates the consumer bookkeeping on
+  // both `target` and `replacement`, so it is safe to use when only a single consumer is being
+  // redirected (the rest of `target`'s consumers are left untouched).
+  void redirect_operand(ir::value_ptr target, ir::value_ptr replacement);
+
   // Get the first operand.
   ir::value_ptr first_operand() const {
     WF_ASSERT(!operands_.empty());
