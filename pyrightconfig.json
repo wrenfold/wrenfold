@@ -1,0 +1,10 @@
+{
+  "include": [
+    "components/python",
+    "build/components/wrapper"
+  ],
+  "extraPaths": [
+    "components/python",
+    "build/components/wrapper"
+  ]
+}

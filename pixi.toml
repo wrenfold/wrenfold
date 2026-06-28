@@ -2,10 +2,17 @@
 authors = ["gareth-cross <gcross.code@icloud.com>"]
 channels = ["conda-forge"]
 name = "wrenfold"
-platforms = ["linux-64"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
 version = "0.1.0"
 
 [tasks]
+submodules = { cmd = "git submodule update --init --recursive" }
+configure = { cmd = "cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -Wno-deprecated -G Ninja", depends-on = [
+    "submodules",
+] }
+build = { cmd = "cmake --build build", depends-on = ["configure"] }
+test = { cmd = "ctest --test-dir build", depends-on = ["build"] }
+clean = "cmake --build build --target clean"
 
 [dependencies]
 python = "==3.13"
@@ -13,3 +20,10 @@ ceres-solver = ">=2.2.0,<3"
 sympy = ">=1.14.0,<2"
 numpy = ">=2.4.2,<3"
 sophus = ">=1!1.24.6,<1!2"
+cmake = ">=4.3.4,<5"
+compilers = ">=1.11.0,<2"
+ninja = ">=1.13.2,<2"
+pre-commit = ">=4.6.0,<5"
+
+[activation.env]
+PYTHONPATH = "$PIXI_PROJECT_ROOT/components/python:$PIXI_PROJECT_ROOT/build/components/wrapper"
