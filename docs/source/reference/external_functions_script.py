@@ -3,12 +3,7 @@ Source code for the `external_functions.rst` file.
 """
 
 import wrenfold as wf
-from wrenfold import (
-    ast,
-    external_functions,
-    sym,
-    type_info,
-)
+from wrenfold import ast, external_functions, sym, type_info
 
 
 # [lookup_table_start]

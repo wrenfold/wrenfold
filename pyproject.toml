@@ -88,6 +88,10 @@ quote-style = "double"
 indent-style = "space"
 docstring-code-format = false
 
+[tool.ruff.lint.isort]
+combine-as-imports = true
+split-on-trailing-comma = false
+
 [tool.ruff.lint]
 select = [
     "E",   # pycodestyle

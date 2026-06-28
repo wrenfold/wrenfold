@@ -12,10 +12,7 @@ import numpy as np
 import wrenfold as wf
 from wrenfold import type_info
 
-from .cart_pole_dynamics import (
-    CartPoleParamsSymbolic,
-    get_cart_double_pole_dynamics,
-)
+from .cart_pole_dynamics import CartPoleParamsSymbolic, get_cart_double_pole_dynamics
 
 
 @dataclasses.dataclass
