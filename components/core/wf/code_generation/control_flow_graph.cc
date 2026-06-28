@@ -210,7 +210,14 @@ void control_flow_graph::factorize_sums(const std::size_t num_passes) {
 control_flow_graph control_flow_graph::convert_conditionals_to_control_flow(
     const bool convert_ternaries) && {
   WF_FUNCTION_TRACE();
-  return ir_control_flow_converter{std::move(*this), convert_ternaries}.convert();
+  control_flow_graph result =
+      ir_control_flow_converter{std::move(*this), convert_ternaries}.convert();
+  // To avoid speculatively evaluating operations outside of the branch that guards them, the
+  // converter duplicates some computations into the branches where they are used. This can leave
+  // identical operations within a block, so run a final per-block de-duplication pass to merge them.
+  result.eliminate_duplicates();
+  result.eliminate_needless_copies();
+  return result;
 }
 
 // A hash-set of values:

@@ -82,6 +82,17 @@ std::size_t value::replace_operand_pair(const ir::const_value_ptr arg0,
   return num_valid_replacements;
 }
 
+void value::redirect_operand(const ir::value_ptr target, const ir::value_ptr replacement) {
+  for (operand_ptr& operand : operands_) {
+    if (operand.get() == target.get()) {
+      // Drop ourselves from `target`'s consumer list, then point at `replacement` instead.
+      operand.remove_operand();
+      operand = replacement->add_consumer(this);
+    }
+  }
+  maybe_sort_operands();
+}
+
 absl::InlinedVector<ir::value_ptr, 8> value::ordered_consumers() const {
   absl::InlinedVector<ir::value_ptr, 8> result{consumers_.begin(), consumers_.end()};
   std::sort(result.begin(), result.end(), [](auto a, auto b) { return a->name() < b->name(); });

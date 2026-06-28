@@ -57,10 +57,11 @@ control_flow_graph ir_control_flow_converter::convert() && {
   // Conversion will modify `output.values_`, so shallow-copy the outputs first:
   auto [required_outputs_queue, optional_outputs] = get_reverse_ordered_output_values(values_);
 
-  // Insert computations for required output values:
+  // Insert computations for required output values. These lie on the main spine of the function and
+  // are always executed, so they are not speculative.
   std::vector<ir::value_ptr> deferred_values{};
   ir::block_ptr next_block =
-      process(std::move(required_outputs_queue), create_block(), deferred_values);
+      process(std::move(required_outputs_queue), create_block(), deferred_values, false);
 
   // Should be nothing deferred yet:
   WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
@@ -87,11 +88,13 @@ control_flow_graph ir_control_flow_converter::convert() && {
     jump_block->add_descendant(left_block_exit);
     jump_block->add_descendant(next_block);
 
-    process({v}, left_block_exit, deferred_values);
+    // The body of the optional output is only evaluated when the argument is requested, so it is a
+    // speculative (conditionally-executed) code path.
+    process({v}, left_block_exit, deferred_values, true);
 
     std::deque<ir::value_ptr> queue{deferred_values.begin(), deferred_values.end()};
     deferred_values.clear();
-    next_block = process(std::move(queue), jump_block, deferred_values);
+    next_block = process(std::move(queue), jump_block, deferred_values, false);
     WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
   }
 
@@ -99,7 +102,7 @@ control_flow_graph ir_control_flow_converter::convert() && {
   std::copy(deferred_values.begin(), deferred_values.end(), std::back_inserter(queue));
   deferred_values.clear();
 
-  process(std::move(queue), next_block, deferred_values);
+  process(std::move(queue), next_block, deferred_values, false);
   WF_ASSERT(deferred_values.empty(), "deferred_values = [{}]", fmt::join(deferred_values, ", "));
 
   // There should only be one start block:
@@ -126,12 +129,96 @@ bool ir_control_flow_converter::all_consumers_visited(const ir::const_value_ptr 
   return val->all_consumers_satisfy([this](const ir::const_value_ptr v) { return is_visited(v); });
 }
 
-void ir_control_flow_converter::queue_operands(std::deque<ir::value_ptr>& queue,
-                                               const ir::value_ptr v) const {
-  for (const ir::value_ptr val : v->operands()) {
-    if (!is_visited(val) && all_consumers_visited(val)) {
-      queue.push_back(val);
+bool ir_control_flow_converter::is_unsafe_to_speculate(const ir::const_value_ptr v) {
+  // Division may divide by zero.
+  if (v->is_op<ir::div>()) {
+    return true;
+  }
+  // Standard-library functions with a restricted domain produce NaN/Inf when evaluated outside of
+  // the conditional branch that was meant to guard them.
+  if (const ir::call_std_function* call =
+          std::get_if<ir::call_std_function>(&v->value_op());
+      call != nullptr) {
+    switch (call->name()) {
+      case std_math_function::log:
+      case std_math_function::sqrt:
+      case std_math_function::acos:
+      case std_math_function::asin:
+      case std_math_function::acosh:
+      case std_math_function::atanh:
+      case std_math_function::powi:
+      case std_math_function::powf:
+        return true;
+      default:
+        return false;
     }
+  }
+  return false;
+}
+
+bool ir_control_flow_converter::is_speculation_sensitive(const ir::const_value_ptr v) {
+  if (const auto it = speculation_sensitive_.find(v); it != speculation_sensitive_.end()) {
+    return it->second;
+  }
+  // Insert a provisional `false` first to guard against cycles (the IR is acyclic, but this keeps
+  // the recursion robust).
+  speculation_sensitive_.emplace(v, false);
+  bool result = is_unsafe_to_speculate(v);
+  if (!result) {
+    for (const ir::value_ptr operand : v->operands()) {
+      if (is_speculation_sensitive(operand)) {
+        result = true;
+        break;
+      }
+    }
+  }
+  speculation_sensitive_[v] = result;
+  return result;
+}
+
+ir::value_ptr ir_control_flow_converter::clone_value(const ir::value_ptr val) {
+  // Copy operands into a temporary container (create_operation registers the clone as a consumer of
+  // each of them).
+  const std::vector<ir::value_ptr> operands(val->operands().begin(), val->operands().end());
+  // The clone is parented to the transient input block; it is re-parented when it is processed.
+  return std::visit(
+      [&](const auto& op) {
+        return create_operation(values_, ir::block_ptr{input_block_.get()}, op, val->type(),
+                                operands);
+      },
+      val->value_op());
+}
+
+void ir_control_flow_converter::queue_operands(std::deque<ir::value_ptr>& queue,
+                                               const ir::value_ptr v, const bool speculative) {
+  // Gather the distinct operands first, since cloning below mutates `v`'s operand list.
+  absl::InlinedVector<ir::value_ptr, 4> operands{};
+  for (const ir::value_ptr val : v->operands()) {
+    if (std::find(operands.begin(), operands.end(), val) == operands.end()) {
+      operands.push_back(val);
+    }
+  }
+
+  for (const ir::value_ptr val : operands) {
+    if (is_visited(val)) {
+      continue;
+    }
+    if (all_consumers_visited(val)) {
+      queue.push_back(val);
+      continue;
+    }
+    // `val` is shared with other consumers that have not been processed yet, so placing it now would
+    // hoist it to the common dominator of all those consumers. If we are filling a conditionally
+    // executed block and `val` is unsafe to speculate, duplicate it so it can be computed inside the
+    // guarding branch instead. We never duplicate conditionals or phi/copy machinery.
+    if (speculative && is_speculation_sensitive(val) &&
+        !val->is_op<ir::cond, ir::phi, ir::copy, ir::load>()) {
+      const ir::value_ptr clone = clone_value(val);
+      v->redirect_operand(val, clone);
+      WF_ASSERT(all_consumers_visited(clone));
+      queue.push_back(clone);
+    }
+    // Otherwise leave `val` alone: it will be queued once all of its consumers have been visited.
   }
 }
 
@@ -156,7 +243,7 @@ static bool block_is_dominated_by(const ir::const_block_ptr test_block,
 
 std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
     std::deque<ir::value_ptr>& queue, std::vector<ir::value_ptr>& deferred,
-    const ir::block_ptr output_block) {
+    const ir::block_ptr output_block, const bool speculative) {
   // This will contain any conditionals we queue (conditionals whose consumers have all been
   // processed). They are processed outside of this method.
   std::vector<ir::value_ptr> queued_conditionals{};
@@ -199,7 +286,7 @@ std::vector<ir::value_ptr> ir_control_flow_converter::process_non_conditionals(
     top->set_parent(output_block);
     output_reversed.push_back(top);
     visited_.insert(top);
-    queue_operands(queue, top);
+    queue_operands(queue, top, speculative);
   }
 
   // Flip things back when inserting into the actual block operations:
@@ -256,9 +343,10 @@ static std::tuple<ir::value_ptr, std::vector<ir::value_ptr>> select_conditionals
 
 ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue,
                                                  const ir::block_ptr output_block,
-                                                 std::vector<ir::value_ptr>& deferred) {
+                                                 std::vector<ir::value_ptr>& deferred,
+                                                 const bool speculative) {
   std::vector<ir::value_ptr> queued_conditionals =
-      process_non_conditionals(queue, deferred, output_block);
+      process_non_conditionals(queue, deferred, output_block, speculative);
   if (queued_conditionals.empty()) {
     return output_block;
   }
@@ -288,8 +376,9 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
     visited_.insert(v);
     visited_.insert(copy_left);
     visited_.insert(copy_right);
-    queue_operands(queue_left, copy_left);
-    queue_operands(queue_right, copy_right);
+    // The left/right tails are only reached when the branch is taken, so they are speculative.
+    queue_operands(queue_left, copy_left, true);
+    queue_operands(queue_right, copy_right, true);
   }
 
   // Insert the phi functions at the top of the block:
@@ -317,10 +406,10 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
     ancestor->replace_descendant(output_block, jump_block);
   }
 
-  // Process left and right sides:
+  // Process left and right sides. These are conditionally executed, hence speculative.
   std::vector<ir::value_ptr> process_later;
-  process(std::move(queue_left), left_block_tail, process_later);
-  process(std::move(queue_right), right_block_tail, process_later);
+  process(std::move(queue_left), left_block_tail, process_later, true);
+  process(std::move(queue_right), right_block_tail, process_later, true);
 
   // Queue the nodes we deferred
   queue.clear();
@@ -330,7 +419,8 @@ ir::block_ptr ir_control_flow_converter::process(std::deque<ir::value_ptr> queue
   queue.insert(queue.end(), process_later.begin(), process_later.end());
   queue.insert(queue.end(), queued_conditionals.begin(), queued_conditionals.end());
 
-  return process(std::move(queue), jump_block, deferred);
+  // `jump_block` sits on the same code path as `output_block`, so it shares its speculative status.
+  return process(std::move(queue), jump_block, deferred, speculative);
 }
 
 // In the process of converting, we inserted copies to satisfy the phi functions.

@@ -20,3 +20,6 @@ sophus = ">=1!1.24.6,<1!2"
 cmake = ">=4.3.4,<5"
 compilers = ">=1.11.0,<2"
 ninja = ">=1.13.2,<2"
+
+[activation.env]
+PYTHONPATH = "$PIXI_PROJECT_ROOT/components/python:$PIXI_PROJECT_ROOT/build/components/wrapper"
