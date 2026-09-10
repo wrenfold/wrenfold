@@ -168,6 +168,10 @@ jobs:
         working-directory: ${{github.workspace}}
         run: ${{ steps.pyinstall.outputs.python-path }} support/check_generated_stubs.py
 
+      - name: Type-check generated stubs
+        working-directory: ${{github.workspace}}
+        run: ${{ steps.pyinstall.outputs.python-path }} support/check_stub_types.py
+
       - name: Run CTest
         working-directory: ${{github.workspace}}/build-${{matrix.build_type}}
         run: ctest --output-on-failure

@@ -259,10 +259,6 @@ void wrap_scalar_operations(py::module_& m) {
       .def(std::int64_t() - py::self)
       .def(std::int64_t() * py::self)
       .def(std::int64_t() / py::self)
-      .def(std::int64_t() > py::self)
-      .def(std::int64_t() >= py::self)
-      .def(std::int64_t() < py::self)
-      .def(std::int64_t() <= py::self)
       // Operators involving doubles
       .def(py::self + double())
       .def(py::self - double())
@@ -276,10 +272,6 @@ void wrap_scalar_operations(py::module_& m) {
       .def(double() - py::self)
       .def(double() * py::self)
       .def(double() / py::self)
-      .def(double() > py::self)
-      .def(double() >= py::self)
-      .def(double() < py::self)
-      .def(double() <= py::self)
       // Override conversion to boolean, so we don't coerce non-boolean expressions.
       .def(
           "__bool__",
@@ -300,6 +292,8 @@ void wrap_scalar_operations(py::module_& m) {
         py::arg("set") = wf::number_set::unknown, docstrings::make_symbols.data());
   m.def("make_symbols", &create_many_symbols_args, py::arg("args"),
         py::arg("set") = wf::number_set::unknown,
+        py::sig("def make_symbols(*args: str, set: pywrenfold.enumerations.NumberSet = "
+                "pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]"),
         "Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.");
 
   m.def("symbols", &create_symbols_from_str_or_iterable, py::arg("names"), py::arg("real") = false,

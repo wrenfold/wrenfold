@@ -19,7 +19,7 @@ class BooleanExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: BooleanExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -73,7 +73,7 @@ class Expr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: Expr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -316,12 +316,6 @@ class Expr:
     def __gt__(self, arg: int, /) -> BooleanExpr: ...
 
     @overload
-    def __gt__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __gt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
     def __gt__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
@@ -329,12 +323,6 @@ class Expr:
 
     @overload
     def __ge__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
     def __ge__(self, arg: float, /) -> BooleanExpr: ...
@@ -346,12 +334,6 @@ class Expr:
     def __lt__(self, arg: int, /) -> BooleanExpr: ...
 
     @overload
-    def __lt__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __lt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
     def __lt__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
@@ -359,12 +341,6 @@ class Expr:
 
     @overload
     def __le__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
     def __le__(self, arg: float, /) -> BooleanExpr: ...
@@ -452,7 +428,7 @@ def make_symbols(names: Sequence[str], set: pywrenfold.enumerations.NumberSet = 
     """
 
 @overload
-def make_symbols(*args, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
+def make_symbols(*args: str, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
     """
     Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.
     """
@@ -1223,7 +1199,7 @@ class Function:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: Function) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -1321,7 +1297,7 @@ class MatrixExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: MatrixExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -1413,7 +1389,7 @@ class MatrixExpr:
         """
 
     @property
-    def shape(self) -> tuple:
+    def shape(self) -> tuple[int, int]:
         """Shape of the matrix in (row, col) format."""
 
     @property
@@ -1649,7 +1625,7 @@ def zeros(rows: int, cols: int) -> MatrixExpr:
       [[0, 0, 0], [0, 0, 0]]
     """
 
-def vector(*args) -> MatrixExpr:
+def vector(*args: Expr | int | float) -> MatrixExpr:
     """
     Create a column-vector from the provided arguments.
 
@@ -1668,7 +1644,7 @@ def vector(*args) -> MatrixExpr:
       [[2*x], [0], [3 + y]]
     """
 
-def row_vector(*args) -> MatrixExpr:
+def row_vector(*args: Expr | int | float) -> MatrixExpr:
     """
     Create a row-vector from the provided arguments.
 
@@ -1860,7 +1836,7 @@ class CompoundExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: CompoundExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
