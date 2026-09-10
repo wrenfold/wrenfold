@@ -1,0 +1,26 @@
+# Attributes and relationships that nanobind cannot infer from runtime objects.
+
+pywrenfold\.__prefix__$:
+    __version__: str
+
+pywrenfold\.sym\.__prefix__$:
+    from typing import TypeVar
+
+    _ExpressionT = TypeVar(
+        "_ExpressionT", "Expr", "MatrixExpr", "CompoundExpr", "BooleanExpr"
+    )
+
+pywrenfold\.sym\.distribute$:
+    def distribute(expr: _ExpressionT) -> _ExpressionT:
+        \doc
+
+pywrenfold\.sym\.subs$:
+    @overload
+    def subs(expr: _ExpressionT, pairs: Sequence[tuple[Expr, Expr | int | float] | tuple[BooleanExpr, BooleanExpr]]) -> _ExpressionT:
+        \doc
+
+    @overload
+    def subs(expr: _ExpressionT, target: Expr, replacement: Expr | int | float) -> _ExpressionT: ...
+
+    @overload
+    def subs(expr: _ExpressionT, target: BooleanExpr, replacement: BooleanExpr) -> _ExpressionT: ...

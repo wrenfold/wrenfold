@@ -1,6 +1,7 @@
-"""Representative type-check-only tests for the generated extension stubs."""
+"""Representative type-check-only tests for the public Python API."""
 
-from pywrenfold import geometry, sym
+import pywrenfold
+from pywrenfold import gen, geometry, sym, type_info
 
 x = sym.symbol("x")
 y = sym.symbol("y")
@@ -50,6 +51,13 @@ constructed_vectors: tuple[sym.MatrixExpr, ...] = (
 )
 
 matrix_shape: tuple[int, int] = constructed_vectors[0].shape
+matrix_rows: list[list[sym.Expr]] = constructed_vectors[0].to_list()
+matrix_from_rows = sym.matrix([[x, 1], [2.5, y]])
+
+expr_args: tuple[sym.Expr | sym.BooleanExpr, ...] = (x + y).args
+boolean_args: tuple[sym.Expr | sym.BooleanExpr, ...] = (x > y).args
+
+package_version: str = pywrenfold.__version__
 
 symbols_from_names: list[sym.Expr] = sym.make_symbols("a", "b", "c")
 
@@ -99,3 +107,18 @@ quaternions_with_literals: tuple[geometry.Quaternion, ...] = (
     geometry.Quaternion.from_angle_axis(0, 1, 0, 0),
     geometry.Quaternion.from_x_angle(0.5),
 )
+
+custom_type = type_info.CustomType(
+    "point", [("x", type_info.ScalarType(type_info.NumericType.Float))], object
+)
+external_function = gen.PyExternalFunction(
+    "external", [("x", type_info.ScalarType(type_info.NumericType.Float))], custom_type
+)
+external_result: sym.Expr | sym.MatrixExpr | sym.CompoundExpr | sym.BooleanExpr = (
+    external_function.call([x])
+)
+
+distributed_expr: sym.Expr = sym.distribute(x * (x + y))
+distributed_matrix: sym.MatrixExpr = sym.distribute(sym.vector(x, y))
+substituted_expr: sym.Expr = sym.subs(x + y, x, 0)
+substituted_matrix: sym.MatrixExpr = sym.subs(sym.vector(x, y), x, 0)

@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 import enum
+from typing import Any
 
 
 class NumericType(enum.Enum):
@@ -106,7 +107,7 @@ class CustomType:
     A custom type describes a user-provided struct that exposes members that wrenfold can retrieve in generated code.
     """
 
-    def __init__(self, name: str, fields: Sequence[tuple[str, object]], python_type: type) -> None:
+    def __init__(self, name: str, fields: Sequence[tuple[str, ScalarType | MatrixType | CustomType]], python_type: type[Any]) -> None:
         """Construct custom type."""
 
     def __hash__(self) -> int:
@@ -137,7 +138,7 @@ class CustomType:
         """
 
     @property
-    def python_type(self) -> type | None:
+    def python_type(self) -> type[Any] | None:
         """Retrieve the underlying user-declared python type. May be None."""
 
     def __repr__(self) -> str: ...

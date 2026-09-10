@@ -2,6 +2,8 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include <variant>
+
 #include <nanobind/nanobind.h>
 
 #include "wf/expression.h"
@@ -11,7 +13,8 @@ namespace wf {
 // Visitor used in the wrapper to retrieve arguments to an expression.
 class args_visitor {
  public:
-  using tuple = nanobind::tuple;
+  using tuple =
+      nanobind::typed<nanobind::tuple, std::variant<scalar_expr, boolean_expr>, nanobind::ellipsis>;
 
   tuple operator()(const scalar_expr& input) const;
   tuple operator()(const boolean_expr& input) const;

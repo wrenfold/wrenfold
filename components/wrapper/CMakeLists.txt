@@ -105,6 +105,8 @@ function(add_wrapper_module_stubs)
     ${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi
     MARKER_FILE
     ${STUBGEN_BUILD_OUTPUT_DIR}/py.typed
+    PATTERN_FILE
+    ${CMAKE_CURRENT_SOURCE_DIR}/stub_patterns.txt
     PYTHON_PATH
     $<TARGET_FILE_DIR:${ARGS_MODULE_NAME}>
     DEPENDS
@@ -121,6 +123,8 @@ function(add_wrapper_module_stubs)
       "${ARGS_MODULE_NAME}.${SUBMODULE_NAME}"
       OUTPUT
       ${STUBGEN_BUILD_OUTPUT_DIR}/${SUBMODULE_NAME}.pyi
+      PATTERN_FILE
+      ${CMAKE_CURRENT_SOURCE_DIR}/stub_patterns.txt
       PYTHON_PATH
       $<TARGET_FILE_DIR:${ARGS_MODULE_NAME}>
       DEPENDS
