@@ -102,13 +102,16 @@ function(add_wrapper_module_stubs)
     "${ARGS_MODULE_NAME}"
     OUTPUT
     ${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi
+    MARKER_FILE
+    ${STUBGEN_BUILD_OUTPUT_DIR}/py.typed
     PYTHON_PATH
     $<TARGET_FILE_DIR:${ARGS_MODULE_NAME}>
     DEPENDS
     ${ARGS_MODULE_NAME})
   list(APPEND STUBGEN_SUBMODULE_TARGETS wf_stubs_init)
   list(APPEND STUBGEN_BUILD_OUTPUT_PATHS
-       "${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi")
+       "${STUBGEN_BUILD_OUTPUT_DIR}/__init__.pyi"
+       "${STUBGEN_BUILD_OUTPUT_DIR}/py.typed")
 
   foreach(SUBMODULE_NAME ${SUBMODULE_NAMES})
     nanobind_add_stub(
@@ -166,7 +169,8 @@ function(install_stubs)
   # paths for all stubs that need to be installed.
   set(STUBGEN_OUTPUT_DIR ${ARGS_STUBS_DIR})
   set(STUBGEN_OUTPUT_PATHS
-      "${STUBGEN_OUTPUT_DIR}/${ARGS_MODULE_NAME}/__init__.pyi")
+      "${STUBGEN_OUTPUT_DIR}/${ARGS_MODULE_NAME}/__init__.pyi"
+      "${STUBGEN_OUTPUT_DIR}/${ARGS_MODULE_NAME}/py.typed")
   foreach(SUBMODULE_NAME ${SUBMODULE_NAMES})
     set(SUBMODULE_STUB_OUTPUT_PATH
         "${STUBGEN_OUTPUT_DIR}/${ARGS_MODULE_NAME}/${SUBMODULE_NAME}.pyi")
