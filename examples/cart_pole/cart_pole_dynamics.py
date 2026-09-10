@@ -29,7 +29,7 @@ class CartPoleParamsSymbolic:
     k_s: wf.FloatScalar  # Bounding spring constant (N / m).
 
 
-def get_cart_double_pole_dynamics() -> typing.Callable:
+def get_cart_double_pole_dynamics() -> typing.Callable[..., wf.CodegenFuncInvocationResult]:
     """
     Return a symbolic function that evaluates the dynamics of a cart-mounted double pendulum.
 
@@ -82,30 +82,30 @@ def get_cart_double_pole_dynamics() -> typing.Callable:
 
     # Compute kinetic energy. This is the sum of (1/2)*m*v^2 for all pieces.
     half = 1 / sym.integer(2)
-    T: sym.Expr = (
+    kinetic_energy: sym.Expr = (
         half * m_b * b_dot.squared_norm()
         + half * m_1 * p_1_dot.squared_norm()
         + half * m_2 * p_2_dot.squared_norm()
     )
 
     # Simplify this a bit by eliminating: cos^2(x) + sin^2(x) --> 1
-    T = (
-        T.distribute()
+    kinetic_energy = (
+        kinetic_energy.distribute()
         .collect([m_1, m_2, l_1, l_2, th_1_dot, th_2_dot])
         .subs((sym.cos(th_1) ** 2 + sym.sin(th_1) ** 2) / 2, half)
         .subs((sym.cos(th_2) ** 2 + sym.sin(th_2) ** 2) / 2, half)
     )
 
     # Compute potential energy. This is the sum of m*g*y for all pieces.
-    V = g * m_1 * p_1[1] + g * m_2 * p_2[1]
+    potential_energy = g * m_1 * p_1[1, 0] + g * m_2 * p_2[1, 0]
 
     # The lagrangian:
-    L: sym.Expr = T - V
+    lagrangian: sym.Expr = kinetic_energy - potential_energy
 
     # Canonical momenta:
-    q_b = L.diff(b_x_dot)
-    q_th_1 = L.diff(th_1_dot)
-    q_th_2 = L.diff(th_2_dot)
+    q_b = lagrangian.diff(b_x_dot)
+    q_th_1 = lagrangian.diff(th_1_dot)
+    q_th_2 = lagrangian.diff(th_2_dot)
 
     # Dissipative force due to friction on the base.
     F_friction_base = -mu_b * (m_1 + m_2 + m_b) * g * sym.tanh(b_x_dot / sym.max(v_mu_b, 1.0e-6))
@@ -126,15 +126,15 @@ def get_cart_double_pole_dynamics() -> typing.Callable:
 
     # Form the Euler-Lagrange equations (each of these is equal to zero).
     el_b = (
-        (q_b.diff(t) - L.diff(b_x)).distribute()
+        (q_b.diff(t) - lagrangian.diff(b_x)).distribute()
         - u_b
         - F_friction_base
         - F_s_left
         - F_s_right
         + D_air_mass.diff(b_x_dot)
     )
-    el_th_1 = (q_th_1.diff(t) - L.diff(th_1)).distribute() + D_air_mass.diff(th_1_dot)
-    el_th_2 = (q_th_2.diff(t) - L.diff(th_2)).distribute() + D_air_mass.diff(th_2_dot)
+    el_th_1 = (q_th_1.diff(t) - lagrangian.diff(th_1)).distribute() + D_air_mass.diff(th_1_dot)
+    el_th_2 = (q_th_2.diff(t) - lagrangian.diff(th_2)).distribute() + D_air_mass.diff(th_2_dot)
 
     # Reformulate the Euler-Lagrange equations into form:
     #   A(x, x') * x'' = f(x, x', u)
@@ -179,7 +179,9 @@ def get_cart_double_pole_dynamics() -> typing.Callable:
         ]
 
         x_ddot_subbed = x_ddot.subs(constants).subs(vel_states).subs(states)
-        total_energy = (T + V).subs(constants).subs(vel_states).subs(states)
+        total_energy = (
+            (kinetic_energy + potential_energy).subs(constants).subs(vel_states).subs(states)
+        )
 
         # Stack the first derivative with the second derivative.
         # This is how we get the 6-element derivative of our state vector.

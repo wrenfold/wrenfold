@@ -1,6 +1,9 @@
 """Representative type-check-only tests for the public Python API."""
 
+from collections.abc import Callable
+
 import pywrenfold
+import wrenfold as wf
 from pywrenfold import gen, geometry, sym, type_info
 
 x = sym.symbol("x")
@@ -122,3 +125,11 @@ distributed_expr: sym.Expr = sym.distribute(x * (x + y))
 distributed_matrix: sym.MatrixExpr = sym.distribute(sym.vector(x, y))
 substituted_expr: sym.Expr = sym.subs(x + y, x, 0)
 substituted_matrix: sym.MatrixExpr = sym.subs(sym.vector(x, y), x, 0)
+
+
+def symbolic_product(a: wf.FloatScalar, b: wf.FloatScalar) -> sym.Expr:
+    return a * b
+
+
+generated_callable: Callable[..., object]
+generated_callable, generated_code = wf.generate_python(symbolic_product)

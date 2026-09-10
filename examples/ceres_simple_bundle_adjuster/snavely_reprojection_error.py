@@ -37,7 +37,7 @@ def snavely_reprojection_error(camera: wf.Vector9, point: wf.Vector3, measured_x
     yp = -p_camera[1, 0] / p_camera[2, 0]
 
     # Apply the camera intrinsics:
-    focal, l1, l2 = camera[6:]
+    focal, l1, l2 = camera[6:].to_flat_list()
 
     r2 = xp * xp + yp * yp
     distortion = 1 + r2 * (l1 + l2 * r2)
