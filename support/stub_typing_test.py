@@ -67,3 +67,35 @@ relational_expressions: tuple[sym.BooleanExpr, ...] = (
     sym.ge(1.5, x),
     sym.eq(x, 1),
 )
+
+scalar_functions_with_literals: tuple[sym.Expr, ...] = (
+    sym.log(2),
+    sym.exp(1.5),
+    sym.pow(x, 2),
+    sym.cos(0),
+    sym.sin(0.5),
+    sym.atan2(y, 1),
+    sym.floor(1.5),
+    sym.where(x > 0, x, 0),
+    sym.unevaluated(1),
+    sym.stop_derivative(1.5),
+    sym.addition([x, 1, 2.5]),
+    sym.multiplication([x, 2]),
+    sym.substitution(x, x, 0),
+    sym.Function("f")(x, 1, 2.5),
+)
+
+substituted_expressions: tuple[sym.Expr | sym.MatrixExpr | sym.BooleanExpr, ...] = (
+    x.subs(x, 0),
+    (x > y).subs(x, 0),
+    sym.vector(x, y).subs(x, 0),
+    x.subs([(x, 0)]),
+)
+
+quaternions_with_literals: tuple[geometry.Quaternion, ...] = (
+    geometry.Quaternion(1, 0, 0, 0),
+    geometry.Quaternion.from_xyzw([0, 0, 0, 1]),
+    geometry.Quaternion.from_wxyz([1, 0, 0, 0]),
+    geometry.Quaternion.from_angle_axis(0, 1, 0, 0),
+    geometry.Quaternion.from_x_angle(0.5),
+)

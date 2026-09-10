@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "type_casters.h"
+
 #include <nanobind/eigen/dense.h>
 #include <nanobind/make_iterator.h>
 #include <nanobind/nanobind.h>
@@ -466,16 +468,10 @@ void wrap_matrix_operations(py::module_& m) {
           "__rmul__",
           [](const matrix_expr& self, const scalar_expr& other) { return self * other; },
           py::is_operator())
-      .def(py::self * std::int64_t())
-      .def(py::self * double())
-      .def(std::int64_t() * py::self)
-      .def(double() * py::self)
       // Right divide by scalar:
       .def("__truediv__",
            static_cast<matrix_expr (*)(const matrix_expr&, const scalar_expr&)>(&operator/),
            py::is_operator())
-      .def(py::self / std::int64_t())
-      .def(py::self / double())
       .def("__neg__", &matrix_expr::operator-, "Element-wise negation of the matrix.")
       // Prohibit conversion to bool.
       .def(
