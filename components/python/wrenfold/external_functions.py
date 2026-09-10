@@ -19,7 +19,7 @@ class ExternalFunction(PyExternalFunction):
     def __init__(self, super_val: PyExternalFunction) -> None:
         super().__init__(super_val)
 
-    def __call__(self, *args, **kwargs) -> typing.Any:
+    def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> typing.Any:
         """
         Generate expressions to represent an invocation of ``self``.
         """
@@ -28,8 +28,8 @@ class ExternalFunction(PyExternalFunction):
 
 def declare_external_function(
     name: str,
-    arguments: typing.Iterable[tuple[str, type]],
-    return_type: type,
+    arguments: typing.Iterable[tuple[str, type[typing.Any]]],
+    return_type: type[typing.Any],
 ) -> ExternalFunction:
     """
     Declare an external function. External functions are implemented by the user outside of the code
@@ -64,7 +64,7 @@ def declare_external_function(
         An ExternalFunc object that can be invoked via the ``__call__`` operator. The args to
         ``__call__`` should have types matching `arguments`.
     """
-    type_cache: dict[type, type_info.CustomType] = dict()
+    type_cache: dict[type[typing.Any], type_info.CustomType] = {}
 
     # If custom types are specified, we need to construct `CustomType` objects to pass to C++:
     converted_args: list[
@@ -121,7 +121,9 @@ def _combine_args(
     return list(args) + [v for (_, v) in sorted(index_and_value, key=lambda pair: pair[0])]
 
 
-def _invoke_external_function(func: PyExternalFunction, *args, **kwargs):
+def _invoke_external_function(
+    func: PyExternalFunction, *args: typing.Any, **kwargs: typing.Any
+) -> typing.Any:
     """
     Call `wrapper_func` with the provided arguments.
     """

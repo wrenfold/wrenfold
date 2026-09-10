@@ -129,7 +129,7 @@ class Point3d:
     @staticmethod
     def from_vector(v: sym.MatrixExpr) -> "Point3d":
         assert v.shape == (3, 1), f"Wrong shape: {v.shape}"
-        return Point3d(x=v[0], y=v[1], z=v[2])
+        return Point3d(x=v[0, 0], y=v[1, 0], z=v[2, 0])
 
 
 def transform_point(world_T_body: Pose3d, p_body: Point3d):

@@ -1,5 +1,6 @@
 import dataclasses
 import functools
+import typing
 
 import wrenfold as wf
 from wrenfold import geometry, sym
@@ -39,7 +40,7 @@ class Rot3:
     @staticmethod
     def from_vector(vec: sym.MatrixExpr) -> "Rot3":
         assert vec.shape == (4, 1), f"{vec.shape}"
-        return Rot3(*vec)  # xyzw
+        return Rot3(*vec.to_flat_list())  # xyzw
 
 
 @dataclasses.dataclass
@@ -132,7 +133,7 @@ class Pose3:
         to the right-tangent space of SE(3).
         """
         variables, J = se3_right_retract_derivative()
-        substitutions = list(zip(variables, self.to_vector(), strict=True))
+        substitutions = list(zip(variables, self.to_vector().to_flat_list(), strict=True))
         return J.subs(substitutions)
 
     def right_local_coordinates_derivative(self) -> sym.MatrixExpr:
@@ -140,7 +141,7 @@ class Pose3:
         The 6x7 derivative of the 6 tangent-space elements with respect to the 7 pose elements.
         """
         variables, J = se3_right_local_coordinates_derivative()
-        substitutions = list(zip(variables, self.to_vector(), strict=True))
+        substitutions = list(zip(variables, self.to_vector().to_flat_list(), strict=True))
         return J.subs(substitutions)
 
     def inverse(self) -> "Pose3":
@@ -167,20 +168,22 @@ def se3_right_retract_derivative() -> tuple[list[sym.Expr], sym.MatrixExpr]:
     expression.
     """
     # First create a symbolic pose `X`:
-    X = Pose3.from_vector(sym.matrix(sym.unique_symbols(count=7, real=True)))
+    variables = typing.cast(list[sym.Expr], sym.unique_symbols(count=7, real=True))
+    X = Pose3.from_vector(sym.matrix(variables))
 
     # Create a tangent-space perturbation, and perturb pose `X` on the right side:
-    perturbation = sym.matrix(sym.unique_symbols(count=6, real=True))
+    perturbation_variables = typing.cast(list[sym.Expr], sym.unique_symbols(count=6, real=True))
+    perturbation = sym.matrix(perturbation_variables)
     X_perturbed = X.retract(perturbation, epsilon=0)
 
     # Compute the jacobian wrt the tangent space perturbation:
-    J = sym.jacobian(X_perturbed.to_vector(), perturbation)
-    assert J.shape == (7, 6), f"{J.shape}"
+    jacobian = sym.jacobian(X_perturbed.to_vector(), perturbation)
+    assert jacobian.shape == (7, 6), f"{jacobian.shape}"
 
     # Evaluate about perturbation = 0
-    J = J.subs([(var, 0) for var in perturbation])
+    jacobian = jacobian.subs([(var, 0) for var in perturbation.to_flat_list()])
 
-    return (X.to_vector().to_flat_list(), J)
+    return (X.to_vector().to_flat_list(), jacobian)
 
 
 @functools.cache
@@ -192,16 +195,18 @@ def se3_right_local_coordinates_derivative() -> tuple[list[sym.Expr], sym.Matrix
 
     Evaluated at dX = 0. dX is the 7-element perturbation to the quaternion and translation vector.
     """
-    X = Pose3.from_vector(sym.matrix(sym.unique_symbols(count=7, real=True)))
+    variables = typing.cast(list[sym.Expr], sym.unique_symbols(count=7, real=True))
+    X = Pose3.from_vector(sym.matrix(variables))
 
-    perturbation = sym.vector(*sym.unique_symbols(count=7, real=True))
+    perturbation_variables = typing.cast(list[sym.Expr], sym.unique_symbols(count=7, real=True))
+    perturbation = sym.vector(*perturbation_variables)
     X_plus_dX = Pose3.from_vector(X.to_vector() + perturbation)
     tangent_delta = X.local_coordinates(X_plus_dX, epsilon=0)
 
-    J = sym.jacobian(tangent_delta, perturbation)
-    assert J.shape == (6, 7), f"{J.shape}"
+    jacobian = sym.jacobian(tangent_delta, perturbation)
+    assert jacobian.shape == (6, 7), f"{jacobian.shape}"
 
     # Evaluate about perturbation = 0
-    J = J.subs([(var, 0) for var in perturbation])
+    jacobian = jacobian.subs([(var, 0) for var in perturbation.to_flat_list()])
 
-    return (X.to_vector().to_flat_list(), J)
+    return (X.to_vector().to_flat_list(), jacobian)
