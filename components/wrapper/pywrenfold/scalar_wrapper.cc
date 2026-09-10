@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "type_casters.h"
+
 #include <optional>
 #include <vector>
 
@@ -224,54 +226,30 @@ void wrap_scalar_operations(py::module_& m) {
       .def(-py::self)
       .def("__pow__", &wf::pow, py::is_operator(), py::arg("other"))
       .def(
-          "__pow__",
-          [](const scalar_expr& self, std::int64_t other) { return wf::pow(self, other); },
+          "__radd__",
+          [](const scalar_expr& self, const scalar_expr& other) { return other + self; },
           py::is_operator(), py::arg("other"))
       .def(
-          "__pow__", [](const scalar_expr& self, double other) { return wf::pow(self, other); },
+          "__rsub__",
+          [](const scalar_expr& self, const scalar_expr& other) { return other - self; },
+          py::is_operator(), py::arg("other"))
+      .def(
+          "__rmul__",
+          [](const scalar_expr& self, const scalar_expr& other) { return other * self; },
+          py::is_operator(), py::arg("other"))
+      .def(
+          "__rtruediv__",
+          [](const scalar_expr& self, const scalar_expr& other) { return other / self; },
           py::is_operator(), py::arg("other"))
       .def(
           "__rpow__",
           [](const scalar_expr& self, const scalar_expr& other) { return pow(other, self); },
-          py::is_operator(), py::arg("other"))
-      .def(
-          "__rpow__",
-          [](const scalar_expr& self, const std::int64_t other) { return pow(other, self); },
-          py::is_operator(), py::arg("other"))
-      .def(
-          "__rpow__", [](const scalar_expr& self, const double other) { return pow(other, self); },
           py::is_operator(), py::arg("other"))
       .def("__abs__", [](const scalar_expr& self) { return abs(self); })
       .def(py::self > py::self)
       .def(py::self >= py::self)
       .def(py::self < py::self)
       .def(py::self <= py::self)
-      // Operators involving integers
-      .def(py::self + std::int64_t())
-      .def(py::self - std::int64_t())
-      .def(py::self * std::int64_t())
-      .def(py::self / std::int64_t())
-      .def(py::self > std::int64_t())
-      .def(py::self >= std::int64_t())
-      .def(py::self < std::int64_t())
-      .def(py::self <= std::int64_t())
-      .def(std::int64_t() + py::self)
-      .def(std::int64_t() - py::self)
-      .def(std::int64_t() * py::self)
-      .def(std::int64_t() / py::self)
-      // Operators involving doubles
-      .def(py::self + double())
-      .def(py::self - double())
-      .def(py::self * double())
-      .def(py::self / double())
-      .def(py::self > double())
-      .def(py::self >= double())
-      .def(py::self < double())
-      .def(py::self <= double())
-      .def(double() + py::self)
-      .def(double() - py::self)
-      .def(double() * py::self)
-      .def(double() / py::self)
       // Override conversion to boolean, so we don't coerce non-boolean expressions.
       .def(
           "__bool__",
@@ -352,12 +330,8 @@ void wrap_scalar_operations(py::module_& m) {
   m.def("floor", &wf::floor, "arg"_a, docstrings::floor.data());
   m.def("atan2", &wf::atan2, "y"_a, "x"_a, docstrings::atan2.data());
 
-  m.def("max", &wf::max, "a"_a, "b"_a,
-        py::sig("def max(a: Expr | int | float, b: Expr | int | float) -> Expr"),
-        docstrings::max.data());
-  m.def("min", &wf::min, "a"_a, "b"_a,
-        py::sig("def min(a: Expr | int | float, b: Expr | int | float) -> Expr"),
-        docstrings::min.data());
+  m.def("max", &wf::max, "a"_a, "b"_a, docstrings::max.data());
+  m.def("min", &wf::min, "a"_a, "b"_a, docstrings::min.data());
   m.def("where",
         static_cast<scalar_expr (*)(const boolean_expr&, const scalar_expr&, const scalar_expr&)>(
             &wf::where),
@@ -365,25 +339,15 @@ void wrap_scalar_operations(py::module_& m) {
 
   // Relational operations:
   m.def("lt", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator<),
-        "a"_a, "b"_a,
-        py::sig("def lt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr"),
-        docstrings::less_than.data());
+        "a"_a, "b"_a, docstrings::less_than.data());
   m.def("le", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator<=),
-        "a"_a, "b"_a,
-        py::sig("def le(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr"),
-        docstrings::less_than_or_equal.data());
+        "a"_a, "b"_a, docstrings::less_than_or_equal.data());
   m.def("gt", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator>),
-        "a"_a, "b"_a,
-        py::sig("def gt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr"),
-        docstrings::greater_than.data());
+        "a"_a, "b"_a, docstrings::greater_than.data());
   m.def("ge", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator>=),
-        "a"_a, "b"_a,
-        py::sig("def ge(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr"),
-        docstrings::greater_than_or_equal.data());
+        "a"_a, "b"_a, docstrings::greater_than_or_equal.data());
   m.def("eq", static_cast<boolean_expr (*)(const scalar_expr&, const scalar_expr&)>(&operator==),
-        "a"_a, "b"_a,
-        py::sig("def eq(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr"),
-        docstrings::equal.data());
+        "a"_a, "b"_a, docstrings::equal.data());
 
   m.def("iverson", &wf::iverson, "arg"_a, docstrings::iverson.data());
 
@@ -433,6 +397,7 @@ void wrap_scalar_operations(py::module_& m) {
                 self, transform_map<symbolic_function_invocation::container_type>(
                           args, [](const py::handle& x) { return py::cast<scalar_expr>(x); }));
           },
+          py::sig("def __call__(self, *args: Expr | int | float) -> Expr"),
           "Invoke the symbolic function with the provided scalar expressions, and return a "
           "new scalar expression.")
       .doc() =

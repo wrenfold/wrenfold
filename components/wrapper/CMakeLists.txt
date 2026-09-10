@@ -216,6 +216,7 @@ add_wrapper_module(
   pywrenfold/scalar_wrapper.cc
   pywrenfold/symbolic_functions_wrapper.cc
   pywrenfold/sympy_conversion.cc
+  pywrenfold/type_casters.h
   pywrenfold/types_wrapper.cc
   pywrenfold/visitor_wrappers.h
   pywrenfold/wrapper_utils.h

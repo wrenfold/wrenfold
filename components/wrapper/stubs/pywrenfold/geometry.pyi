@@ -11,7 +11,7 @@ class Quaternion:
     """A quaternion class used to represent 3D rotations and orientations."""
 
     @overload
-    def __init__(self, w: pywrenfold.sym.Expr, x: pywrenfold.sym.Expr, y: pywrenfold.sym.Expr, z: pywrenfold.sym.Expr) -> None:
+    def __init__(self, w: pywrenfold.sym.Expr | int | float, x: pywrenfold.sym.Expr | int | float, y: pywrenfold.sym.Expr | int | float, z: pywrenfold.sym.Expr | int | float) -> None:
         r"""
         Construct a quaternion from scalar expressions in ``[w,x,y,z]`` order.
 
@@ -75,7 +75,7 @@ class Quaternion:
 
     def __repr__(self) -> str: ...
 
-    def subs(self, target: pywrenfold.sym.Expr, replacement: pywrenfold.sym.Expr) -> Quaternion:
+    def subs(self, target: pywrenfold.sym.Expr | int | float, replacement: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.
         """
@@ -139,7 +139,7 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_xyzw(xyzw: Iterable[pywrenfold.sym.Expr]) -> Quaternion:
+    def from_xyzw(xyzw: Iterable[pywrenfold.sym.Expr | int | float]) -> Quaternion:
         """
         Overload of :func:`wrenfold.geometry.Quaternion.from_xyzw` that accepts Iterable[sym.Expr].
         """
@@ -159,7 +159,7 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_wxyz(wxyz: Iterable[pywrenfold.sym.Expr]) -> Quaternion:
+    def from_wxyz(wxyz: Iterable[pywrenfold.sym.Expr | int | float]) -> Quaternion:
         """
         Overload of :func:`wrenfold.geometry.Quaternion.from_wxyz` that accepts Iterable[sym.Expr].
         """
@@ -335,7 +335,7 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_angle_axis(angle: pywrenfold.sym.Expr, vx: pywrenfold.sym.Expr, vy: pywrenfold.sym.Expr, vz: pywrenfold.sym.Expr) -> Quaternion:
+    def from_angle_axis(angle: pywrenfold.sym.Expr | int | float, vx: pywrenfold.sym.Expr | int | float, vy: pywrenfold.sym.Expr | int | float, vz: pywrenfold.sym.Expr | int | float) -> Quaternion:
         r"""
         Construct quaternion from an angle and normalized axis. This function constructs the quaternion:
 
@@ -366,7 +366,7 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_angle_axis(angle: pywrenfold.sym.Expr, axis: pywrenfold.sym.MatrixExpr) -> Quaternion:
+    def from_angle_axis(angle: pywrenfold.sym.Expr | int | float, axis: pywrenfold.sym.MatrixExpr) -> Quaternion:
         """
         Overload of ``from_angle_axis`` that accepts ``sym.MatrixExpr`` for the axis.
         """
@@ -405,7 +405,7 @@ class Quaternion:
         """Overload of ``from_rotation_vector`` that accepts ``sym.MatrixExpr``."""
 
     @staticmethod
-    def from_x_angle(angle: pywrenfold.sym.Expr) -> Quaternion:
+    def from_x_angle(angle: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Construct quaternion that rotates about the x-axis by the specified angle.
 
@@ -417,7 +417,7 @@ class Quaternion:
         """
 
     @staticmethod
-    def from_y_angle(angle: pywrenfold.sym.Expr) -> Quaternion:
+    def from_y_angle(angle: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Construct quaternion that rotates about the y-axis by the specified angle.
 
@@ -429,7 +429,7 @@ class Quaternion:
         """
 
     @staticmethod
-    def from_z_angle(angle: pywrenfold.sym.Expr) -> Quaternion:
+    def from_z_angle(angle: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Construct quaternion that rotates about the z-axis by the specified angle.
 

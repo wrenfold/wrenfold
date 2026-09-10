@@ -171,24 +171,24 @@ class FunctionDescription:
         """Add an input argument with a custom user-specified type."""
 
     @overload
-    def add_output_argument(self, name: str, is_optional: bool, value: pywrenfold.sym.Expr) -> None: ...
+    def add_output_argument(self, name: str, is_optional: bool, value: pywrenfold.sym.Expr | int | float) -> None: ...
 
     @overload
     def add_output_argument(self, name: str, is_optional: bool, value: pywrenfold.sym.MatrixExpr) -> None:
         """Record an output argument of matrix type."""
 
     @overload
-    def add_output_argument(self, name: str, is_optional: bool, custom_type: pywrenfold.type_info.CustomType, expressions: Sequence[pywrenfold.sym.Expr]) -> None:
+    def add_output_argument(self, name: str, is_optional: bool, custom_type: pywrenfold.type_info.CustomType, expressions: Sequence[pywrenfold.sym.Expr | int | float]) -> None:
         """Record an output argument of custom type."""
 
     @overload
-    def set_return_value(self, value: pywrenfold.sym.Expr) -> None: ...
+    def set_return_value(self, value: pywrenfold.sym.Expr | int | float) -> None: ...
 
     @overload
     def set_return_value(self, value: pywrenfold.sym.MatrixExpr) -> None: ...
 
     @overload
-    def set_return_value(self, custom_type: pywrenfold.type_info.CustomType, expressions: Sequence[pywrenfold.sym.Expr]) -> None: ...
+    def set_return_value(self, custom_type: pywrenfold.type_info.CustomType, expressions: Sequence[pywrenfold.sym.Expr | int | float]) -> None: ...
 
     def output_expressions(self) -> dict[OutputKey, pywrenfold.sym.Expr | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr | pywrenfold.sym.BooleanExpr]:
         """Retrieve a dict of output expressions computed by this function."""
