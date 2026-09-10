@@ -919,7 +919,7 @@ def atan2(y: Expr, x: Expr) -> Expr:
       -y/(x**2 + y**2)
     """
 
-def max(a: Expr, b: Expr) -> Expr:
+def max(a: Expr | int | float, b: Expr | int | float) -> Expr:
     """
     The maximum of two scalar values :math:`\\text{max}\\left(a, b\\right)`, defined as:
 
@@ -941,7 +941,7 @@ def max(a: Expr, b: Expr) -> Expr:
       3
     """
 
-def min(a: Expr, b: Expr) -> Expr:
+def min(a: Expr | int | float, b: Expr | int | float) -> Expr:
     """
     The minimum of two scalar values :math:`\\text{min}\\left(a, b\\right)`, defined as:
 
@@ -1018,7 +1018,7 @@ def where(c: BooleanExpr, a: MatrixExpr, b: MatrixExpr) -> MatrixExpr:
       wrenfold.sym.DimensionError: If the dimensions of ``a`` and ``b`` do not match.
     """
 
-def lt(a: Expr, b: Expr) -> BooleanExpr:
+def lt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     """
     Boolean-valued relational expression :math:`a \\lt b`, or ``<`` operator.
 
@@ -1030,7 +1030,7 @@ def lt(a: Expr, b: Expr) -> BooleanExpr:
       x < y
     """
 
-def le(a: Expr, b: Expr) -> BooleanExpr:
+def le(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     """
     Boolean-valued relational expression :math:`a \\le b`, or ``<=`` operator.
 
@@ -1042,7 +1042,7 @@ def le(a: Expr, b: Expr) -> BooleanExpr:
       x <= y
     """
 
-def gt(a: Expr, b: Expr) -> BooleanExpr:
+def gt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     """
     Boolean-valued relational expression :math:`a \\gt b`, or ``>`` operator. ``a > b`` will be
     automatically canonicalized to ``b < a``.
@@ -1055,7 +1055,7 @@ def gt(a: Expr, b: Expr) -> BooleanExpr:
       y < x
     """
 
-def ge(a: Expr, b: Expr) -> BooleanExpr:
+def ge(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     """
     Boolean-valued relational expression :math:`a \\ge b`, or ``>=`` operator. ``a >= b`` will be
     automatically canonicalized to ``b <= a``.

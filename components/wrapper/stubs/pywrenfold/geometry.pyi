@@ -464,7 +464,7 @@ class Quaternion:
           wrenfold.sym.MatrixExpr: Normalized axis of rotation.
         """
 
-    def to_rotation_vector(self, epsilon: pywrenfold.sym.Expr | None = ..., use_atan2: bool = True) -> pywrenfold.sym.MatrixExpr:
+    def to_rotation_vector(self, epsilon: pywrenfold.sym.Expr | int | float | None = ..., use_atan2: bool = True) -> pywrenfold.sym.MatrixExpr:
         """
         Recover a rotation vector from a unit-norm quaternion. The following formula is used:
 
@@ -551,7 +551,7 @@ class Quaternion:
           [[-2*x, 2*w, 2*z, -2*y], [-2*y, -2*z, 2*w, 2*x], [-2*z, 2*y, -2*x, 2*w]]
         """
 
-def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | None) -> pywrenfold.sym.MatrixExpr:
+def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | int | float | None) -> pywrenfold.sym.MatrixExpr:
     """
     Compute the *left* jacobian of SO(3). Given a rotation vector ``w``, this method computes the
     3x3 derivative:
@@ -589,7 +589,7 @@ def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.E
       * `Associating Uncertainty With Three-Dimensional Poses for Use in Estimation Problems <https://ieeexplore.ieee.org/document/6727494>`_
     """
 
-def inverse_left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | None) -> pywrenfold.sym.MatrixExpr:
+def inverse_left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | int | float | None) -> pywrenfold.sym.MatrixExpr:
     """
     Compute the **inverse** of the *left* jacobian of SO(3). Given a rotation vector ``w``, this method
     computes the 3x3 derivative:
