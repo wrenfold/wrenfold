@@ -3,6 +3,7 @@ Run commands intended to test a built python wheel.
 """
 
 import glob
+import importlib.metadata
 import os
 import subprocess
 import sys
@@ -20,6 +21,14 @@ def get_module_path(script_path: Path | str) -> str:
 
 
 def main():
+    print("Checking typed-package markers...")
+    installed_files = {
+        str(path) for path in importlib.metadata.distribution("wrenfold").files or ()
+    }
+    for marker in ("wrenfold/py.typed", "pywrenfold/py.typed"):
+        if marker not in installed_files:
+            raise RuntimeError(f"Installed wheel is missing typed-package marker: {marker}")
+
     # Run all the unit tests.
     print("Running package tests...")
     wrapper_test_dir = ROOT / "components" / "wrapper" / "tests"
