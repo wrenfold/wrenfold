@@ -27,6 +27,9 @@ using namespace py::literals;
 
 namespace wf {
 
+using annotated_type_variant = py::typed<py::object, type_variant>;
+using annotated_expression_list = py::typed<py::list, any_expression>;
+
 // Accept the mathematical function description, and "transpile" it into AST that can be emitted
 // in another language.
 ast::function_definition transpile_to_ast(const function_description& description,
@@ -51,12 +54,12 @@ auto cse_function_description(const function_description& description,
 
 // Construct `external_function`. We define this custom constructor to convert py::object to
 // type_variant (which is not default constructible).
-void init_external_function(external_function* out, std::string name,
-                            const std::vector<std::tuple<std::string_view, py::object>>& arguments,
-                            const py::object& return_type) {
+void init_external_function(
+    external_function* out, std::string name,
+    const std::vector<std::tuple<std::string_view, annotated_type_variant>>& arguments,
+    const annotated_type_variant& return_type) {
   auto args = transform_enumerate_map<std::vector>(
-      arguments,
-      [](const std::size_t index, const std::tuple<std::string_view, py::object>& name_and_type) {
+      arguments, [](const std::size_t index, const auto& name_and_type) {
         return argument(std::get<0>(name_and_type),
                         variant_from_pyobject<type_variant>(std::get<1>(name_and_type)),
                         argument_direction::input, index);
@@ -67,7 +70,8 @@ void init_external_function(external_function* out, std::string name,
 }
 
 // Create expressions that represent the result of invoking an external function.
-any_expression call_external_function(const external_function& self, const py::list& args) {
+any_expression call_external_function(const external_function& self,
+                                      const annotated_expression_list& args) {
   // Get expressions out of args:
   auto captured_args = transform_map<std::vector>(args, &variant_from_pyobject<any_expression>);
   // Now we need to check the types and create expression result:

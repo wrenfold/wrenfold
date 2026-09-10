@@ -1,4 +1,4 @@
-"""Type-check the generated stubs and their public comparison operators."""
+"""Type-check the generated stubs and representative public APIs."""
 
 import os
 import subprocess
@@ -10,13 +10,14 @@ ROOT = Path(__file__).parent.parent.absolute()
 
 def main() -> int:
     env = os.environ.copy()
-    env["MYPYPATH"] = os.pathsep.join(
-        [
-            str(ROOT / "components" / "wrapper" / "stubs"),
-            str(ROOT / "components" / "python"),
-        ]
-    )
-    return subprocess.call(
+    source_paths = [
+        str(ROOT / "components" / "wrapper" / "stubs"),
+        str(ROOT / "components" / "python"),
+    ]
+    env["MYPYPATH"] = os.pathsep.join(source_paths)
+    env["PYTHONPATH"] = os.pathsep.join(source_paths)
+
+    mypy_result = subprocess.call(
         [
             sys.executable,
             "-m",
@@ -25,6 +26,22 @@ def main() -> int:
             str(ROOT / "support" / "stub_typing_test.py"),
             "--no-incremental",
             "--show-error-codes",
+            "--disallow-any-generics",
+        ],
+        cwd=ROOT,
+        env=env,
+    )
+    if mypy_result != 0:
+        return mypy_result
+
+    return subprocess.call(
+        [
+            sys.executable,
+            "-m",
+            "basedpyright",
+            str(ROOT / "support" / "stub_typing_test.py"),
+            "--pythonpath",
+            sys.executable,
         ],
         cwd=ROOT,
         env=env,

@@ -49,7 +49,7 @@ class PyExternalFunction:
     """OMIT_FROM_SPHINX"""
 
     @overload
-    def __init__(self, name: str, arguments: Sequence[tuple[str, object]], return_type: object) -> None:
+    def __init__(self, name: str, arguments: Sequence[tuple[str, pywrenfold.type_info.ScalarType | pywrenfold.type_info.MatrixType | pywrenfold.type_info.CustomType]], return_type: pywrenfold.type_info.ScalarType | pywrenfold.type_info.MatrixType | pywrenfold.type_info.CustomType) -> None:
         """Construct with name, arguments, and return type."""
 
     @overload
@@ -90,7 +90,7 @@ class PyExternalFunction:
         Return type of the function. This will determine the type of variable we must declare in code-generated functions.
         """
 
-    def call(self, args: list) -> pywrenfold.sym.Expr | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr | pywrenfold.sym.BooleanExpr:
+    def call(self, args: list[pywrenfold.sym.Expr | int | float | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr | pywrenfold.sym.BooleanExpr]) -> pywrenfold.sym.Expr | pywrenfold.sym.MatrixExpr | pywrenfold.sym.CompoundExpr | pywrenfold.sym.BooleanExpr:
         """Call external function and create return expression. OMIT_FROM_SPHINX"""
 
     def __repr__(self) -> str: ...

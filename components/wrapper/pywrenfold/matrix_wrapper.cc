@@ -35,6 +35,11 @@ using namespace py::literals;
 
 namespace wf {
 
+using annotated_matrix_row = py::typed<py::iterable, scalar_expr>;
+using matrix_input_element = std::variant<scalar_expr, annotated_matrix_row, matrix_expr>;
+using annotated_matrix_input = py::typed<py::iterable, matrix_input_element>;
+using annotated_matrix_list = py::typed<py::list, py::typed<py::list, scalar_expr>>;
+
 // Stores slice indices and provides a method for mapping from flat indices to sparse ones.
 struct slice {
  public:
@@ -244,7 +249,7 @@ inline matrix_expr stack_iterables(const std::vector<py::object>& rows) {
 
 // Create matrix from iterable. When the input is an iterable over iterables, we stack
 // them as rows.
-matrix_expr matrix_from_iterable(const py::iterable& rows) {
+matrix_expr matrix_from_iterable(const annotated_matrix_input& rows) {
   // The input could be a generator, in which case we can only iterate over it once.
   // Calling `begin` more than once does not yield the same position. We have to create
   // py::object here so that the reference count is properly incremented, otherwise the
@@ -275,7 +280,7 @@ matrix_expr unary_map_matrix(const matrix_expr& self,
 }
 
 // Convert `matrix_expr` to a nested list.
-py::list list_from_matrix(const matrix_expr& self) {
+annotated_matrix_list list_from_matrix(const matrix_expr& self) {
   py::list rows{};
   for (index_t i = 0; i < self.rows(); ++i) {
     py::list cols{};
@@ -317,7 +322,7 @@ void wrap_matrix_operations(py::module_& m) {
   wrap_class<matrix_expr>(m, "MatrixExpr")
       .def(
           "__init__",
-          [](matrix_expr* out, const py::iterable& rows) {
+          [](matrix_expr* out, const annotated_matrix_input& rows) {
             new (out) matrix_expr(matrix_from_iterable(rows));
           },
           py::arg("rows"), "Construct from an iterable of values. See :func:`wrenfold.sym.matrix`.")
