@@ -12,6 +12,7 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/variant.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/typing.h>
 
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
@@ -81,7 +82,7 @@ void wrap_geometry_operations(py::module_& m) {
                   docstrings::quaternion_from_xyzw.data())
       .def_static(
           "from_xyzw",
-          [](const py::iterable& iterable) {
+          [](const py::typed<py::iterable, scalar_expr>& iterable) {
             const auto xyzw = components_from_iterable(iterable);
             return quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]};
           },
@@ -92,7 +93,7 @@ void wrap_geometry_operations(py::module_& m) {
                   docstrings::quaternion_from_wxyz.data())
       .def_static(
           "from_wxyz",
-          [](const py::iterable& iterable) {
+          [](const py::typed<py::iterable, scalar_expr>& iterable) {
             const auto wxyz = components_from_iterable(iterable);
             return quaternion{wxyz[0], wxyz[1], wxyz[2], wxyz[3]};
           },
@@ -127,12 +128,17 @@ void wrap_geometry_operations(py::module_& m) {
                                      const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
           "x"_a, "y"_a, "z"_a, py::arg("epsilon").none(),
+          py::sig("def from_rotation_vector(x: pywrenfold.sym.Expr | int | float, y: "
+                  "pywrenfold.sym.Expr | int | float, z: pywrenfold.sym.Expr | int | float, "
+                  "epsilon: pywrenfold.sym.Expr | int | float | None) -> Quaternion"),
           docstrings::quaternion_from_rotation_vector.data())
       .def_static(
           "from_rotation_vector",
           static_cast<quaternion (*)(const matrix_expr&, const std::optional<scalar_expr>&)>(
               &quaternion::from_rotation_vector),
           py::arg("v"), py::arg("epsilon").none(),
+          py::sig("def from_rotation_vector(v: pywrenfold.sym.MatrixExpr, epsilon: "
+                  "pywrenfold.sym.Expr | int | float | None) -> Quaternion"),
           "Overload of ``from_rotation_vector`` that accepts ``sym.MatrixExpr``.")
       .def_static("from_x_angle", &quaternion::from_x_angle, "angle"_a,
                   docstrings::quaternion_from_x_angle.data())
@@ -141,9 +147,13 @@ void wrap_geometry_operations(py::module_& m) {
       .def_static("from_z_angle", &quaternion::from_z_angle, "angle"_a,
                   docstrings::quaternion_from_z_angle.data())
       .def("to_angle_axis", &quaternion::to_angle_axis, py::arg("epsilon").none() = constants::zero,
+           py::sig("def to_angle_axis(self, epsilon: pywrenfold.sym.Expr | int | float | None = "
+                   "...) -> tuple[pywrenfold.sym.Expr, pywrenfold.sym.MatrixExpr]"),
            docstrings::quaternion_to_angle_axis.data())
       .def("to_rotation_vector", &quaternion::to_rotation_vector,
            py::arg("epsilon").none() = constants::zero, py::arg("use_atan2") = true,
+           py::sig("def to_rotation_vector(self, epsilon: pywrenfold.sym.Expr | int | float | "
+                   "None = ..., use_atan2: bool = True) -> pywrenfold.sym.MatrixExpr"),
            docstrings::quaternion_to_rotation_vector.data())
       .def_static("from_rotation_matrix", &quaternion::from_rotation_matrix, py::arg("R"),
                   docstrings::quaternion_from_rotation_matrix.data())
@@ -154,9 +164,14 @@ void wrap_geometry_operations(py::module_& m) {
       .doc() = "A quaternion class used to represent 3D rotations and orientations.";
 
   m.def("left_jacobian_of_so3", &left_jacobian_of_so3, py::arg("w"), py::arg("epsilon").none(),
+        py::sig("def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: "
+                "pywrenfold.sym.Expr | int | float | None) -> pywrenfold.sym.MatrixExpr"),
         docstrings::left_jacobian_of_so3.data());
 
   m.def("inverse_left_jacobian_of_so3", &inverse_left_jacobian_of_so3, py::arg("w"),
-        py::arg("epsilon").none(), docstrings::inverse_left_jacobian_of_so3.data());
+        py::arg("epsilon").none(),
+        py::sig("def inverse_left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: "
+                "pywrenfold.sym.Expr | int | float | None) -> pywrenfold.sym.MatrixExpr"),
+        docstrings::inverse_left_jacobian_of_so3.data());
 }
 }  // namespace wf

@@ -19,7 +19,7 @@ class BooleanExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: BooleanExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -73,7 +73,7 @@ class Expr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: Expr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -316,12 +316,6 @@ class Expr:
     def __gt__(self, arg: int, /) -> BooleanExpr: ...
 
     @overload
-    def __gt__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __gt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
     def __gt__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
@@ -329,12 +323,6 @@ class Expr:
 
     @overload
     def __ge__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
     def __ge__(self, arg: float, /) -> BooleanExpr: ...
@@ -346,12 +334,6 @@ class Expr:
     def __lt__(self, arg: int, /) -> BooleanExpr: ...
 
     @overload
-    def __lt__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __lt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
     def __lt__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
@@ -359,12 +341,6 @@ class Expr:
 
     @overload
     def __le__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: float, /) -> BooleanExpr: ...
 
     @overload
     def __le__(self, arg: float, /) -> BooleanExpr: ...
@@ -452,7 +428,7 @@ def make_symbols(names: Sequence[str], set: pywrenfold.enumerations.NumberSet = 
     """
 
 @overload
-def make_symbols(*args, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
+def make_symbols(*args: str, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
     """
     Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.
     """
@@ -917,7 +893,7 @@ def atan2(y: Expr, x: Expr) -> Expr:
       -y/(x**2 + y**2)
     """
 
-def max(a: Expr, b: Expr) -> Expr:
+def max(a: Expr | int | float, b: Expr | int | float) -> Expr:
     r"""
     The maximum of two scalar values :math:`\text{max}\left(a, b\right)`, defined as:
 
@@ -939,7 +915,7 @@ def max(a: Expr, b: Expr) -> Expr:
       3
     """
 
-def min(a: Expr, b: Expr) -> Expr:
+def min(a: Expr | int | float, b: Expr | int | float) -> Expr:
     r"""
     The minimum of two scalar values :math:`\text{min}\left(a, b\right)`, defined as:
 
@@ -1016,7 +992,7 @@ def where(c: BooleanExpr, a: MatrixExpr, b: MatrixExpr) -> MatrixExpr:
       wrenfold.sym.DimensionError: If the dimensions of ``a`` and ``b`` do not match.
     """
 
-def lt(a: Expr, b: Expr) -> BooleanExpr:
+def lt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \lt b`, or ``<`` operator.
 
@@ -1028,7 +1004,7 @@ def lt(a: Expr, b: Expr) -> BooleanExpr:
       x < y
     """
 
-def le(a: Expr, b: Expr) -> BooleanExpr:
+def le(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \le b`, or ``<=`` operator.
 
@@ -1040,7 +1016,7 @@ def le(a: Expr, b: Expr) -> BooleanExpr:
       x <= y
     """
 
-def gt(a: Expr, b: Expr) -> BooleanExpr:
+def gt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \gt b`, or ``>`` operator. ``a > b`` will be
     automatically canonicalized to ``b < a``.
@@ -1053,7 +1029,7 @@ def gt(a: Expr, b: Expr) -> BooleanExpr:
       y < x
     """
 
-def ge(a: Expr, b: Expr) -> BooleanExpr:
+def ge(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \ge b`, or ``>=`` operator. ``a >= b`` will be
     automatically canonicalized to ``b <= a``.
@@ -1066,7 +1042,7 @@ def ge(a: Expr, b: Expr) -> BooleanExpr:
       y <= x
     """
 
-def eq(a: Expr, b: Expr) -> BooleanExpr:
+def eq(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     """
     Boolean-valued relational expression :math:`a = b`, or ``==`` operator.
 
@@ -1223,7 +1199,7 @@ class Function:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: Function) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -1321,7 +1297,7 @@ class MatrixExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: MatrixExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -1413,7 +1389,7 @@ class MatrixExpr:
         """
 
     @property
-    def shape(self) -> tuple:
+    def shape(self) -> tuple[int, int]:
         """Shape of the matrix in (row, col) format."""
 
     @property
@@ -1649,7 +1625,7 @@ def zeros(rows: int, cols: int) -> MatrixExpr:
       [[0, 0, 0], [0, 0, 0]]
     """
 
-def vector(*args) -> MatrixExpr:
+def vector(*args: Expr | int | float) -> MatrixExpr:
     """
     Create a column-vector from the provided arguments.
 
@@ -1668,7 +1644,7 @@ def vector(*args) -> MatrixExpr:
       [[2*x], [0], [3 + y]]
     """
 
-def row_vector(*args) -> MatrixExpr:
+def row_vector(*args: Expr | int | float) -> MatrixExpr:
     """
     Create a row-vector from the provided arguments.
 
@@ -1860,7 +1836,7 @@ class CompoundExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: CompoundExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
