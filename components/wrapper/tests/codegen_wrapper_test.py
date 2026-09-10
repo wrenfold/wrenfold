@@ -6,6 +6,8 @@ examples are also run as tests - these offer a lot more diverse coverage. The pu
 test is just to validate that the wrapper works and exposes the correct members.
 """
 
+from __future__ import annotations
+
 import dataclasses
 import typing
 import unittest

@@ -86,10 +86,11 @@ def _create_custom_type(
     """
     fields_converted: list[tuple[str, CodegenType]] = []
     if dataclasses.is_dataclass(python_type):
+        annotations = typing.get_type_hints(python_type, include_extras=True)
         # noinspection PyDataclass
         for field in dataclasses.fields(python_type):
             field_type = convert_to_internal_type(
-                python_type=field.type,
+                python_type=annotations[field.name],
                 cached_custom_types=cached_custom_types,
                 context=f"Dataclass field `{field.name}` on type `{python_type}`",
             )
