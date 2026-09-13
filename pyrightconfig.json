@@ -6,5 +6,6 @@
   "extraPaths": [
     "components/python",
     "build/components/wrapper"
-  ]
+  ],
+  "reportMissingModuleSource": "none"
 }

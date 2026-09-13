@@ -10,4 +10,6 @@ from . import (
 )
 
 
+__version__: str
+
 def set_tracing_output_path(path: str) -> None: ...
