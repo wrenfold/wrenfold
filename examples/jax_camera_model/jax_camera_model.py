@@ -27,7 +27,10 @@ def get_test_camera_coeffs() -> list[tuple[jnp.ndarray, float]]:
 
 
 def generate_kb_camera_model_functions() -> tuple[
-    typing.Callable, typing.Callable, typing.Callable, typing.Callable
+    typing.Callable[..., typing.Any],
+    typing.Callable[..., typing.Any],
+    typing.Callable[..., typing.Any],
+    typing.Callable[..., typing.Any],
 ]:
     """
     Generate forward and backward projection functions for the Kannala-Brandt camera model.
