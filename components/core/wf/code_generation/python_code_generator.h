@@ -30,7 +30,7 @@ class python_code_generator {
  public:
   explicit python_code_generator(python_generator_target target,
                                  python_generator_float_width float_width, int indent,
-                                 bool use_output_arguments);
+                                 bool use_output_arguments, bool include_assert_message);
 
   virtual ~python_code_generator() = default;
 
@@ -115,6 +115,7 @@ class python_code_generator {
   python_generator_target target_;
   python_generator_float_width float_width_;
   bool use_output_arguments_;
+  bool include_assert_message_;
   std::size_t indent_;
 
   // Create a fmt_view. All args will be forwarded back to the operator on this class that matches

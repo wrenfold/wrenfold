@@ -341,10 +341,11 @@ void wrap_code_formatting_operations(py::module_& m) {
              "Float arrays/tensors will be interpreted as float64.");
 
   wrap_code_generator<python_code_generator>(m, "PythonGenerator")
-      .def(py::init<python_generator_target, python_generator_float_width, int, bool>(),
+      .def(py::init<python_generator_target, python_generator_float_width, int, bool, bool>(),
            py::arg("target") = python_generator_target::numpy,
            py::arg("float_width") = python_generator_float_width::float64,
            py::arg("indentation") = 4, py::arg("use_output_arguments") = false,
+           py::arg("include_assert_message") = true,
            docstrings::python_generator_constructor.data())
       .def_prop_ro(
           "target",

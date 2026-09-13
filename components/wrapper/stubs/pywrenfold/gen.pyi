@@ -1349,7 +1349,7 @@ class PythonGeneratorFloatWidth(enum.Enum):
 class PythonGenerator:
     """Generates Python code. Can target NumPy, PyTorch, or JAX."""
 
-    def __init__(self, target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy, float_width: PythonGeneratorFloatWidth = PythonGeneratorFloatWidth.Float64, indentation: int = 4, use_output_arguments: bool = False) -> None:
+    def __init__(self, target: PythonGeneratorTarget = PythonGeneratorTarget.NumPy, float_width: PythonGeneratorFloatWidth = PythonGeneratorFloatWidth.Float64, indentation: int = 4, use_output_arguments: bool = False, include_assert_message: bool = True) -> None:
         """
         Construct a python code generator.
 
@@ -1361,6 +1361,9 @@ class PythonGenerator:
             Python. When ``use_output_arguments=True``, matrix-type output arguments will become actual
             output arguments in the generated code. Optional outputs will have type ``np.ndarray | None``.
             This mode is only supported with ``target=NumPy``, and is untested in other configurations.
+          include_assert_message: Include a descriptive message in assertions that validate the size of
+            optional output arguments. Disable this to reduce recursion depth when compiling generated code
+            with Numba.
         """
 
     @overload

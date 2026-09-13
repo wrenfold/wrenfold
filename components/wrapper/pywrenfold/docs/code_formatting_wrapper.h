@@ -17,6 +17,9 @@ Args:
     Python. When ``use_output_arguments=True``, matrix-type output arguments will become actual
     output arguments in the generated code. Optional outputs will have type ``np.ndarray | None``.
     This mode is only supported with ``target=NumPy``, and is untested in other configurations.
+  include_assert_message: Include a descriptive message in assertions that validate the size of
+    optional output arguments. Disable this to reduce recursion depth when compiling generated code
+    with Numba.
 )doc";
 
 }  // namespace wf::docstrings

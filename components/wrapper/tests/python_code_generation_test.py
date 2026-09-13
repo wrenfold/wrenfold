@@ -968,6 +968,15 @@ def test_numpy_type_annotations():
         or str(spec.annotations["bar"]) == "np.ndarray | None"
     )
 
+    assert 'assert bar.size == 9, f"Matrix bar should have 9 elements' in _code
+
+    _, code_without_assert_message = wf.generate_python(
+        sym1,
+        generator=wf.PythonGenerator(use_output_arguments=True, include_assert_message=False),
+    )
+    assert "assert bar.size == 9\n" in code_without_assert_message
+    assert "Matrix bar should have 9 elements" not in code_without_assert_message
+
 
 def main():
     # TODO: Find a better way to test the different permutations.

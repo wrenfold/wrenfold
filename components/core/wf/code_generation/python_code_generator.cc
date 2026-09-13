@@ -100,10 +100,11 @@ inline std::string format_scalar_type_cast(const python_generator_target target,
 
 python_code_generator::python_code_generator(python_generator_target target,
                                              python_generator_float_width float_width, int indent,
-                                             bool use_output_arguments)
+                                             bool use_output_arguments, bool include_assert_message)
     : target_(target),
       float_width_(float_width),
       use_output_arguments_(use_output_arguments),
+      include_assert_message_(include_assert_message),
       indent_(static_cast<std::size_t>(indent)) {
   if (indent < 1) {
     throw wf::invalid_argument_error("Indentation must be >= 1. Provided value: {}", indent);
@@ -493,11 +494,13 @@ std::string python_code_generator::operator()(const ast::optional_output_branch&
   if (use_output_arguments_) {
     fmt::format_to(std::back_inserter(result), "if {} is not None:", x.arg.name());
     if (const matrix_type* mat = std::get_if<matrix_type>(&x.arg.type()); mat != nullptr) {
-      fmt::format_to(std::back_inserter(result),
-                     "\n{:{}}assert {}.size == {}, f\"Matrix {} should have {} elements, but it "
-                     "has {{{}.size}}\"",
-                     "", indent_, x.arg.name(), mat->size(), x.arg.name(), mat->size(),
-                     x.arg.name());
+      fmt::format_to(std::back_inserter(result), "\n{:{}}assert {}.size == {}", "", indent_,
+                     x.arg.name(), mat->size());
+      if (include_assert_message_) {
+        fmt::format_to(std::back_inserter(result),
+                       ", f\"Matrix {} should have {} elements, but it has {{{}.size}}\"",
+                       x.arg.name(), mat->size(), x.arg.name());
+      }
     }
   } else {
     fmt::format_to(std::back_inserter(result), "if compute_{}:", x.arg.name());
