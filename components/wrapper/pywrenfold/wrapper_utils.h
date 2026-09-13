@@ -30,6 +30,7 @@ py::class_<T> wrap_class(py::module_& m, const std::string_view name) {
               "Check for strict equality (identical expression trees). This is not the same as "
               "mathematical equivalence.");
     klass.def("__eq__", &are_identical<T>, py::is_operator(), py::arg("other"),
+              py::sig("def __eq__(self, other: object) -> bool"),
               "Check for strict equality (identical expression trees). This is not the same as "
               "mathematical equivalence.");
   }

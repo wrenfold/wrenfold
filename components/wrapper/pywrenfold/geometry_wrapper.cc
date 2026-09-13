@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "type_casters.h"
+
 #include <nanobind/eigen/dense.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
@@ -12,6 +14,7 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/variant.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/typing.h>
 
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
@@ -81,7 +84,7 @@ void wrap_geometry_operations(py::module_& m) {
                   docstrings::quaternion_from_xyzw.data())
       .def_static(
           "from_xyzw",
-          [](const py::iterable& iterable) {
+          [](const py::typed<py::iterable, scalar_expr>& iterable) {
             const auto xyzw = components_from_iterable(iterable);
             return quaternion{xyzw[3], xyzw[0], xyzw[1], xyzw[2]};
           },
@@ -92,7 +95,7 @@ void wrap_geometry_operations(py::module_& m) {
                   docstrings::quaternion_from_wxyz.data())
       .def_static(
           "from_wxyz",
-          [](const py::iterable& iterable) {
+          [](const py::typed<py::iterable, scalar_expr>& iterable) {
             const auto wxyz = components_from_iterable(iterable);
             return quaternion{wxyz[0], wxyz[1], wxyz[2], wxyz[3]};
           },

@@ -19,7 +19,7 @@ class BooleanExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: BooleanExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -40,14 +40,14 @@ class BooleanExpr:
         """Arguments of ``self`` as a tuple."""
 
     @overload
-    def subs(self, target: Expr, substitute: Expr) -> BooleanExpr:
+    def subs(self, target: Expr | int | float, substitute: Expr | int | float) -> BooleanExpr:
         """See :func:`wrenfold.sym.subs`"""
 
     @overload
     def subs(self, target: BooleanExpr, substitute: BooleanExpr) -> BooleanExpr: ...
 
     @overload
-    def subs(self, pairs: Sequence[tuple[Expr, Expr] | tuple[BooleanExpr, BooleanExpr]]) -> BooleanExpr: ...
+    def subs(self, pairs: Sequence[tuple[Expr | int | float, Expr | int | float] | tuple[BooleanExpr, BooleanExpr]]) -> BooleanExpr: ...
 
     def __bool__(self) -> bool:
         """Coerce expression to boolean."""
@@ -68,12 +68,12 @@ class Expr:
     def __hash__(self) -> int:
         """Compute hash."""
 
-    def is_identical_to(self, other: Expr) -> bool:
+    def is_identical_to(self, other: Expr | int | float) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: Expr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -119,7 +119,7 @@ class Expr:
     def args(self) -> tuple:
         """Arguments of ``self`` as a tuple."""
 
-    def diff(self, var: Expr, order: int = 1, use_abstract: bool = False) -> Expr:
+    def diff(self, var: Expr | int | float, order: int = 1, use_abstract: bool = False) -> Expr:
         """
         Differentiate the expression with respect to the specified variable.
 
@@ -156,11 +156,11 @@ class Expr:
         """See :func:`wrenfold.sym.distribute`."""
 
     @overload
-    def subs(self, pairs: Sequence[tuple[Expr, Expr] | tuple[BooleanExpr, BooleanExpr]]) -> Expr:
+    def subs(self, pairs: Sequence[tuple[Expr | int | float, Expr | int | float] | tuple[BooleanExpr, BooleanExpr]]) -> Expr:
         """See :func:`wrenfold.sym.subs`."""
 
     @overload
-    def subs(self, target: Expr, substitute: Expr) -> Expr:
+    def subs(self, target: Expr | int | float, substitute: Expr | int | float) -> Expr:
         """
         Overload of ``subs`` that performs a single scalar-valued substitution.
         """
@@ -199,11 +199,11 @@ class Expr:
         """
 
     @overload
-    def collect(self, term: Expr) -> Expr:
+    def collect(self, term: Expr | int | float) -> Expr:
         """Overload of ``collect`` that accepts a single variable."""
 
     @overload
-    def collect(self, terms: Sequence[Expr]) -> Expr:
+    def collect(self, terms: Sequence[Expr | int | float]) -> Expr:
         r"""
         Combine coefficients of the specified expression(s) (and powers thereof) into additive sums.
         Given a target expression :math:`x`, ``collect`` traverse the expression tree and identifies terms
@@ -251,147 +251,37 @@ class Expr:
           w*x + x**2*y*(3 + cos(w)) + y**2*(x*(1 + pi) - 5*x**2)
         """
 
-    @overload
-    def __add__(self, arg: Expr, /) -> Expr: ...
+    def __add__(self, arg: Expr | int | float, /) -> Expr: ...
 
-    @overload
-    def __add__(self, arg: int, /) -> Expr: ...
+    def __sub__(self, arg: Expr | int | float, /) -> Expr: ...
 
-    @overload
-    def __add__(self, arg: float, /) -> Expr: ...
+    def __mul__(self, arg: Expr | int | float, /) -> Expr: ...
 
-    @overload
-    def __sub__(self, arg: Expr, /) -> Expr: ...
-
-    @overload
-    def __sub__(self, arg: int, /) -> Expr: ...
-
-    @overload
-    def __sub__(self, arg: float, /) -> Expr: ...
-
-    @overload
-    def __mul__(self, arg: Expr, /) -> Expr: ...
-
-    @overload
-    def __mul__(self, arg: int, /) -> Expr: ...
-
-    @overload
-    def __mul__(self, arg: float, /) -> Expr: ...
-
-    @overload
-    def __truediv__(self, arg: Expr, /) -> Expr: ...
-
-    @overload
-    def __truediv__(self, arg: int, /) -> Expr: ...
-
-    @overload
-    def __truediv__(self, arg: float, /) -> Expr: ...
+    def __truediv__(self, arg: Expr | int | float, /) -> Expr: ...
 
     def __neg__(self) -> Expr: ...
 
-    @overload
-    def __pow__(self, other: Expr) -> Expr: ...
+    def __pow__(self, other: Expr | int | float) -> Expr: ...
 
-    @overload
-    def __pow__(self, other: int) -> Expr: ...
+    def __radd__(self, other: Expr | int | float) -> Expr: ...
 
-    @overload
-    def __pow__(self, other: float) -> Expr: ...
+    def __rsub__(self, other: Expr | int | float) -> Expr: ...
 
-    @overload
-    def __rpow__(self, other: Expr) -> Expr: ...
+    def __rmul__(self, other: Expr | int | float) -> Expr: ...
 
-    @overload
-    def __rpow__(self, other: int) -> Expr: ...
+    def __rtruediv__(self, other: Expr | int | float) -> Expr: ...
 
-    @overload
-    def __rpow__(self, other: float) -> Expr: ...
+    def __rpow__(self, other: Expr | int | float) -> Expr: ...
 
     def __abs__(self) -> Expr: ...
 
-    @overload
-    def __gt__(self, arg: Expr, /) -> BooleanExpr: ...
+    def __gt__(self, arg: Expr | int | float, /) -> BooleanExpr: ...
 
-    @overload
-    def __gt__(self, arg: int, /) -> BooleanExpr: ...
+    def __ge__(self, arg: Expr | int | float, /) -> BooleanExpr: ...
 
-    @overload
-    def __gt__(self, arg: int, /) -> BooleanExpr: ...
+    def __lt__(self, arg: Expr | int | float, /) -> BooleanExpr: ...
 
-    @overload
-    def __gt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __gt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: Expr, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __ge__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __lt__(self, arg: Expr, /) -> BooleanExpr: ...
-
-    @overload
-    def __lt__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __lt__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __lt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __lt__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: Expr, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: int, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __le__(self, arg: float, /) -> BooleanExpr: ...
-
-    @overload
-    def __radd__(self, arg: int, /) -> Expr: ...
-
-    @overload
-    def __radd__(self, arg: float, /) -> Expr: ...
-
-    @overload
-    def __rsub__(self, arg: int, /) -> Expr: ...
-
-    @overload
-    def __rsub__(self, arg: float, /) -> Expr: ...
-
-    @overload
-    def __rmul__(self, arg: int, /) -> Expr: ...
-
-    @overload
-    def __rmul__(self, arg: float, /) -> Expr: ...
-
-    @overload
-    def __rtruediv__(self, arg: int, /) -> Expr: ...
-
-    @overload
-    def __rtruediv__(self, arg: float, /) -> Expr: ...
+    def __le__(self, arg: Expr | int | float, /) -> BooleanExpr: ...
 
     def __bool__(self) -> None:
         """Coerce expression to bool."""
@@ -452,7 +342,7 @@ def make_symbols(names: Sequence[str], set: pywrenfold.enumerations.NumberSet = 
     """
 
 @overload
-def make_symbols(*args, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
+def make_symbols(*args: str, set: pywrenfold.enumerations.NumberSet = pywrenfold.enumerations.NumberSet.Unknown) -> list[Expr]:
     """
     Overload of :func:`wrenfold.sym.make_symbols` that accepts a variadic argument list.
     """
@@ -573,7 +463,7 @@ def unique_symbols(count: int, real: bool = False, positive: bool = False, nonne
       $u_3
     """
 
-def compare(a: Expr, b: Expr) -> int:
+def compare(a: Expr | int | float, b: Expr | int | float) -> int:
     """
     Determine relative ordering of two scalar-valued expressions. Note that this is *not* a
     mathematical ordering. Expressions are first ordered by their expression type, and then by the
@@ -602,7 +492,7 @@ def compare(a: Expr, b: Expr) -> int:
       1
     """
 
-def log(arg: Expr) -> Expr:
+def log(arg: Expr | int | float) -> Expr:
     r"""
     The natural logarithm :math:`\ln{x}`.
 
@@ -619,7 +509,7 @@ def log(arg: Expr) -> Expr:
       0
     """
 
-def exp(arg: Expr) -> Expr:
+def exp(arg: Expr | int | float) -> Expr:
     r"""
     The exponential function :math:`e^{x}` or :math:`\exp{x}`.
 
@@ -636,7 +526,7 @@ def exp(arg: Expr) -> Expr:
       sym.E
     """
 
-def pow(base: Expr, exp: Expr) -> Expr:
+def pow(base: Expr | int | float, exp: Expr | int | float) -> Expr:
     r"""
     Construct a power expression: :math:`\text{pow}\left(x, y\right) \rightarrow x^y`.
 
@@ -675,7 +565,7 @@ def pow(base: Expr, exp: Expr) -> Expr:
       (x**2)**(1/2)
     """
 
-def cos(arg: Expr) -> Expr:
+def cos(arg: Expr | int | float) -> Expr:
     r"""
     The cosine function :math:`\cos{x}`.
 
@@ -690,7 +580,7 @@ def cos(arg: Expr) -> Expr:
       -1
     """
 
-def sin(arg: Expr) -> Expr:
+def sin(arg: Expr | int | float) -> Expr:
     r"""
     The sine function :math:`\sin{x}`.
 
@@ -705,7 +595,7 @@ def sin(arg: Expr) -> Expr:
       0
     """
 
-def tan(arg: Expr) -> Expr:
+def tan(arg: Expr | int | float) -> Expr:
     r"""
     The tangent function :math:`\tan{x}`.
 
@@ -720,7 +610,7 @@ def tan(arg: Expr) -> Expr:
       zoo
     """
 
-def acos(arg: Expr) -> Expr:
+def acos(arg: Expr | int | float) -> Expr:
     r"""
     The inverse cosine function :math:`\cos^{-1}{x}`.
 
@@ -732,7 +622,7 @@ def acos(arg: Expr) -> Expr:
       pi/2
     """
 
-def asin(arg: Expr) -> Expr:
+def asin(arg: Expr | int | float) -> Expr:
     r"""
     The inverse sine function :math:`\sin^{-1}{x}`.
 
@@ -744,7 +634,7 @@ def asin(arg: Expr) -> Expr:
       -pi/2
     """
 
-def atan(arg: Expr) -> Expr:
+def atan(arg: Expr | int | float) -> Expr:
     r"""
     The inverse tangent function :math:`\tan^{-1}{x}`.
 
@@ -756,7 +646,7 @@ def atan(arg: Expr) -> Expr:
       -atan(x)
     """
 
-def cosh(arg: Expr) -> Expr:
+def cosh(arg: Expr | int | float) -> Expr:
     r"""
     The hyperbolic cosine function :math:`\cosh{x}`.
 
@@ -768,7 +658,7 @@ def cosh(arg: Expr) -> Expr:
       cos(x)
     """
 
-def sinh(arg: Expr) -> Expr:
+def sinh(arg: Expr | int | float) -> Expr:
     r"""
     The hyperbolic sine function :math:`\sinh{x}`.
 
@@ -780,7 +670,7 @@ def sinh(arg: Expr) -> Expr:
       I*sin(x)
     """
 
-def tanh(arg: Expr) -> Expr:
+def tanh(arg: Expr | int | float) -> Expr:
     r"""
     The hyperbolic tangent function :math:`\tanh{x}`.
 
@@ -792,7 +682,7 @@ def tanh(arg: Expr) -> Expr:
       I*tan(x)
     """
 
-def acosh(arg: Expr) -> Expr:
+def acosh(arg: Expr | int | float) -> Expr:
     r"""
     The inverse hyperbolic cosine function :math:`\cosh^{-1}{x}`.
 
@@ -802,7 +692,7 @@ def acosh(arg: Expr) -> Expr:
       acosh(x)
     """
 
-def asinh(arg: Expr) -> Expr:
+def asinh(arg: Expr | int | float) -> Expr:
     r"""
     The inverse hyperbolic sine function :math:`\sinh^{-1}{x}`.
 
@@ -812,7 +702,7 @@ def asinh(arg: Expr) -> Expr:
       asinh(x)
     """
 
-def atanh(arg: Expr) -> Expr:
+def atanh(arg: Expr | int | float) -> Expr:
     r"""
     The inverse hyperbolic tangent function :math:`\tanh^{-1}{x}`.
 
@@ -822,12 +712,12 @@ def atanh(arg: Expr) -> Expr:
       atanh(x)
     """
 
-def sqrt(arg: Expr) -> Expr:
+def sqrt(arg: Expr | int | float) -> Expr:
     r"""
     The square root function :math:`\sqrt{x}`. This is an alias for ``sym.pow(x, sym.rational(1, 2))``.
     """
 
-def abs(arg: Expr) -> Expr:
+def abs(arg: Expr | int | float) -> Expr:
     r"""
     The absolute value function :math:`\lvert x \rvert`.
 
@@ -841,7 +731,7 @@ def abs(arg: Expr) -> Expr:
       x/abs(x)
     """
 
-def sign(arg: Expr) -> Expr:
+def sign(arg: Expr | int | float) -> Expr:
     r"""
     The sign/signum function :math:`\text{sign}\left(x\right)`, defined as:
 
@@ -876,7 +766,7 @@ def sign(arg: Expr) -> Expr:
       -1
     """
 
-def floor(arg: Expr) -> Expr:
+def floor(arg: Expr | int | float) -> Expr:
     r"""
     The floor function, sometimes written as :math:`\lfloor x \rfloor` or
     :math:`\text{floor}\left(x\right)`. This function returns the largest integer such that
@@ -898,7 +788,7 @@ def floor(arg: Expr) -> Expr:
        floor(x)
     """
 
-def atan2(y: Expr, x: Expr) -> Expr:
+def atan2(y: Expr | int | float, x: Expr | int | float) -> Expr:
     r"""
     Two-argument inverse tangent function :math:`\text{atan2}\left(y, x\right)`. Returns the angle
     :math:`\theta \in [-\pi, \pi]` such that:
@@ -917,7 +807,7 @@ def atan2(y: Expr, x: Expr) -> Expr:
       -y/(x**2 + y**2)
     """
 
-def max(a: Expr, b: Expr) -> Expr:
+def max(a: Expr | int | float, b: Expr | int | float) -> Expr:
     r"""
     The maximum of two scalar values :math:`\text{max}\left(a, b\right)`, defined as:
 
@@ -939,7 +829,7 @@ def max(a: Expr, b: Expr) -> Expr:
       3
     """
 
-def min(a: Expr, b: Expr) -> Expr:
+def min(a: Expr | int | float, b: Expr | int | float) -> Expr:
     r"""
     The minimum of two scalar values :math:`\text{min}\left(a, b\right)`, defined as:
 
@@ -962,7 +852,7 @@ def min(a: Expr, b: Expr) -> Expr:
     """
 
 @overload
-def where(c: BooleanExpr, a: Expr, b: Expr) -> Expr:
+def where(c: BooleanExpr, a: Expr | int | float, b: Expr | int | float) -> Expr:
     r"""
     ``where(c, a, b)`` will select between either ``a`` or ``b``, depending on the boolean-valued
     expression ``c``. When ``c`` is true, ``a`` is returned, otherwise ``b`` is returned:
@@ -1016,7 +906,7 @@ def where(c: BooleanExpr, a: MatrixExpr, b: MatrixExpr) -> MatrixExpr:
       wrenfold.sym.DimensionError: If the dimensions of ``a`` and ``b`` do not match.
     """
 
-def lt(a: Expr, b: Expr) -> BooleanExpr:
+def lt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \lt b`, or ``<`` operator.
 
@@ -1028,7 +918,7 @@ def lt(a: Expr, b: Expr) -> BooleanExpr:
       x < y
     """
 
-def le(a: Expr, b: Expr) -> BooleanExpr:
+def le(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \le b`, or ``<=`` operator.
 
@@ -1040,7 +930,7 @@ def le(a: Expr, b: Expr) -> BooleanExpr:
       x <= y
     """
 
-def gt(a: Expr, b: Expr) -> BooleanExpr:
+def gt(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \gt b`, or ``>`` operator. ``a > b`` will be
     automatically canonicalized to ``b < a``.
@@ -1053,7 +943,7 @@ def gt(a: Expr, b: Expr) -> BooleanExpr:
       y < x
     """
 
-def ge(a: Expr, b: Expr) -> BooleanExpr:
+def ge(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     r"""
     Boolean-valued relational expression :math:`a \ge b`, or ``>=`` operator. ``a >= b`` will be
     automatically canonicalized to ``b <= a``.
@@ -1066,7 +956,7 @@ def ge(a: Expr, b: Expr) -> BooleanExpr:
       y <= x
     """
 
-def eq(a: Expr, b: Expr) -> BooleanExpr:
+def eq(a: Expr | int | float, b: Expr | int | float) -> BooleanExpr:
     """
     Boolean-valued relational expression :math:`a = b`, or ``==`` operator.
 
@@ -1100,7 +990,7 @@ def iverson(arg: BooleanExpr) -> Expr:
       1
     """
 
-def unevaluated(arg: Expr) -> Expr:
+def unevaluated(arg: Expr | int | float) -> Expr:
     """
     Wrap a scalar-valued expression to prevent automatic simplifications/combinations in downstream
     operations. This is similar in intent to SymPy's ``UnevaluatedExpr``.
@@ -1117,7 +1007,7 @@ def unevaluated(arg: Expr) -> Expr:
       y*(x) + (x*y)
     """
 
-def stop_derivative(arg: Expr) -> Expr:
+def stop_derivative(arg: Expr | int | float) -> Expr:
     """
     Wrap a scalar-valued expression in order to block propagation of derivatives. ``stop_derivative``
     acts like a function whose derivative is always zero.
@@ -1135,7 +1025,7 @@ def stop_derivative(arg: Expr) -> Expr:
     """
 
 @overload
-def eliminate_subexpressions(expr: Expr, make_variable: Callable[[int], Expr] | None, min_occurrences: int = 2) -> tuple[Expr, list[tuple[Expr, Expr]]]:
+def eliminate_subexpressions(expr: Expr | int | float, make_variable: Callable[[int], Expr | int | float] | None, min_occurrences: int = 2) -> tuple[Expr, list[tuple[Expr, Expr]]]:
     """
     Extract common subexpressions from a scalar-valued expression. The expression tree is traversed and
     unique expressions are counted. Those that appear ``min_occurrences`` or more times are replaced
@@ -1165,7 +1055,7 @@ def eliminate_subexpressions(expr: Expr, make_variable: Callable[[int], Expr] | 
     """
 
 @overload
-def eliminate_subexpressions(expr: MatrixExpr, make_variable: Callable[[int], Expr] | None = None, min_occurences: int = 2) -> tuple[MatrixExpr, list[tuple[Expr, Expr]]]:
+def eliminate_subexpressions(expr: MatrixExpr, make_variable: Callable[[int], Expr | int | float] | None = None, min_occurences: int = 2) -> tuple[MatrixExpr, list[tuple[Expr, Expr]]]:
     """Matrix-valued overload."""
 
 E: Expr = ...
@@ -1184,10 +1074,10 @@ I: Expr = ...
 
 nan: Expr = ...
 
-def addition(args: Sequence[Expr]) -> Expr:
+def addition(args: Sequence[Expr | int | float]) -> Expr:
     """Construct addition expression from provided operands."""
 
-def multiplication(args: Sequence[Expr]) -> Expr:
+def multiplication(args: Sequence[Expr | int | float]) -> Expr:
     """Construct multiplication expression from provided operands."""
 
 class Function:
@@ -1223,7 +1113,7 @@ class Function:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: Function) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -1234,12 +1124,12 @@ class Function:
 
     def __repr__(self) -> str: ...
 
-    def __call__(self, *args) -> Expr:
+    def __call__(self, *args: Expr | int | float) -> Expr:
         """
         Invoke the symbolic function with the provided scalar expressions, and return a new scalar expression.
         """
 
-def substitution(input: Expr, target: Expr, replacement: Expr) -> Expr:
+def substitution(input: Expr | int | float, target: Expr | int | float, replacement: Expr | int | float) -> Expr:
     """
     Create a deferred substitution expression.
 
@@ -1260,7 +1150,7 @@ def substitution(input: Expr, target: Expr, replacement: Expr) -> Expr:
       :class:`wrenfold.exceptions.TypeError`: If ``target`` is a numeric constant.
     """
 
-def derivative(function: Expr, arg: Expr, order: int = 1) -> Expr:
+def derivative(function: Expr | int | float, arg: Expr | int | float, order: int = 1) -> Expr:
     """
     Create a deferred derivative expression. This expression type is used to represent the derivatives
     of abstract symbolic functions.
@@ -1283,7 +1173,7 @@ def derivative(function: Expr, arg: Expr, order: int = 1) -> Expr:
       :class:`wrenfold.exceptions.InvalidArgumentError`: If ``order <= 0``.
     """
 
-def get_variables(expr: Expr) -> list[Expr]:
+def get_variables(expr: Expr | int | float) -> list[Expr]:
     """
     Retrieve all variable expressions from a symbolic expression tree, and return them in a list.
 
@@ -1321,7 +1211,7 @@ class MatrixExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: MatrixExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -1337,7 +1227,7 @@ class MatrixExpr:
         Retrieve the name of the underlying C++ expression type. See :func:`wrenfold.sym.Expr.type_name`.
         """
 
-    def diff(self, var: Expr, order: int = 1, use_abstract: bool = False) -> MatrixExpr:
+    def diff(self, var: Expr | int | float, order: int = 1, use_abstract: bool = False) -> MatrixExpr:
         """
         Differentiate every element of the matrix with respect to the specified variable.
 
@@ -1354,7 +1244,7 @@ class MatrixExpr:
           [[1, cos(x)], [0, -2*x]]
         """
 
-    def jacobian(self, vars: Sequence[Expr] | MatrixExpr, use_abstract: bool = False) -> MatrixExpr:
+    def jacobian(self, vars: Sequence[Expr | int | float] | MatrixExpr, use_abstract: bool = False) -> MatrixExpr:
         """
         See :func:`wrenfold.sym.jacobian`. Equivalent to ``sym.jacobian(self, vars)``.
         """
@@ -1363,7 +1253,7 @@ class MatrixExpr:
         """Invoke :func:`wrenfold.sym.distribute` on every element of the matrix."""
 
     @overload
-    def subs(self, target: Expr, substitute: Expr) -> MatrixExpr:
+    def subs(self, target: Expr | int | float, substitute: Expr | int | float) -> MatrixExpr:
         """
         Overload of ``subs`` that performs a single scalar-valued substitution.
         """
@@ -1375,7 +1265,7 @@ class MatrixExpr:
         """
 
     @overload
-    def subs(self, pairs: Sequence[tuple[Expr, Expr] | tuple[BooleanExpr, BooleanExpr]]) -> MatrixExpr:
+    def subs(self, pairs: Sequence[tuple[Expr | int | float, Expr | int | float] | tuple[BooleanExpr, BooleanExpr]]) -> MatrixExpr:
         """Invoke :func:`wrenfold.sym.subs` on every element of the matrix."""
 
     def eval(self) -> Annotated[NDArray[numpy.int64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.complex128], dict(shape=(None, None), order='C')]:
@@ -1401,19 +1291,19 @@ class MatrixExpr:
         """
 
     @overload
-    def collect(self, var: Expr) -> MatrixExpr:
+    def collect(self, var: Expr | int | float) -> MatrixExpr:
         """
         Invokes :func:`wrenfold.sym.Expr.collect` on every element of the matrix. This overload accepts a single variable.
         """
 
     @overload
-    def collect(self, var: Sequence[Expr]) -> MatrixExpr:
+    def collect(self, var: Sequence[Expr | int | float]) -> MatrixExpr:
         """
         Invokes :func:`wrenfold.sym.Expr.collect` on every element of the matrix. This overload accepts a list of variables, and collects recursively in the order they are specified.
         """
 
     @property
-    def shape(self) -> tuple:
+    def shape(self) -> tuple[int, int]:
         """Shape of the matrix in (row, col) format."""
 
     @property
@@ -1461,7 +1351,7 @@ class MatrixExpr:
     def __iter__(self) -> Iterator[Expr | MatrixExpr]:
         """Iterate over rows in the matrix."""
 
-    def unary_map(self, func: Callable[[Expr], Expr]) -> MatrixExpr:
+    def unary_map(self, func: Callable[[Expr | int | float], Expr | int | float]) -> MatrixExpr:
         """
         Perform a unary map operation on ``self``. The provided callable ``func`` is invoked on every
         element of the matrix (traversing in row-major order). The returned values are used to create a new
@@ -1587,31 +1477,11 @@ class MatrixExpr:
     def __mul__(self, arg: MatrixExpr, /) -> MatrixExpr: ...
 
     @overload
-    def __mul__(self, arg: Expr, /) -> MatrixExpr: ...
+    def __mul__(self, arg: Expr | int | float, /) -> MatrixExpr: ...
 
-    @overload
-    def __mul__(self, arg: int, /) -> MatrixExpr: ...
+    def __rmul__(self, arg: Expr | int | float, /) -> MatrixExpr: ...
 
-    @overload
-    def __mul__(self, arg: float, /) -> MatrixExpr: ...
-
-    @overload
-    def __rmul__(self, arg: Expr, /) -> MatrixExpr: ...
-
-    @overload
-    def __rmul__(self, arg: int, /) -> MatrixExpr: ...
-
-    @overload
-    def __rmul__(self, arg: float, /) -> MatrixExpr: ...
-
-    @overload
-    def __truediv__(self, arg: Expr, /) -> MatrixExpr: ...
-
-    @overload
-    def __truediv__(self, arg: int, /) -> MatrixExpr: ...
-
-    @overload
-    def __truediv__(self, arg: float, /) -> MatrixExpr: ...
+    def __truediv__(self, arg: Expr | int | float, /) -> MatrixExpr: ...
 
     def __neg__(self) -> MatrixExpr:
         """Element-wise negation of the matrix."""
@@ -1649,7 +1519,7 @@ def zeros(rows: int, cols: int) -> MatrixExpr:
       [[0, 0, 0], [0, 0, 0]]
     """
 
-def vector(*args) -> MatrixExpr:
+def vector(*args: Expr | int | float) -> MatrixExpr:
     """
     Create a column-vector from the provided arguments.
 
@@ -1668,7 +1538,7 @@ def vector(*args) -> MatrixExpr:
       [[2*x], [0], [3 + y]]
     """
 
-def row_vector(*args) -> MatrixExpr:
+def row_vector(*args: Expr | int | float) -> MatrixExpr:
     """
     Create a row-vector from the provided arguments.
 
@@ -1767,7 +1637,7 @@ def diag(values: Sequence[MatrixExpr]) -> MatrixExpr:
     """
 
 @overload
-def diag(values: Sequence[Expr]) -> MatrixExpr:
+def diag(values: Sequence[Expr | int | float]) -> MatrixExpr:
     """Overload of :func:`wrenfold.sym.diag` that accepts a list of scalars."""
 
 def vec(m: MatrixExpr) -> MatrixExpr:
@@ -1810,7 +1680,7 @@ def det(m: MatrixExpr) -> Expr:
 def full_piv_lu(m: MatrixExpr) -> tuple[MatrixExpr, MatrixExpr, MatrixExpr, MatrixExpr]:
     """Factorize a matrix using complete pivoting LU decomposition."""
 
-def jacobian(functions: Sequence[Expr] | MatrixExpr, vars: Sequence[Expr] | MatrixExpr, use_abstract: bool = False) -> MatrixExpr:
+def jacobian(functions: Sequence[Expr | int | float] | MatrixExpr, vars: Sequence[Expr | int | float] | MatrixExpr, use_abstract: bool = False) -> MatrixExpr:
     """
     Compute the Jacobian of a vector-valued function with respect to multiple variables.
 
@@ -1860,7 +1730,7 @@ class CompoundExpr:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: CompoundExpr) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -1883,12 +1753,12 @@ def create_compound_expression_elements(provenance: CompoundExpr, num: int) -> l
     Create scalar expressions that represent the members of the provided compound expression. OMIT_FROM_SPHINX
     """
 
-def create_custom_type_construction(type: pywrenfold.type_info.CustomType, expressions: Sequence[Expr]) -> CompoundExpr:
+def create_custom_type_construction(type: pywrenfold.type_info.CustomType, expressions: Sequence[Expr | int | float]) -> CompoundExpr:
     """
     Create compound expression of type `CustomTypeConstruction`. OMIT_FROM_SPHINX
     """
 
-def distribute(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
+def distribute(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
     r"""
     Expand the mathematical expression. ``distribute`` will recursively traverse the expression tree and
     multiply out any product of additions and subtractions. For example:
@@ -1914,7 +1784,7 @@ def distribute(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr) -> Expr | M
     """
 
 @overload
-def subs(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr, pairs: Sequence[tuple[Expr, Expr] | tuple[BooleanExpr, BooleanExpr]]) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
+def subs(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr, pairs: Sequence[tuple[Expr | int | float, Expr | int | float] | tuple[BooleanExpr, BooleanExpr]]) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
     """
     Traverse the expression tree and replace target expressions with corresponding substitutions. The
     list of replacements is executed *in order*, such that substitutions that appear later in the list
@@ -1939,13 +1809,13 @@ def subs(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr, pairs: Sequence[t
     """
 
 @overload
-def subs(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr, target: Expr, replacement: Expr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
+def subs(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr, target: Expr | int | float, replacement: Expr | int | float) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
     """
     Overload of ``subs`` that performs a single scalar-valued substitution.
     """
 
 @overload
-def subs(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr, target: BooleanExpr, replacement: BooleanExpr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
+def subs(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr, target: BooleanExpr, replacement: BooleanExpr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
     """
     Overload of ``subs`` that performs a single boolean-valued substitution.
     """

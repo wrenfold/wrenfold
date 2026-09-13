@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "type_casters.h"
+
 #include <nanobind/nanobind.h>
 
 #include "wf/utility/error_types.h"

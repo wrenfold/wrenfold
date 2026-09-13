@@ -11,7 +11,7 @@ class Quaternion:
     """A quaternion class used to represent 3D rotations and orientations."""
 
     @overload
-    def __init__(self, w: pywrenfold.sym.Expr, x: pywrenfold.sym.Expr, y: pywrenfold.sym.Expr, z: pywrenfold.sym.Expr) -> None:
+    def __init__(self, w: pywrenfold.sym.Expr | int | float, x: pywrenfold.sym.Expr | int | float, y: pywrenfold.sym.Expr | int | float, z: pywrenfold.sym.Expr | int | float) -> None:
         r"""
         Construct a quaternion from scalar expressions in ``[w,x,y,z]`` order.
 
@@ -52,7 +52,7 @@ class Quaternion:
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
 
-    def __eq__(self, other: Quaternion) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
         """
@@ -75,7 +75,7 @@ class Quaternion:
 
     def __repr__(self) -> str: ...
 
-    def subs(self, target: pywrenfold.sym.Expr, replacement: pywrenfold.sym.Expr) -> Quaternion:
+    def subs(self, target: pywrenfold.sym.Expr | int | float, replacement: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Invoke :func:`wrenfold.sym.Expr.subs` on every element of the quaternion.
         """
@@ -139,7 +139,7 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_xyzw(xyzw: Iterable) -> Quaternion:
+    def from_xyzw(xyzw: Iterable[pywrenfold.sym.Expr | int | float]) -> Quaternion:
         """
         Overload of :func:`wrenfold.geometry.Quaternion.from_xyzw` that accepts Iterable[sym.Expr].
         """
@@ -159,7 +159,7 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_wxyz(wxyz: Iterable) -> Quaternion:
+    def from_wxyz(wxyz: Iterable[pywrenfold.sym.Expr | int | float]) -> Quaternion:
         """
         Overload of :func:`wrenfold.geometry.Quaternion.from_wxyz` that accepts Iterable[sym.Expr].
         """
@@ -335,7 +335,7 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_angle_axis(angle: pywrenfold.sym.Expr, vx: pywrenfold.sym.Expr, vy: pywrenfold.sym.Expr, vz: pywrenfold.sym.Expr) -> Quaternion:
+    def from_angle_axis(angle: pywrenfold.sym.Expr | int | float, vx: pywrenfold.sym.Expr | int | float, vy: pywrenfold.sym.Expr | int | float, vz: pywrenfold.sym.Expr | int | float) -> Quaternion:
         r"""
         Construct quaternion from an angle and normalized axis. This function constructs the quaternion:
 
@@ -366,14 +366,14 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_angle_axis(angle: pywrenfold.sym.Expr, axis: pywrenfold.sym.MatrixExpr) -> Quaternion:
+    def from_angle_axis(angle: pywrenfold.sym.Expr | int | float, axis: pywrenfold.sym.MatrixExpr) -> Quaternion:
         """
         Overload of ``from_angle_axis`` that accepts ``sym.MatrixExpr`` for the axis.
         """
 
     @overload
     @staticmethod
-    def from_rotation_vector(x: pywrenfold.sym.Expr, y: pywrenfold.sym.Expr, z: pywrenfold.sym.Expr, epsilon: pywrenfold.sym.Expr | None) -> Quaternion:
+    def from_rotation_vector(x: pywrenfold.sym.Expr | int | float, y: pywrenfold.sym.Expr | int | float, z: pywrenfold.sym.Expr | int | float, epsilon: pywrenfold.sym.Expr | int | float | None) -> Quaternion:
         """
         Construct quaternion from a rotation vector. A rotation vector (sometimes referred to as "Rodrigues
         parameters") is parallel to the axis of rotation, and has a norm equal to the angle of rotation in
@@ -401,11 +401,11 @@ class Quaternion:
 
     @overload
     @staticmethod
-    def from_rotation_vector(v: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | None) -> Quaternion:
+    def from_rotation_vector(v: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | int | float | None) -> Quaternion:
         """Overload of ``from_rotation_vector`` that accepts ``sym.MatrixExpr``."""
 
     @staticmethod
-    def from_x_angle(angle: pywrenfold.sym.Expr) -> Quaternion:
+    def from_x_angle(angle: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Construct quaternion that rotates about the x-axis by the specified angle.
 
@@ -417,7 +417,7 @@ class Quaternion:
         """
 
     @staticmethod
-    def from_y_angle(angle: pywrenfold.sym.Expr) -> Quaternion:
+    def from_y_angle(angle: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Construct quaternion that rotates about the y-axis by the specified angle.
 
@@ -429,7 +429,7 @@ class Quaternion:
         """
 
     @staticmethod
-    def from_z_angle(angle: pywrenfold.sym.Expr) -> Quaternion:
+    def from_z_angle(angle: pywrenfold.sym.Expr | int | float) -> Quaternion:
         """
         Construct quaternion that rotates about the z-axis by the specified angle.
 
@@ -440,7 +440,7 @@ class Quaternion:
           A unit-norm quaternion representing a rotation about the z-axis.
         """
 
-    def to_angle_axis(self, epsilon: pywrenfold.sym.Expr | None = ...) -> tuple[pywrenfold.sym.Expr, pywrenfold.sym.MatrixExpr]:
+    def to_angle_axis(self, epsilon: pywrenfold.sym.Expr | int | float | None = ...) -> tuple[pywrenfold.sym.Expr, pywrenfold.sym.MatrixExpr]:
         """
         Recover a rotation angle and axis from a unit-norm quaternion. The method used is documented in
         `Quaternion Computation, Neil Dantum <http://www.neil.dantam.name/note/dantam-quaternion.pdf>`_,
@@ -462,7 +462,7 @@ class Quaternion:
           wrenfold.sym.MatrixExpr: Normalized axis of rotation.
         """
 
-    def to_rotation_vector(self, epsilon: pywrenfold.sym.Expr | None = ..., use_atan2: bool = True) -> pywrenfold.sym.MatrixExpr:
+    def to_rotation_vector(self, epsilon: pywrenfold.sym.Expr | int | float | None = ..., use_atan2: bool = True) -> pywrenfold.sym.MatrixExpr:
         r"""
         Recover a rotation vector from a unit-norm quaternion. The following formula is used:
 
@@ -549,7 +549,7 @@ class Quaternion:
           [[-2*x, 2*w, 2*z, -2*y], [-2*y, -2*z, 2*w, 2*x], [-2*z, 2*y, -2*x, 2*w]]
         """
 
-def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | None) -> pywrenfold.sym.MatrixExpr:
+def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | int | float | None) -> pywrenfold.sym.MatrixExpr:
     r"""
     Compute the *left* jacobian of SO(3). Given a rotation vector ``w``, this method computes the
     3x3 derivative:
@@ -587,7 +587,7 @@ def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.E
       * `Associating Uncertainty With Three-Dimensional Poses for Use in Estimation Problems <https://ieeexplore.ieee.org/document/6727494>`_
     """
 
-def inverse_left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | None) -> pywrenfold.sym.MatrixExpr:
+def inverse_left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | int | float | None) -> pywrenfold.sym.MatrixExpr:
     r"""
     Compute the **inverse** of the *left* jacobian of SO(3). Given a rotation vector ``w``, this method
     computes the 3x3 derivative:
