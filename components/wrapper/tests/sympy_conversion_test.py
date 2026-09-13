@@ -256,12 +256,24 @@ class SympyConversionTest(MathTestBase):
             sp.Piecewise((sp.cos(spy(x)), spy(x <= y + 2)), (sp.sin(spy(y)) * 2, True)),
         )
 
+        # A Piecewise expression without an unconditional final branch evaluates to nan when no
+        # condition matches.
+        self.assertIdenticalFromSp(sym.where(x > 0, x, sym.nan), sp.Piecewise((spy(x), spy(x > 0))))
+        self.assertIdenticalFromSp(
+            sym.where(x > 0, x, sym.where(x < 0, y, sym.nan)),
+            sp.Piecewise((spy(x), spy(x > 0)), (spy(y), spy(x < 0))),
+        )
+
     def test_iverson_bracket(self):
         x, y = sym.make_symbols("x", "y")
         self.assertEqualSp(sp.Piecewise((1, spy(x < y)), (0, True)), sym.iverson(x < y))
 
         # sympy --> wf
         self.assertIdenticalFromSp(sym.iverson(x < y), sp.Piecewise((1, spy(x < y)), (0, True)))
+        self.assertIdenticalFromSp(
+            sym.where(x < y, 1, sym.where(x > y, 0, sym.nan)),
+            sp.Piecewise((1, spy(x < y)), (0, spy(x > y))),
+        )
 
     def test_min_max(self):
         x, y = sym.make_symbols("x", "y")

@@ -116,12 +116,19 @@ class Conversions:
         """
         if len(expr.args) == 2:
             # If the output values are one and zero, this is equivalent to the iverson bracket.
-            (true_val, cond), (false_val, _) = expr.args
-            if true_val == 1 and false_val == 0:
+            (true_val, cond), (false_val, false_cond) = expr.args
+            if true_val == 1 and false_val == 0 and false_cond == self.sp.true:
                 return sym.iverson(self(cond))
 
-        output = self(expr.args[-1][0])
-        for val, cond in reversed(expr.args[:-1]):
+        final_val, final_cond = expr.args[-1]
+        if final_cond == self.sp.true:
+            output = self(final_val)
+            conditional_args = expr.args[:-1]
+        else:
+            output = sym.nan
+            conditional_args = expr.args
+
+        for val, cond in reversed(conditional_args):
             output = sym.where(self(cond), self(val), output)
         return output
 
