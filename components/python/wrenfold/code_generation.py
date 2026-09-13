@@ -131,15 +131,16 @@ def create_function_description(
         }
     """
     spec = inspect.getfullargspec(func=func)
+    annotations = typing.get_type_hints(func, include_extras=True)
     description = FunctionDescription(name=name or func.__name__)
 
     cached_types: dict[type, type_info.CustomType] = dict()
     kwargs = dict()
     for arg_name in spec.args:
-        if arg_name not in spec.annotations:
+        if arg_name not in annotations:
             raise KeyError(f"Missing type annotation for argument: {arg_name}")
         # Map argument types to something the code-generation logic can understand:
-        annotated_type = spec.annotations[arg_name]
+        annotated_type = annotations[arg_name]
         arg_type = custom_types.convert_to_internal_type(
             python_type=annotated_type,
             cached_custom_types=cached_types,
