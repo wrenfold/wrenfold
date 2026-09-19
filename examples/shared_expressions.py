@@ -8,7 +8,7 @@ from wrenfold import sym
 
 def kb_fisheye_distortion(theta: wf.FloatScalar, coeffs: wf.Vector4) -> sym.Expr:
     """Evaluate the Kannala-Brandt fisheye distortion curve (theta -> radius)."""
-    k1, k2, k3, k4 = coeffs
+    k1, k2, k3, k4 = coeffs.to_flat_list()
     radius = theta * (1 + k1 * theta**2 + k2 * theta**4 + k3 * theta**6 + k4 * theta**8)
     return radius
 
@@ -32,7 +32,7 @@ def kb_fisheye_invert_distortion(
     """
     assert num_iters > 0, f"num_iters = {num_iters}"
 
-    theta = 0
+    theta: sym.Expr = sym.zero
     for iteration in range(0, num_iters):
         # Evaluate the forward projection model:
         theta_sym = sym.symbol("theta", wf.NumberSet.RealNonNegative)
@@ -73,10 +73,10 @@ def kb_camera_projection(
     # We could use acos() here and probably be a bit faster, although we would additionally need to
     # normalized `p_cam` as well.
     xy_norm = p_cam[0:2].norm()
-    theta = sym.where(xy_norm > 0, sym.atan2(xy_norm, p_cam[2]), 0)
+    theta = sym.where(xy_norm > 0, sym.atan2(xy_norm, p_cam[2, 0]), 0)
 
     # Angle in the image plane:
-    phi = sym.where(xy_norm > 0, sym.atan2(p_cam[1], p_cam[0]), 0)
+    phi = sym.where(xy_norm > 0, sym.atan2(p_cam[1, 0], p_cam[0, 0]), 0)
 
     # Distort theta with the radial model:
     r = kb_fisheye_distortion(theta=theta, coeffs=coeffs)
@@ -85,8 +85,8 @@ def kb_camera_projection(
     p_image = sym.vector(sym.cos(phi) * r, sym.sin(phi) * r, 1)
 
     # Convert to pixel coordinates
-    fx, fy, cx, cy = K
-    return sym.vector(fx * p_image[0] + cx, fy * p_image[1] + cy)
+    fx, fy, cx, cy = K.to_flat_list()
+    return sym.vector(fx * p_image[0, 0] + cx, fy * p_image[1, 0] + cy)
 
 
 def kb_camera_unprojection(
@@ -104,15 +104,15 @@ def kb_camera_unprojection(
         K: Intrinsic parameters as a 4-element vector [fx, fy, cx, cy].
         coeffs: Radial distortion coefficients [k1, k2, k3, 4].
     """
-    fx, fy, cx, cy = K
-    p_image = sym.vector((p_pixels[0] - cx) / fx, (p_pixels[1] - cy) / fy)
+    fx, fy, cx, cy = K.to_flat_list()
+    p_image = sym.vector((p_pixels[0, 0] - cx) / fx, (p_pixels[1, 0] - cy) / fy)
     radius = p_image.norm()
 
     # Convert to angle in radians.
     theta = kb_fisheye_invert_distortion(radius, coeffs)
 
     # Angle to the point in the image plane:
-    phi = sym.where(radius > 0, sym.atan2(p_image[1], p_image[0]), sym.integer(0))
+    phi = sym.where(radius > 0, sym.atan2(p_image[1, 0], p_image[0, 0]), sym.integer(0))
 
     # Convert back to a unit vector:
     return sym.vector(sym.cos(phi) * sym.sin(theta), sym.sin(phi) * sym.sin(theta), sym.cos(theta))

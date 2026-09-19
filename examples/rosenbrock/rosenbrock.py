@@ -14,12 +14,12 @@ def rosenbrock(
     xy: wf.Vector2,
 ):
     """Evaluate the Rosenbrock function."""
-    x, y = xy
+    x, y = xy.to_flat_list()
 
     # We formulate function `h(x, y)` such that f(x, y) = h^T * h = (a - x)**2 + b*(y - x**2)**2
     # Then we can find the minima by doing ordinary NLS on residual h(x, y)
     h = sym.vector(a - x, sym.sqrt(b) * (y - x**2))
-    (f,) = h.T * h
+    f = (h.T * h)[0, 0]
 
     J = sym.jacobian(h, xy)
     return (

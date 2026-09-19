@@ -20,7 +20,7 @@ def _is_annotated_alias(python_type: typing.Any) -> bool:
 
 def convert_to_internal_type(
     python_type: typing.Any,
-    cached_custom_types: dict[type, type_info.CustomType],
+    cached_custom_types: dict[type[typing.Any], type_info.CustomType],
     context: str,
 ) -> CodegenType:
     """
@@ -65,7 +65,7 @@ def convert_to_internal_type(
 
 def _maybe_create_custom_type(
     python_type: type[typing.Any],
-    cached_custom_types: dict[type, type_info.CustomType],
+    cached_custom_types: dict[type[typing.Any], type_info.CustomType],
 ) -> type_info.CustomType:
     if python_type in cached_custom_types:
         return cached_custom_types[python_type]
@@ -147,7 +147,7 @@ def map_expressions_into_custom_type(
         f"Provided type `{custom_type}` is not a dataclass"
     )
 
-    constructor_kwargs = dict()
+    constructor_kwargs: dict[str, typing.Any] = {}
     for field in custom_type.fields:
         if not expressions:
             # This shouldn't ever happen, the C++ side has allocated enough expressions based on
