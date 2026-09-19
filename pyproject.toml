@@ -61,6 +61,8 @@ test-requires = ["numpy", "sympy", "jax"]
 dev = [
     "breathe==4.35.0",
     "furo==2025.12.19",
+    "basedpyright==1.40.0",
+    "mypy==1.15.0",
     "myst-parser==4.0.1",
     "pre-commit>=4.2.0",
     "sphinx==8.1.3",

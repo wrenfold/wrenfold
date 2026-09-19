@@ -22,6 +22,9 @@ using namespace py::literals;
 
 namespace wf {
 
+using annotated_type_variant = py::typed<py::object, type_variant>;
+using annotated_python_type = py::typed<py::type_object, typing_any>;
+
 // Implement the abstract `erased_pytype::concept` interface.
 // We use this to type-erase a `py::type`, and pass it into `custom_type`.
 class pytype_wrapper final : public erased_pytype::concept_base {
@@ -40,9 +43,10 @@ class pytype_wrapper final : public erased_pytype::concept_base {
 };
 
 // Define python constructor for `custom_type`.
-void init_custom_type(custom_type* self, std::string name,
-                      const std::vector<std::tuple<std::string_view, py::object>>& fields,
-                      py::type_object python_type) {
+void init_custom_type(
+    custom_type* self, std::string name,
+    const std::vector<std::tuple<std::string_view, annotated_type_variant>>& fields,
+    annotated_python_type python_type) {
   auto fields_converted = transform_map<std::vector>(fields, [](const auto& tup) {
     // We can't use a variant in the tuple, since it can't be default constructed.
     // Instead, we check for different types manually here.
@@ -97,9 +101,9 @@ void wrap_types(py::module_& m) {
           "Total number of scalar expressions in the custom type **and** all of its children.")
       .def_prop_ro(
           "python_type",
-          [](const custom_type& self) -> std::optional<py::type_object> {
+          [](const custom_type& self) -> std::optional<annotated_python_type> {
             if (const auto pytype = self.underlying_pytype(); pytype.has_value()) {
-              return pytype->as<pytype_wrapper>().type();
+              return annotated_python_type{pytype->as<pytype_wrapper>().type()};
             }
             return std::nullopt;
           },

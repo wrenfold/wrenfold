@@ -10,6 +10,12 @@ import pywrenfold.enumerations
 import pywrenfold.type_info
 
 
+from typing import TypeVar
+
+_ExpressionT = TypeVar(
+    "_ExpressionT", "Expr", "MatrixExpr", "CompoundExpr", "BooleanExpr"
+)
+
 class BooleanExpr:
     """A boolean-valued symbolic expression."""
 
@@ -38,7 +44,7 @@ class BooleanExpr:
         """
 
     @property
-    def args(self) -> tuple:
+    def args(self) -> tuple[Expr | BooleanExpr, ...]:
         """Arguments of ``self`` as a tuple."""
 
     @overload
@@ -118,7 +124,7 @@ class Expr:
         """
 
     @property
-    def args(self) -> tuple:
+    def args(self) -> tuple[Expr | BooleanExpr, ...]:
         """Arguments of ``self`` as a tuple."""
 
     def diff(self, var: Expr | int | float, order: int = 1, use_abstract: bool = False) -> Expr:
@@ -1202,7 +1208,7 @@ def get_variables(expr: Expr | int | float) -> list[Expr]:
 class MatrixExpr:
     """A matrix-valued symbolic expression."""
 
-    def __init__(self, rows: Iterable) -> None:
+    def __init__(self, rows: Iterable[Expr | int | float | Iterable[Expr | int | float] | MatrixExpr]) -> None:
         """Construct from an iterable of values. See :func:`wrenfold.sym.matrix`."""
 
     def __hash__(self) -> int:
@@ -1420,7 +1426,7 @@ class MatrixExpr:
           wrenfold.sym.DimensionError: If the number of rows does not match.
         """
 
-    def to_list(self) -> list:
+    def to_list(self) -> list[list[Expr]]:
         """Convert to a list of lists."""
 
     def to_flat_list(self) -> list[Expr]:
@@ -1559,7 +1565,7 @@ def row_vector(*args: Expr | int | float) -> MatrixExpr:
       [[2*x, 0, 3 + y]]
     """
 
-def matrix(rows: Iterable) -> MatrixExpr:
+def matrix(rows: Iterable[Expr | int | float | Iterable[Expr | int | float] | MatrixExpr]) -> MatrixExpr:
     """
     Construct a matrix from an iterator over rows. Inputs are vertically concatenated to create a matrix
     expression.
@@ -1760,7 +1766,7 @@ def create_custom_type_construction(type: pywrenfold.type_info.CustomType, expre
     Create compound expression of type `CustomTypeConstruction`. OMIT_FROM_SPHINX
     """
 
-def distribute(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
+def distribute(expr: _ExpressionT) -> _ExpressionT:
     """
     Expand the mathematical expression. ``distribute`` will recursively traverse the expression tree and
     multiply out any product of additions and subtractions. For example:
@@ -1786,7 +1792,7 @@ def distribute(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExp
     """
 
 @overload
-def subs(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr, pairs: Sequence[tuple[Expr | int | float, Expr | int | float] | tuple[BooleanExpr, BooleanExpr]]) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
+def subs(expr: _ExpressionT, pairs: Sequence[tuple[Expr, Expr | int | float] | tuple[BooleanExpr, BooleanExpr]]) -> _ExpressionT:
     """
     Traverse the expression tree and replace target expressions with corresponding substitutions. The
     list of replacements is executed *in order*, such that substitutions that appear later in the list
@@ -1811,13 +1817,7 @@ def subs(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr, pai
     """
 
 @overload
-def subs(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr, target: Expr | int | float, replacement: Expr | int | float) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
-    """
-    Overload of ``subs`` that performs a single scalar-valued substitution.
-    """
+def subs(expr: _ExpressionT, target: Expr, replacement: Expr | int | float) -> _ExpressionT: ...
 
 @overload
-def subs(expr: Expr | int | float | MatrixExpr | CompoundExpr | BooleanExpr, target: BooleanExpr, replacement: BooleanExpr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
-    """
-    Overload of ``subs`` that performs a single boolean-valued substitution.
-    """
+def subs(expr: _ExpressionT, target: BooleanExpr, replacement: BooleanExpr) -> _ExpressionT: ...

@@ -9,6 +9,13 @@
 
 #include "wf/expression.h"
 
+namespace wf {
+
+// Annotation-only marker used with nanobind::typed when a Python value may have any type.
+struct typing_any {};
+
+}  // namespace wf
+
 namespace nanobind::detail {
 
 // Keep this header included by every binding translation unit so type_caster resolves to the same
@@ -41,6 +48,11 @@ struct type_caster<pointer_and_handle<wf::scalar_expr>> {
     value.p = caster.operator wf::scalar_expr*();
     return true;
   }
+};
+
+template <>
+struct type_caster<wf::typing_any> {
+  NB_TYPE_CASTER(wf::typing_any, const_name("typing.Any"))
 };
 
 }  // namespace nanobind::detail
