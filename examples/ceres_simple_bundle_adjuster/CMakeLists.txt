@@ -13,12 +13,13 @@ else()
   add_executable(
     simple_bundle_adjuster simple_bundle_adjuster.cc
                            generated/snavely_reprojection_error.generated.h)
-  target_compile_options(simple_bundle_adjuster
-                         PRIVATE ${WF_SHARED_WARNING_FLAGS})
   target_compile_definitions(simple_bundle_adjuster
                              PRIVATE -DWF_SPAN_EIGEN_SUPPORT)
   target_link_libraries(simple_bundle_adjuster PRIVATE Ceres::ceres wf_runtime)
   if(NOT MSVC)
     target_compile_options(simple_bundle_adjuster PRIVATE -Wno-unused-parameter)
+  else()
+    target_compile_definitions(simple_bundle_adjuster
+                               PRIVATE _CRT_SECURE_NO_WARNINGS)
   endif()
 endif()

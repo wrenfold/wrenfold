@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include "type_casters.h"
+
 #include <nanobind/eigen/dense.h>
 #include <nanobind/make_iterator.h>
 #include <nanobind/nanobind.h>
@@ -11,6 +13,7 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/variant.h>
 
 #include "wf/cse.h"
@@ -386,7 +389,8 @@ void wrap_matrix_operations(py::module_& m) {
           "accepts a list of variables, and collects recursively in the order they are specified.")
       // Matrix specific properties:
       .def_prop_ro(
-          "shape", [](const matrix_expr& self) { return py::make_tuple(self.rows(), self.cols()); },
+          "shape",
+          [](const matrix_expr& self) { return std::make_tuple(self.rows(), self.cols()); },
           "Shape of the matrix in (row, col) format.")
       .def_prop_ro("size", &matrix_expr::size, "Total number of elements.")
       .def_prop_ro(
@@ -464,16 +468,10 @@ void wrap_matrix_operations(py::module_& m) {
           "__rmul__",
           [](const matrix_expr& self, const scalar_expr& other) { return self * other; },
           py::is_operator())
-      .def(py::self * std::int64_t())
-      .def(py::self * double())
-      .def(std::int64_t() * py::self)
-      .def(double() * py::self)
       // Right divide by scalar:
       .def("__truediv__",
            static_cast<matrix_expr (*)(const matrix_expr&, const scalar_expr&)>(&operator/),
            py::is_operator())
-      .def(py::self / std::int64_t())
-      .def(py::self / double())
       .def("__neg__", &matrix_expr::operator-, "Element-wise negation of the matrix.")
       // Prohibit conversion to bool.
       .def(
@@ -484,8 +482,11 @@ void wrap_matrix_operations(py::module_& m) {
   // Matrix constructors:
   m.def("eye", &make_identity, "rows"_a, "cols"_a = std::nullopt, docstrings::identity.data());
   m.def("zeros", &make_zeros, "rows"_a, "cols"_a, docstrings::zeroes.data());
-  m.def("vector", &column_vector_from_container<py::args>, docstrings::vector.data());
-  m.def("row_vector", &row_vector_from_container<py::args>, docstrings::row_vector.data());
+  m.def("vector", &column_vector_from_container<py::args>,
+        py::sig("def vector(*args: Expr | int | float) -> MatrixExpr"), docstrings::vector.data());
+  m.def("row_vector", &row_vector_from_container<py::args>,
+        py::sig("def row_vector(*args: Expr | int | float) -> MatrixExpr"),
+        docstrings::row_vector.data());
   m.def("matrix", &matrix_from_iterable, py::arg("rows"), docstrings::matrix.data());
   m.def("matrix_of_symbols", &make_matrix_of_symbols, py::arg("prefix"), py::arg("rows"),
         py::arg("cols"), docstrings::matrix_of_symbols.data());
