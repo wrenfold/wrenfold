@@ -23,6 +23,7 @@ function(add_wrapper_module)
     PROTECT_STACK
     NOMINSIZE
     FREE_THREADED
+    NB_SUPPRESS_WARNINGS
     ${MODULE_SOURCES})
   set_property(
     TARGET ${MODULE_NAME}
