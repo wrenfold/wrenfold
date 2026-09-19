@@ -1,3 +1,5 @@
+"""Wrapped enums."""
+
 import enum
 
 

@@ -1,3 +1,5 @@
+"""Wrapped code-generation types."""
+
 from collections.abc import Sequence
 import enum
 
