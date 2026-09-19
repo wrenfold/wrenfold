@@ -1,3 +1,5 @@
+"""Wrapped AST types."""
+
 from collections.abc import Iterator
 
 import pywrenfold.enumerations

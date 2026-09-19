@@ -1,3 +1,5 @@
+"""Wrapped geometry methods."""
+
 from collections.abc import Iterable
 from typing import Annotated, overload
 
@@ -12,14 +14,14 @@ class Quaternion:
 
     @overload
     def __init__(self, w: pywrenfold.sym.Expr, x: pywrenfold.sym.Expr, y: pywrenfold.sym.Expr, z: pywrenfold.sym.Expr) -> None:
-        r"""
+        """
         Construct a quaternion from scalar expressions in ``[w,x,y,z]`` order.
 
         Args:
           w: The scalar component of the quaternion.
-          x: Vector element multiplied by basis vector :math:`\mathbf{i}`.
-          y: Vector element multiplied by basis vector :math:`\mathbf{j}`.
-          z: Vector element multiplied by basis vector :math:`\mathbf{k}`.
+          x: Vector element multiplied by basis vector :math:`\\mathbf{i}`.
+          y: Vector element multiplied by basis vector :math:`\\mathbf{j}`.
+          z: Vector element multiplied by basis vector :math:`\\mathbf{k}`.
 
         Caution:
           ``Quaternion`` will not normalize after construction. It is expected that the user will pass
@@ -208,18 +210,18 @@ class Quaternion:
         """
 
     def conjugate(self) -> Quaternion:
-        r"""
+        """
         Compute the quaternion conjugate. Given the quaternion:
 
         .. math::
-          \mathbf{q} = q_w + q_x\cdot\mathbf{i} + q_y\cdot\mathbf{j} + q_z\cdot\mathbf{k}
+          \\mathbf{q} = q_w + q_x\\cdot\\mathbf{i} + q_y\\cdot\\mathbf{j} + q_z\\cdot\\mathbf{k}
 
         The conjugate is defined as:
 
         .. math::
-          \bar{\mathbf{q}} = q_w - q_x\cdot\mathbf{i} - q_y\cdot\mathbf{j} - q_z\cdot\mathbf{k}
+          \\bar{\\mathbf{q}} = q_w - q_x\\cdot\\mathbf{i} - q_y\\cdot\\mathbf{j} - q_z\\cdot\\mathbf{k}
 
-        If :math:`\mathbf{q}` is normalized, then :math:`\mathbf{q}\cdot\bar{\mathbf{q}}` is the identity
+        If :math:`\\mathbf{q}` is normalized, then :math:`\\mathbf{q}\\cdot\\bar{\\mathbf{q}}` is the identity
         element.
 
         Returns:
@@ -236,21 +238,21 @@ class Quaternion:
         """
 
     def inverse(self) -> Quaternion:
-        r"""
+        """
         Compute the quaternion inverse. Given the quaternion:
 
         .. math::
-          \mathbf{q} = q_w + q_x\cdot\mathbf{i} + q_y\cdot\mathbf{j} + q_z\cdot\mathbf{k}
+          \\mathbf{q} = q_w + q_x\\cdot\\mathbf{i} + q_y\\cdot\\mathbf{j} + q_z\\cdot\\mathbf{k}
 
         The inverse is defined as:
 
         .. math::
-          \mathbf{q}^{-1} = \frac{q_w}{\lvert q \rvert^2} -
-                            \frac{q_x}{\lvert q \rvert^2}\cdot\mathbf{i} -
-                            \frac{q_y}{\lvert q \rvert^2}\cdot\mathbf{j} -
-                            \frac{q_z}{\lvert q \rvert^2}\cdot\mathbf{k}
+          \\mathbf{q}^{-1} = \\frac{q_w}{\\lvert q \\rvert^2} -
+                            \\frac{q_x}{\\lvert q \\rvert^2}\\cdot\\mathbf{i} -
+                            \\frac{q_y}{\\lvert q \\rvert^2}\\cdot\\mathbf{j} -
+                            \\frac{q_z}{\\lvert q \\rvert^2}\\cdot\\mathbf{k}
 
-        And :math:`\mathbf{q}\cdot\mathbf{q}^{-1}` is the identity element.
+        And :math:`\\mathbf{q}\\cdot\\mathbf{q}^{-1}` is the identity element.
 
         Returns:
           Inverted quaternion, where the signs of the ``[x, y, z]`` components have been flipped and the
@@ -283,7 +285,7 @@ class Quaternion:
         """
 
     def __mul__(self, arg: Quaternion, /) -> Quaternion:
-        r"""
+        """
         Multiply two quaternions. ``self`` is left-multiplied by the second operand.
 
         Given two quaternions ``q_a`` and ``q_b`` representing rotations - and their equivalent SO(3)
@@ -291,26 +293,26 @@ class Quaternion:
 
         .. math::
 
-          R\left(\mathbf{q}_a * \mathbf{q}_b\right) = R\left(\mathbf{q}_a\right) * R\left(\mathbf{q}_b\right)
+          R\\left(\\mathbf{q}_a * \\mathbf{q}_b\\right) = R\\left(\\mathbf{q}_a\\right) * R\\left(\\mathbf{q}_b\\right)
 
         Returns:
           The quaternion product.
         """
 
     def rotate(self, v: pywrenfold.sym.MatrixExpr) -> pywrenfold.sym.MatrixExpr:
-        r"""
+        """
         Rotate a 3D vector with a quaternion. Equivalent to **left-multiplying** the rotation matrix
         corresponding to `self`. This expression is implemented via the quaternion multiplication:
 
         .. math::
 
-          \mathbf{q}_{\mathbf{v}}' = \mathbf{q} * \mathbf{q}_{\mathbf{v}} * \bar{\mathbf{q}}
+          \\mathbf{q}_{\\mathbf{v}}' = \\mathbf{q} * \\mathbf{q}_{\\mathbf{v}} * \\bar{\\mathbf{q}}
 
         Where ``q_v`` is the quaternion with a scalar component of ``0`` and a vector component of ``v``:
 
         .. math::
 
-          \mathbf{q}_{\mathbf{v}} = v_x\cdot\mathbf{i} + v_y\cdot\mathbf{j} + v_z\cdot\mathbf{k}
+          \\mathbf{q}_{\\mathbf{v}} = v_x\\cdot\\mathbf{i} + v_y\\cdot\\mathbf{j} + v_z\\cdot\\mathbf{k}
 
         In some cases, this can produce simpler generated code than converting the quaternion to a
         rotation matrix via ``to_rotation_matrix``.
@@ -336,14 +338,14 @@ class Quaternion:
     @overload
     @staticmethod
     def from_angle_axis(angle: pywrenfold.sym.Expr, vx: pywrenfold.sym.Expr, vy: pywrenfold.sym.Expr, vz: pywrenfold.sym.Expr) -> Quaternion:
-        r"""
+        """
         Construct quaternion from an angle and normalized axis. This function constructs the quaternion:
 
         .. math::
-          \mathbf{q} = \cos{\frac{\theta}{2}} +
-                       v_x \cdot \sin{\frac{\theta}{2}} \cdot \mathbf{i} +
-                       v_y \cdot \sin{\frac{\theta}{2}} \cdot \mathbf{j} +
-                       v_z \cdot \sin{\frac{\theta}{2}} \cdot \mathbf{k}
+          \\mathbf{q} = \\cos{\\frac{\\theta}{2}} +
+                       v_x \\cdot \\sin{\\frac{\\theta}{2}} \\cdot \\mathbf{i} +
+                       v_y \\cdot \\sin{\\frac{\\theta}{2}} \\cdot \\mathbf{j} +
+                       v_z \\cdot \\sin{\\frac{\\theta}{2}} \\cdot \\mathbf{k}
 
         Caution:
           The resulting quaternion only represents a rotation if the axis ``[vx, vy, vz]`` is normalized.
@@ -463,16 +465,16 @@ class Quaternion:
         """
 
     def to_rotation_vector(self, epsilon: pywrenfold.sym.Expr | None = ..., use_atan2: bool = True) -> pywrenfold.sym.MatrixExpr:
-        r"""
+        """
         Recover a rotation vector from a unit-norm quaternion. The following formula is used:
 
         .. math::
-          \mathbf{v} = \frac{2}{\lvert \mathbf{q}_v \rvert}
-          \cdot \text{atan2}\left(\lvert \mathbf{q}_v \rvert, \text{abs}\left(q_w\right)\right)
-          \cdot \text{sign}\left(q_w\right)
-          \cdot \mathbf{q}_v
+          \\mathbf{v} = \\frac{2}{\\lvert \\mathbf{q}_v \\rvert}
+          \\cdot \\text{atan2}\\left(\\lvert \\mathbf{q}_v \\rvert, \\text{abs}\\left(q_w\\right)\\right)
+          \\cdot \\text{sign}\\left(q_w\\right)
+          \\cdot \\mathbf{q}_v
 
-        Where :math:`\mathbf{q}_v` is the vector component of the quaternion.
+        Where :math:`\\mathbf{q}_v` is the vector component of the quaternion.
 
         Caution:
           This operation is only valid if ``self`` is normalized.
@@ -506,14 +508,14 @@ class Quaternion:
         """
 
     def right_retract_derivative(self) -> pywrenfold.sym.MatrixExpr:
-        r"""
+        """
         Compute the 4x3 derivative of this quaternion with respect to a right-multiplied tangent-space
         perturbation. This is the derivative:
 
         .. math::
-          \frac{\partial \left[\mathbf{q} \cdot \text{exp}\left(\mathbf{v}\right)\right]}
-            {\partial \mathbf{v}}
-            \biggr\rvert_{\mathbf{v} = 0}
+          \\frac{\\partial \\left[\\mathbf{q} \\cdot \\text{exp}\\left(\\mathbf{v}\\right)\\right]}
+            {\\partial \\mathbf{v}}
+            \\biggr\\rvert_{\\mathbf{v} = 0}
 
         Where ``exp(...)`` maps from a rotation vector to a quaternion. The derivatives of the four
         quaternion elements (ordered ``[w, x, y, z]``) are computed with respect to the three elements of
@@ -529,12 +531,12 @@ class Quaternion:
         """
 
     def right_local_coordinates_derivative(self) -> pywrenfold.sym.MatrixExpr:
-        r"""
+        """
         Compute the 3x4 derivative:
 
         .. math::
-          \frac{\partial \text{log}\left(\bar{\mathbf{q}} \cdot \left(\mathbf{q} + \delta\mathbf{q}\right)
-          \right)}{\partial \delta\mathbf{q}}\biggr\rvert_{\delta\mathbf{q} = 0}
+          \\frac{\\partial \\text{log}\\left(\\bar{\\mathbf{q}} \\cdot \\left(\\mathbf{q} + \\delta\\mathbf{q}\\right)
+          \\right)}{\\partial \\delta\\mathbf{q}}\\biggr\\rvert_{\\delta\\mathbf{q} = 0}
 
         Where ``log(...)`` converts a quaternion to a rotation vector, and ``dq`` is an additive
         perturbation to ``self``. The derivative of the rotation vector is taken with respect to the four
@@ -550,17 +552,17 @@ class Quaternion:
         """
 
 def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | None) -> pywrenfold.sym.MatrixExpr:
-    r"""
+    """
     Compute the *left* jacobian of SO(3). Given a rotation vector ``w``, this method computes the
     3x3 derivative:
 
     .. math::
-      \mathbf{J}_l = \frac{
-        \partial \text{log}\left(
-        \text{exp}\left(\mathbf{w} + \delta\mathbf{w}\right) \cdot
-        \text{exp}\left(\mathbf{w}\right)^T\right)
+      \\mathbf{J}_l = \\frac{
+        \\partial \\text{log}\\left(
+        \\text{exp}\\left(\\mathbf{w} + \\delta\\mathbf{w}\\right) \\cdot
+        \\text{exp}\\left(\\mathbf{w}\\right)^T\\right)
       }
-      {\partial \delta\mathbf{w}} \biggr\rvert_{\delta\mathbf{w} = 0}
+      {\\partial \\delta\\mathbf{w}} \\biggr\\rvert_{\\delta\\mathbf{w} = 0}
 
     Where ``exp(...)`` maps from a rotation vector to a quaternion, and ``log(...)`` maps from a
     quaternion to a rotation vector.
@@ -568,7 +570,7 @@ def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.E
     This matrix has a secondary interpretation, as the integral:
 
     .. math::
-      \mathbf{J}_l = \int_{0}^{1} \text{exp}\left(\alpha \cdot \mathbf{w}\right) \,d\alpha
+      \\mathbf{J}_l = \\int_{0}^{1} \\text{exp}\\left(\\alpha \\cdot \\mathbf{w}\\right) \\,d\\alpha
 
     Tip:
       The right jacobian can be obtained by transposing the left jacobian.
@@ -588,18 +590,18 @@ def left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.E
     """
 
 def inverse_left_jacobian_of_so3(w: pywrenfold.sym.MatrixExpr, epsilon: pywrenfold.sym.Expr | None) -> pywrenfold.sym.MatrixExpr:
-    r"""
+    """
     Compute the **inverse** of the *left* jacobian of SO(3). Given a rotation vector ``w``, this method
     computes the 3x3 derivative:
 
     .. math::
-      \mathbf{J}_l^{-1} = \frac{
-        \partial \left(\text{log}\left(
-        \text{exp}\left(\delta\mathbf{x}\right) \cdot
-        \text{exp}\left(\mathbf{w}\right)\right)
-        - \mathbf{w}\right)
+      \\mathbf{J}_l^{-1} = \\frac{
+        \\partial \\left(\\text{log}\\left(
+        \\text{exp}\\left(\\delta\\mathbf{x}\\right) \\cdot
+        \\text{exp}\\left(\\mathbf{w}\\right)\\right)
+        - \\mathbf{w}\\right)
       }
-      {\partial \delta\mathbf{x}} \biggr\rvert_{\delta\mathbf{x} = 0}
+      {\\partial \\delta\\mathbf{x}} \\biggr\\rvert_{\\delta\\mathbf{x} = 0}
 
     Where ``exp(...)`` maps from a rotation vector to a quaternion, and ``log(...)`` maps from a
     quaternion to a rotation vector.

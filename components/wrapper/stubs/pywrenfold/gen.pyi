@@ -1,3 +1,5 @@
+"""Wrapped code-generation methods."""
+
 from collections.abc import Sequence
 import enum
 from typing import overload
@@ -53,7 +55,7 @@ class PyExternalFunction:
         """Construct with name, arguments, and return type."""
 
     @overload
-    def __init__(self, arg: PyExternalFunction) -> None:
+    def __init__(self, arg: PyExternalFunction, /) -> None:
         """Copy constructor."""
 
     def __hash__(self) -> int:

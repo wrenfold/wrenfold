@@ -1,4 +1,4 @@
-from . import (
+from pywrenfold import (
     ast as ast,
     enumerations as enumerations,
     exceptions as exceptions,

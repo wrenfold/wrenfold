@@ -1,3 +1,5 @@
+"""Wrapped mathematical operations."""
+
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from typing import Annotated, Any, overload
 
@@ -40,14 +42,14 @@ class BooleanExpr:
         """Arguments of ``self`` as a tuple."""
 
     @overload
-    def subs(self, target: Expr, substitute: Expr) -> BooleanExpr:
-        """See :func:`wrenfold.sym.subs`"""
+    def subs(self, target: Expr, substitute: Expr) -> BooleanExpr: ...
 
     @overload
     def subs(self, target: BooleanExpr, substitute: BooleanExpr) -> BooleanExpr: ...
 
     @overload
-    def subs(self, pairs: Sequence[tuple[Expr, Expr] | tuple[BooleanExpr, BooleanExpr]]) -> BooleanExpr: ...
+    def subs(self, pairs: Sequence[tuple[Expr, Expr] | tuple[BooleanExpr, BooleanExpr]]) -> BooleanExpr:
+        """See :func:`wrenfold.sym.subs`"""
 
     def __bool__(self) -> bool:
         """Coerce expression to boolean."""
@@ -204,7 +206,7 @@ class Expr:
 
     @overload
     def collect(self, terms: Sequence[Expr]) -> Expr:
-        r"""
+        """
         Combine coefficients of the specified expression(s) (and powers thereof) into additive sums.
         Given a target expression :math:`x`, ``collect`` traverse the expression tree and identifies terms
         that appear in products with the target. Terms multiplied by matching powers of :math:`x` are summed
@@ -213,26 +215,26 @@ class Expr:
         A single power of :math:`x` exists in the input:
 
         .. math::
-          x\cdot\pi + x \cdot y + x \rightarrow x\cdot\left(\pi + y + 1\right)
+          x\\cdot\\pi + x \\cdot y + x \\rightarrow x\\cdot\\left(\\pi + y + 1\\right)
 
         Both :math:`x` and :math:`x^2` exist in the input:
 
         .. math::
-          x^2\cdot\sin{y} - x\cdot 5 + x^2 \cdot 4 + x\cdot\pi \rightarrow x\cdot\left(-5 + \pi\right) +
-          x^2\left(4 + \sin{y}\right)
+          x^2\\cdot\\sin{y} - x\\cdot 5 + x^2 \\cdot 4 + x\\cdot\\pi \\rightarrow x\\cdot\\left(-5 + \\pi\\right) +
+          x^2\\left(4 + \\sin{y}\\right)
 
         When multiple input variables are specified, ``collect`` will group recursively starting with the
         first variable, then proceeding to the second. For example, if we take the expression:
 
         .. math::
-          x^2 \cdot y \cdot \cos{w} + 3 \cdot y \cdot x^2 + x \cdot y^2 + x \cdot y^2 \cdot \pi -
-          5 \cdot x^2 \cdot y^2 + x \cdot w
+          x^2 \\cdot y \\cdot \\cos{w} + 3 \\cdot y \\cdot x^2 + x \\cdot y^2 + x \\cdot y^2 \\cdot \\pi -
+          5 \\cdot x^2 \\cdot y^2 + x \\cdot w
 
         And collect it with respect to ``[x, y]``, we obtain:
 
         .. math::
-          x^2 \cdot \left(y \cdot \left(3 + \cos{w}\right) - 5 \cdot y^2\right) +
-          x \cdot \left(w + y^2 \cdot \left(1 + \pi\right)\right)
+          x^2 \\cdot \\left(y \\cdot \\left(3 + \\cos{w}\\right) - 5 \\cdot y^2\\right) +
+          x \\cdot \\left(w + y^2 \\cdot \\left(1 + \\pi\\right)\\right)
 
         Args:
           terms: Sequence of expressions whose coefficients we will collect.
@@ -603,8 +605,8 @@ def compare(a: Expr, b: Expr) -> int:
     """
 
 def log(arg: Expr) -> Expr:
-    r"""
-    The natural logarithm :math:`\ln{x}`.
+    """
+    The natural logarithm :math:`\\ln{x}`.
 
     Args:
       arg: Argument to the logarithm.
@@ -620,8 +622,8 @@ def log(arg: Expr) -> Expr:
     """
 
 def exp(arg: Expr) -> Expr:
-    r"""
-    The exponential function :math:`e^{x}` or :math:`\exp{x}`.
+    """
+    The exponential function :math:`e^{x}` or :math:`\\exp{x}`.
 
     Args:
       arg: Argument to the exponential function.
@@ -637,17 +639,17 @@ def exp(arg: Expr) -> Expr:
     """
 
 def pow(base: Expr, exp: Expr) -> Expr:
-    r"""
-    Construct a power expression: :math:`\text{pow}\left(x, y\right) \rightarrow x^y`.
+    """
+    Construct a power expression: :math:`\\text{pow}\\left(x, y\\right) \\rightarrow x^y`.
 
     ``pow`` will attempt to apply simplifications where possible. Some common cases include:
 
     * The inputs are numerical values and can be evaluated immediately.
-    * Various undefined forms: :math:`b^{\tilde{\infty}}`, :math:`{\tilde{\infty}}^0`, :math:`0^0`.
-    * Distribution of integer powers: :math:`\left(x \cdot y\right)^n \rightarrow x^n \cdot y^n`
-    * Collapsing of powers, when appropriate: :math:`\left(\sqrt{x}\right)^2 \rightarrow x`
-    * Interactions with complex infinity: :math:`\tilde{\infty}^n \rightarrow \tilde{\infty}`,
-      :math:`\tilde{\infty}^{-n} \rightarrow 0`, :math:`0^{-n} \rightarrow \tilde{\infty}`.
+    * Various undefined forms: :math:`b^{\\tilde{\\infty}}`, :math:`{\\tilde{\\infty}}^0`, :math:`0^0`.
+    * Distribution of integer powers: :math:`\\left(x \\cdot y\\right)^n \\rightarrow x^n \\cdot y^n`
+    * Collapsing of powers, when appropriate: :math:`\\left(\\sqrt{x}\\right)^2 \\rightarrow x`
+    * Interactions with complex infinity: :math:`\\tilde{\\infty}^n \\rightarrow \\tilde{\\infty}`,
+      :math:`\\tilde{\\infty}^{-n} \\rightarrow 0`, :math:`0^{-n} \\rightarrow \\tilde{\\infty}`.
 
     Args:
       base: Base of the power.
@@ -676,8 +678,8 @@ def pow(base: Expr, exp: Expr) -> Expr:
     """
 
 def cos(arg: Expr) -> Expr:
-    r"""
-    The cosine function :math:`\cos{x}`.
+    """
+    The cosine function :math:`\\cos{x}`.
 
     Args:
       arg: Argument in radians.
@@ -691,8 +693,8 @@ def cos(arg: Expr) -> Expr:
     """
 
 def sin(arg: Expr) -> Expr:
-    r"""
-    The sine function :math:`\sin{x}`.
+    """
+    The sine function :math:`\\sin{x}`.
 
     Args:
       arg: Argument in radians.
@@ -706,8 +708,8 @@ def sin(arg: Expr) -> Expr:
     """
 
 def tan(arg: Expr) -> Expr:
-    r"""
-    The tangent function :math:`\tan{x}`.
+    """
+    The tangent function :math:`\\tan{x}`.
 
     Args:
       arg: Argument in radians.
@@ -721,8 +723,8 @@ def tan(arg: Expr) -> Expr:
     """
 
 def acos(arg: Expr) -> Expr:
-    r"""
-    The inverse cosine function :math:`\cos^{-1}{x}`.
+    """
+    The inverse cosine function :math:`\\cos^{-1}{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -733,8 +735,8 @@ def acos(arg: Expr) -> Expr:
     """
 
 def asin(arg: Expr) -> Expr:
-    r"""
-    The inverse sine function :math:`\sin^{-1}{x}`.
+    """
+    The inverse sine function :math:`\\sin^{-1}{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -745,8 +747,8 @@ def asin(arg: Expr) -> Expr:
     """
 
 def atan(arg: Expr) -> Expr:
-    r"""
-    The inverse tangent function :math:`\tan^{-1}{x}`.
+    """
+    The inverse tangent function :math:`\\tan^{-1}{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -757,8 +759,8 @@ def atan(arg: Expr) -> Expr:
     """
 
 def cosh(arg: Expr) -> Expr:
-    r"""
-    The hyperbolic cosine function :math:`\cosh{x}`.
+    """
+    The hyperbolic cosine function :math:`\\cosh{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -769,8 +771,8 @@ def cosh(arg: Expr) -> Expr:
     """
 
 def sinh(arg: Expr) -> Expr:
-    r"""
-    The hyperbolic sine function :math:`\sinh{x}`.
+    """
+    The hyperbolic sine function :math:`\\sinh{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -781,8 +783,8 @@ def sinh(arg: Expr) -> Expr:
     """
 
 def tanh(arg: Expr) -> Expr:
-    r"""
-    The hyperbolic tangent function :math:`\tanh{x}`.
+    """
+    The hyperbolic tangent function :math:`\\tanh{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -793,8 +795,8 @@ def tanh(arg: Expr) -> Expr:
     """
 
 def acosh(arg: Expr) -> Expr:
-    r"""
-    The inverse hyperbolic cosine function :math:`\cosh^{-1}{x}`.
+    """
+    The inverse hyperbolic cosine function :math:`\\cosh^{-1}{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -803,8 +805,8 @@ def acosh(arg: Expr) -> Expr:
     """
 
 def asinh(arg: Expr) -> Expr:
-    r"""
-    The inverse hyperbolic sine function :math:`\sinh^{-1}{x}`.
+    """
+    The inverse hyperbolic sine function :math:`\\sinh^{-1}{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -813,8 +815,8 @@ def asinh(arg: Expr) -> Expr:
     """
 
 def atanh(arg: Expr) -> Expr:
-    r"""
-    The inverse hyperbolic tangent function :math:`\tanh^{-1}{x}`.
+    """
+    The inverse hyperbolic tangent function :math:`\\tanh^{-1}{x}`.
 
     Examples:
       >>> x = sym.symbol('x')
@@ -823,13 +825,13 @@ def atanh(arg: Expr) -> Expr:
     """
 
 def sqrt(arg: Expr) -> Expr:
-    r"""
-    The square root function :math:`\sqrt{x}`. This is an alias for ``sym.pow(x, sym.rational(1, 2))``.
+    """
+    The square root function :math:`\\sqrt{x}`. This is an alias for ``sym.pow(x, sym.rational(1, 2))``.
     """
 
 def abs(arg: Expr) -> Expr:
-    r"""
-    The absolute value function :math:`\lvert x \rvert`.
+    """
+    The absolute value function :math:`\\lvert x \\rvert`.
 
     Examples:
       >>> sym.abs(3)
@@ -842,19 +844,19 @@ def abs(arg: Expr) -> Expr:
     """
 
 def sign(arg: Expr) -> Expr:
-    r"""
-    The sign/signum function :math:`\text{sign}\left(x\right)`, defined as:
+    """
+    The sign/signum function :math:`\\text{sign}\\left(x\\right)`, defined as:
 
     .. math::
-      \text{sign}\left(x\right) = \begin{cases}
-      -1 & x \lt 0   \\
-       0 & x  = 0    \\
-       1 & x \gt 0
-      \end{cases}
+      \\text{sign}\\left(x\\right) = \\begin{cases}
+      -1 & x \\lt 0   \\\\
+       0 & x  = 0    \\\\
+       1 & x \\gt 0
+      \\end{cases}
 
     Tip:
       Like other functions for which no finite derivative exists, by default wrenfold will assume
-      :math:`\frac{\partial}{\partial x}\text{sign}\left(x\right) = 0`. See
+      :math:`\\frac{\\partial}{\\partial x}\\text{sign}\\left(x\\right) = 0`. See
       :func:`wrenfold.sym.Expr.diff` for alternative behavior.
 
     Caution:
@@ -877,10 +879,10 @@ def sign(arg: Expr) -> Expr:
     """
 
 def floor(arg: Expr) -> Expr:
-    r"""
-    The floor function, sometimes written as :math:`\lfloor x \rfloor` or
-    :math:`\text{floor}\left(x\right)`. This function returns the largest integer such that
-    :math:`\lfloor x \rfloor \le x`.
+    """
+    The floor function, sometimes written as :math:`\\lfloor x \\rfloor` or
+    :math:`\\text{floor}\\left(x\\right)`. This function returns the largest integer such that
+    :math:`\\lfloor x \\rfloor \\le x`.
 
     Returns:
       * If the input can be immediately evaluated, an integer constant.
@@ -899,15 +901,15 @@ def floor(arg: Expr) -> Expr:
     """
 
 def atan2(y: Expr, x: Expr) -> Expr:
-    r"""
-    Two-argument inverse tangent function :math:`\text{atan2}\left(y, x\right)`. Returns the angle
-    :math:`\theta \in [-\pi, \pi]` such that:
+    """
+    Two-argument inverse tangent function :math:`\\text{atan2}\\left(y, x\\right)`. Returns the angle
+    :math:`\\theta \\in [-\\pi, \\pi]` such that:
 
     .. math::
-      \begin{align}
-       x &= \sqrt{x^2 + y^2}\cdot\cos\theta \\
-       y &= \sqrt{x^2 + y^2}\cdot\sin\theta
-      \end{align}
+      \\begin{align}
+       x &= \\sqrt{x^2 + y^2}\\cdot\\cos\\theta \\\\
+       y &= \\sqrt{x^2 + y^2}\\cdot\\sin\\theta
+      \\end{align}
 
     Examples:
       >>> sym.atan2(1, 0)
@@ -918,17 +920,17 @@ def atan2(y: Expr, x: Expr) -> Expr:
     """
 
 def max(a: Expr, b: Expr) -> Expr:
-    r"""
-    The maximum of two scalar values :math:`\text{max}\left(a, b\right)`, defined as:
+    """
+    The maximum of two scalar values :math:`\\text{max}\\left(a, b\\right)`, defined as:
 
     .. math::
-      \text{max}\left(a, b\right) = \begin{cases}
-      b & a \lt b \\
-      a & a \ge b
-      \end{cases}
+      \\text{max}\\left(a, b\\right) = \\begin{cases}
+      b & a \\lt b \\\\
+      a & a \\ge b
+      \\end{cases}
 
     Returns:
-      * If :math:`a \lt b` can be immediately evaluated, the larger of ``a`` and ``b`` will be returned.
+      * If :math:`a \\lt b` can be immediately evaluated, the larger of ``a`` and ``b`` will be returned.
       * Otherwise, a ``sym.where`` expression.
 
     Examples:
@@ -940,17 +942,17 @@ def max(a: Expr, b: Expr) -> Expr:
     """
 
 def min(a: Expr, b: Expr) -> Expr:
-    r"""
-    The minimum of two scalar values :math:`\text{min}\left(a, b\right)`, defined as:
+    """
+    The minimum of two scalar values :math:`\\text{min}\\left(a, b\\right)`, defined as:
 
     .. math::
-      \text{min}\left(a, b\right) = \begin{cases}
-      b & b \lt a \\
-      a & a \ge b
-      \end{cases}
+      \\text{min}\\left(a, b\\right) = \\begin{cases}
+      b & b \\lt a \\\\
+      a & a \\ge b
+      \\end{cases}
 
     Returns:
-      * If :math:`a \lt b` can be immediately evaluated, the smaller of ``a`` and ``b`` will be returned.
+      * If :math:`a \\lt b` can be immediately evaluated, the smaller of ``a`` and ``b`` will be returned.
       * Otherwise, a ``sym.where`` expression.
 
     Examples:
@@ -963,15 +965,15 @@ def min(a: Expr, b: Expr) -> Expr:
 
 @overload
 def where(c: BooleanExpr, a: Expr, b: Expr) -> Expr:
-    r"""
+    """
     ``where(c, a, b)`` will select between either ``a`` or ``b``, depending on the boolean-valued
     expression ``c``. When ``c`` is true, ``a`` is returned, otherwise ``b`` is returned:
 
     .. math::
-      \text{where}\left(c, a, b\right) = \begin{cases}
-      a & c = \text{true} \\
-      b & c = \text{false}
-      \end{cases}
+      \\text{where}\\left(c, a, b\\right) = \\begin{cases}
+      a & c = \\text{true} \\\\
+      b & c = \\text{false}
+      \\end{cases}
 
     In generated code, conditional expressions are converted to if-else statements.
 
@@ -1017,8 +1019,8 @@ def where(c: BooleanExpr, a: MatrixExpr, b: MatrixExpr) -> MatrixExpr:
     """
 
 def lt(a: Expr, b: Expr) -> BooleanExpr:
-    r"""
-    Boolean-valued relational expression :math:`a \lt b`, or ``<`` operator.
+    """
+    Boolean-valued relational expression :math:`a \\lt b`, or ``<`` operator.
 
     Examples:
       >>> sym.lt(2, 3)
@@ -1029,8 +1031,8 @@ def lt(a: Expr, b: Expr) -> BooleanExpr:
     """
 
 def le(a: Expr, b: Expr) -> BooleanExpr:
-    r"""
-    Boolean-valued relational expression :math:`a \le b`, or ``<=`` operator.
+    """
+    Boolean-valued relational expression :math:`a \\le b`, or ``<=`` operator.
 
     Examples:
       >>> sym.le(1, sym.rational(3, 2))
@@ -1041,8 +1043,8 @@ def le(a: Expr, b: Expr) -> BooleanExpr:
     """
 
 def gt(a: Expr, b: Expr) -> BooleanExpr:
-    r"""
-    Boolean-valued relational expression :math:`a \gt b`, or ``>`` operator. ``a > b`` will be
+    """
+    Boolean-valued relational expression :math:`a \\gt b`, or ``>`` operator. ``a > b`` will be
     automatically canonicalized to ``b < a``.
 
     Examples:
@@ -1054,8 +1056,8 @@ def gt(a: Expr, b: Expr) -> BooleanExpr:
     """
 
 def ge(a: Expr, b: Expr) -> BooleanExpr:
-    r"""
-    Boolean-valued relational expression :math:`a \ge b`, or ``>=`` operator. ``a >= b`` will be
+    """
+    Boolean-valued relational expression :math:`a \\ge b`, or ``>=`` operator. ``a >= b`` will be
     automatically canonicalized to ``b <= a``.
 
     Examples:
@@ -1079,15 +1081,15 @@ def eq(a: Expr, b: Expr) -> BooleanExpr:
     """
 
 def iverson(arg: BooleanExpr) -> Expr:
-    r"""
+    """
     Cast a boolean expression to an integer scalar expression. The iverson bracket of boolean-valued
     argument :math:`P` is defined as:
 
     .. math::
-      \text{iverson}\left(P\right) = \begin{cases}
-      1 & P = \text{true} \\
-      0 & P = \text{false}
-      \end{cases}
+      \\text{iverson}\\left(P\\right) = \\begin{cases}
+      1 & P = \\text{true} \\\\
+      0 & P = \\text{false}
+      \\end{cases}
 
     The iverson bracket can be used to convert ``sym.BooleanExpr`` into ``sym.Expr``.
 
@@ -1889,19 +1891,19 @@ def create_custom_type_construction(type: pywrenfold.type_info.CustomType, expre
     """
 
 def distribute(expr: Expr | MatrixExpr | CompoundExpr | BooleanExpr) -> Expr | MatrixExpr | CompoundExpr | BooleanExpr:
-    r"""
+    """
     Expand the mathematical expression. ``distribute`` will recursively traverse the expression tree and
     multiply out any product of additions and subtractions. For example:
 
     .. math::
-      \left(x + y\right)\cdot(4 - y) \rightarrow 4 \cdot x + 4  \cdot y - x  \cdot y - y^{2}
+      \\left(x + y\\right)\\cdot(4 - y) \\rightarrow 4 \\cdot x + 4  \\cdot y - x  \\cdot y - y^{2}
 
-    Powers of the form :math:`f\left(x\right)^{\frac{n}{2}}` where :math:`n` is an integer are also
+    Powers of the form :math:`f\\left(x\\right)^{\\frac{n}{2}}` where :math:`n` is an integer are also
     expanded:
 
     .. math::
-      \left(x + 2\right)^{\frac{3}{2}} \rightarrow x \cdot \left(x + 2\right)^{\frac{1}{2}} +
-      2 \cdot \left(x + 2\right)^{\frac{1}{2}}
+      \\left(x + 2\\right)^{\\frac{3}{2}} \\rightarrow x \\cdot \\left(x + 2\\right)^{\\frac{1}{2}} +
+      2 \\cdot \\left(x + 2\\right)^{\\frac{1}{2}}
 
     Returns:
       The input expression after expansion.

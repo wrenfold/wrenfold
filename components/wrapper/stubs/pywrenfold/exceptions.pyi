@@ -1,3 +1,5 @@
+"""Wrapped exception types."""
+
 
 
 class ArithmeticError(Exception):
