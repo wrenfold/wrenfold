@@ -74,6 +74,42 @@ scalar_expr matrix_expr::squared_norm() const {
 
 scalar_expr matrix_expr::norm() const { return sqrt(squared_norm()); }
 
+matrix_expr matrix_expr::normalized() const { return *this / norm(); }
+
+matrix_expr matrix_expr::colwise_normalized() const {
+  std::vector<scalar_expr> col_norms{};
+  col_norms.reserve(static_cast<std::size_t>(cols()));
+  for (index_t col = 0; col < cols(); ++col) {
+    col_norms.push_back(get_block(0, col, rows(), 1).norm());
+  }
+
+  std::vector<scalar_expr> elements{};
+  elements.reserve(size());
+  for (index_t row = 0; row < rows(); ++row) {
+    for (index_t col = 0; col < cols(); ++col) {
+      elements.push_back((*this)(row, col) / col_norms[static_cast<std::size_t>(col)]);
+    }
+  }
+  return create(rows(), cols(), std::move(elements));
+}
+
+matrix_expr matrix_expr::rowwise_normalized() const {
+  std::vector<scalar_expr> row_norms{};
+  row_norms.reserve(static_cast<std::size_t>(rows()));
+  for (index_t row = 0; row < rows(); ++row) {
+    row_norms.push_back(get_block(row, 0, 1, cols()).norm());
+  }
+
+  std::vector<scalar_expr> elements{};
+  elements.reserve(size());
+  for (index_t row = 0; row < rows(); ++row) {
+    for (index_t col = 0; col < cols(); ++col) {
+      elements.push_back((*this)(row, col) / row_norms[static_cast<std::size_t>(row)]);
+    }
+  }
+  return create(rows(), cols(), std::move(elements));
+}
+
 const matrix& matrix_expr::as_matrix() const { return get_unchecked<const matrix>(*this); }
 
 std::vector<scalar_expr> matrix_expr::to_vector() const { return as_matrix().children(); }

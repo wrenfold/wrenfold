@@ -452,8 +452,13 @@ void wrap_matrix_operations(py::module_& m) {
                    "Alias for :func:`wrenfold.sym.MatrixExpr.transpose`.")
       .def("squared_norm", &matrix_expr::squared_norm, docstrings::matrix_expr_squared_norm.data())
       .def("norm", &matrix_expr::norm,
-           "The L2 norm of the matrix, or square root of "
+           "The Frobenius norm of the matrix (L2 norm for a vector), or square root of "
            ":func:`wrenfold.sym.MatrixExpr.squared_norm`.")
+      .def("normalized", &matrix_expr::normalized, docstrings::matrix_expr_normalized.data())
+      .def("colwise_normalized", &matrix_expr::colwise_normalized,
+           docstrings::matrix_expr_colwise_normalized.data())
+      .def("rowwise_normalized", &matrix_expr::rowwise_normalized,
+           docstrings::matrix_expr_rowwise_normalized.data())
       .def("det", &determinant, "Alias for :func:`wrenfold.sym.det`.")
       // Operators:
       .def("__add__",

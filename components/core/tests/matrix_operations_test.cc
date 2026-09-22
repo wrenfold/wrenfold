@@ -266,6 +266,22 @@ TEST(MatrixOperationsTest, TestSquaredNorm) {
   ASSERT_IDENTICAL(3, make_identity(3).squared_norm());
 }
 
+TEST(MatrixOperationsTest, TestNormalized) {
+  const matrix_expr m = make_matrix(2, 3, 3, 4, 0, 0, 0, 12);
+
+  ASSERT_IDENTICAL(make_matrix(2, 3, 3_s / 13, 4_s / 13, 0, 0, 0, 12_s / 13), m.normalized());
+  ASSERT_IDENTICAL(make_matrix(2, 3, 1, 1, 0, 0, 0, 1), m.colwise_normalized());
+  ASSERT_IDENTICAL(make_matrix(2, 3, 3_s / 5, 4_s / 5, 0, 0, 0, 1), m.rowwise_normalized());
+
+  const matrix_expr column = make_vector(3, 4);
+  ASSERT_IDENTICAL(column.normalized(), column.colwise_normalized());
+  ASSERT_IDENTICAL(make_vector(1, 1), column.rowwise_normalized());
+
+  const matrix_expr row = make_row_vector(3, 4);
+  ASSERT_IDENTICAL(row.normalized(), row.rowwise_normalized());
+  ASSERT_IDENTICAL(make_row_vector(1, 1), row.colwise_normalized());
+}
+
 TEST(MatrixOperationsTest, TestJacobian) {
   auto [x, y, z] = make_symbols("x", "y", "z");
   const auto v1 = make_vector(x * x + z, sin(y) * x);

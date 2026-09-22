@@ -109,6 +109,15 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   // Get the norm of the matrix.
   scalar_expr norm() const;
 
+  // Divide the matrix by its Frobenius norm.
+  [[nodiscard]] matrix_expr normalized() const;
+
+  // Normalize each column independently by its L2 norm.
+  [[nodiscard]] matrix_expr colwise_normalized() const;
+
+  // Normalize each row independently by its L2 norm.
+  [[nodiscard]] matrix_expr rowwise_normalized() const;
+
   // Cast to underlying matrix type.
   const matrix& as_matrix() const;
 

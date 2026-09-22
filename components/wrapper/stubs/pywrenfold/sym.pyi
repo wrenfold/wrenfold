@@ -1457,7 +1457,7 @@ class MatrixExpr:
 
     def squared_norm(self) -> Expr:
         """
-        The sum of squared elements of ``self``, or the squared L2 norm.
+        The sum of squared elements of ``self``: its squared Frobenius norm, or squared L2 norm for a vector.
 
         Returns:
           A scalar-valued expression.
@@ -1471,7 +1471,45 @@ class MatrixExpr:
 
     def norm(self) -> Expr:
         """
-        The L2 norm of the matrix, or square root of :func:`wrenfold.sym.MatrixExpr.squared_norm`.
+        The Frobenius norm of the matrix (L2 norm for a vector), or square root of :func:`wrenfold.sym.MatrixExpr.squared_norm`.
+        """
+
+    def normalized(self) -> MatrixExpr:
+        """
+        Divide every element by the Frobenius norm of the whole matrix. For a vector, this is its L2 norm.
+        The result has the same shape as ``self`` and unit Frobenius norm when the norm is nonzero.
+
+        A zero norm is not handled specially; division by zero produces an undefined expression.
+
+        Examples:
+          >>> sym.vector(3, 4).normalized()
+          [[3/5], [4/5]]
+          >>> sym.matrix([[3, 0], [0, 4]]).normalized()
+          [[3/5, 0], [0, 4/5]]
+        """
+
+    def colwise_normalized(self) -> MatrixExpr:
+        """
+        Divide each column independently by its L2 norm. The result has the same shape as ``self`` and
+        each nonzero column has unit L2 norm.
+
+        A zero column is not handled specially; division by zero produces an undefined expression.
+
+        Examples:
+          >>> sym.matrix([[3, 0], [4, 5]]).colwise_normalized()
+          [[3/5, 0], [4/5, 1]]
+        """
+
+    def rowwise_normalized(self) -> MatrixExpr:
+        """
+        Divide each row independently by its L2 norm. The result has the same shape as ``self`` and
+        each nonzero row has unit L2 norm.
+
+        A zero row is not handled specially; division by zero produces an undefined expression.
+
+        Examples:
+          >>> sym.matrix([[3, 4], [0, 5]]).rowwise_normalized()
+          [[3/5, 4/5], [0, 1]]
         """
 
     def det(self) -> Expr:
