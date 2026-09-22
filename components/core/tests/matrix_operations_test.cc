@@ -82,6 +82,8 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   ASSERT_IDENTICAL(make_row_vector(y, b), m1.get_block(1, 0, 1, 2));
   ASSERT_IDENTICAL(make_row_vector(y), m1.get_block(1, 0, 1, 1));
   ASSERT_IDENTICAL(make_matrix(2, 2, y, b, z, c), m1.get_block(1, 0, 2, 2));
+  ASSERT_IDENTICAL(make_row_vector(y, b), m1.get_row(1));
+  ASSERT_IDENTICAL(make_vector(a, b, c), m1.get_col(1));
 
   // clang-format off
   const matrix_expr m2 = make_matrix(3, 4,
@@ -98,6 +100,10 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   ASSERT_THROW(m2.get_block(1, -5, 1, 1), dimension_error);
   ASSERT_THROW(m2.get_block(1, 1, 4, 1), dimension_error);
   ASSERT_THROW(m2.get_block(1, 1, 2, 5), dimension_error);
+  ASSERT_THROW(m2.get_row(-1), dimension_error);
+  ASSERT_THROW(m2.get_row(m2.rows()), dimension_error);
+  ASSERT_THROW(m2.get_col(-1), dimension_error);
+  ASSERT_THROW(m2.get_col(m2.cols()), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestTranspose) {

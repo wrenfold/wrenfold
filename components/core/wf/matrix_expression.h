@@ -97,6 +97,10 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   // Get a block of rows [start, start + length).
   matrix_expr get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
 
+  // Get a full row or column, retaining its matrix shape.
+  matrix_expr get_row(index_t row) const;
+  matrix_expr get_col(index_t col) const;
+
   // Transpose the matrix.
   [[nodiscard]] matrix_expr transposed() const;
 

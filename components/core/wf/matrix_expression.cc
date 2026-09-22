@@ -48,6 +48,14 @@ matrix_expr matrix_expr::get_block(const index_t row, const index_t col, const i
   return matrix_expr{std::move(result)};
 }
 
+matrix_expr matrix_expr::get_row(const index_t row) const {
+  return matrix_expr{as_matrix().get_row(row)};
+}
+
+matrix_expr matrix_expr::get_col(const index_t col) const {
+  return matrix_expr{as_matrix().get_col(col)};
+}
+
 matrix_expr matrix_expr::transposed() const { return matrix_expr{as_matrix().transposed()}; }
 
 matrix_expr matrix_expr::reshape(index_t nrows, index_t ncols) const {
@@ -80,7 +88,7 @@ matrix_expr matrix_expr::colwise_normalized() const {
   std::vector<scalar_expr> col_norms{};
   col_norms.reserve(static_cast<std::size_t>(cols()));
   for (index_t col = 0; col < cols(); ++col) {
-    col_norms.push_back(get_block(0, col, rows(), 1).norm());
+    col_norms.push_back(get_col(col).norm());
   }
 
   std::vector<scalar_expr> elements{};
@@ -97,7 +105,7 @@ matrix_expr matrix_expr::rowwise_normalized() const {
   std::vector<scalar_expr> row_norms{};
   row_norms.reserve(static_cast<std::size_t>(rows()));
   for (index_t row = 0; row < rows(); ++row) {
-    row_norms.push_back(get_block(row, 0, 1, cols()).norm());
+    row_norms.push_back(get_row(row).norm());
   }
 
   std::vector<scalar_expr> elements{};

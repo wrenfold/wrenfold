@@ -87,7 +87,7 @@ struct row_iterator {
     if (parent_.cols() == 1) {
       return parent_[row_];
     } else {
-      return parent_.get_block(row_, 0, 1, parent_.cols());
+      return parent_.get_row(row_);
     }
   }
 
@@ -112,7 +112,7 @@ std::variant<scalar_expr, matrix_expr> matrix_get_row(const matrix_expr& self, c
     // Vectors convert to scalar automatically (don't form 1x1 matrix).
     return self[row < 0 ? (self.rows() + row) : row];
   } else {
-    return self.get_block(row < 0 ? (self.rows() + row) : row, 0, 1, self.cols());
+    return self.get_row(row < 0 ? (self.rows() + row) : row);
   }
 }
 
