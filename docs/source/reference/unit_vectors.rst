@@ -29,6 +29,10 @@ two paths produce the same tangent Jacobian; do not apply both mappings.
    ambient_D_v = residual.jacobian(v.to_vector())  # 2x3 for a Ceres cost function
    tangent_D_v = ambient_D_v * v.retract_derivative()  # 2x2 for direct use
 
+The `unit3_error example <https://github.com/wrenfold/wrenfold/blob/main/examples/unit3_error/unit3_error.py>`__
+constructs two ``Unit3`` values from unit-length inputs and generates a weighted
+two-dimensional error with optional tangent derivatives for both inputs.
+
 The sphere construction follows Section B.2 of
 `Hertzberg et al. <https://arxiv.org/abs/1107.1119>`_. Ceres uses a different
 pivot order from the paper's displayed example.
