@@ -34,6 +34,10 @@ matrix matrix::get_block(const index_t row, const index_t col, const index_t nro
   return matrix(nrows, ncols, std::move(data));
 }
 
+matrix matrix::get_row(const index_t row) const { return get_block(row, 0, 1, cols()); }
+
+matrix matrix::get_col(const index_t col) const { return get_block(0, col, rows(), 1); }
+
 matrix matrix::transposed() const {
   std::vector<scalar_expr> output{};
   output.reserve(size());
