@@ -104,6 +104,7 @@ add_library(
   wf/functions.cc
   wf/functions.h
   wf/geometry/quaternion.cc
+  wf/geometry/unit_vector.cc
   wf/integer_utils.h
   wf/matrix_expression.cc
   wf/matrix_expression.h

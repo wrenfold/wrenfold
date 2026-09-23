@@ -3,6 +3,10 @@
 geometry
 ========
 
+.. py:data:: wrenfold.geometry.Unit3
+
+  Alias of :class:`wrenfold.geometry.UnitN`.
+
 .. autofunction:: wrenfold.geometry.inverse_left_jacobian_of_so3
 
 .. autofunction:: wrenfold.geometry.left_jacobian_of_so3
@@ -27,5 +31,12 @@ geometry
   .. automethod:: from_y_angle
 
   .. automethod:: from_z_angle
+
+  .. automethod:: with_name
+
+.. autoclass:: wrenfold.geometry.UnitN
+  :members:
+  :special-members:
+  :exclude-members: __dict__,__weakref__,__repr__,__getstate__,__setstate__,with_name
 
   .. automethod:: with_name
