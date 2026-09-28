@@ -16,6 +16,7 @@ User guide
    generating_python
    conditionals
    rotations
+   unit_vectors
    custom_types
    external_functions
    new_language

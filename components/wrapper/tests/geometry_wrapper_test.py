@@ -7,13 +7,59 @@ NB: Most of this is tested in `quaternion_test.cc`. This is just a test of the w
 import unittest
 
 import numpy as np
+import wrenfold as wf
 from wrenfold import exceptions, sym
-from wrenfold.geometry import Quaternion, inverse_left_jacobian_of_so3, left_jacobian_of_so3
+from wrenfold.geometry import (
+    Quaternion,
+    Unit3,
+    UnitN,
+    inverse_left_jacobian_of_so3,
+    left_jacobian_of_so3,
+)
 
 from .test_base import MathTestBase
 
 
+def sphere_cost(v_xyz: wf.Vector3):
+    v = Unit3(v_xyz)
+    residual = sym.vector(v[0] + 2 * v[1], v[2])
+    return [
+        wf.OutputArg(residual, "residual"),
+        wf.OutputArg(residual.jacobian(v.to_vector()), "residual_D_v"),
+    ]
+
+
 class GeometryWrapperTest(MathTestBase):
+    def test_unit_vector(self):
+        x, y, z = sym.make_symbols("x", "y", "z")
+        u = Unit3(x, y, z)
+        self.assertIs(Unit3, UnitN)
+        self.assertEqual(3, u.dimension)
+        self.assertEqual("UnitN(x, y, z)", repr(u))
+        self.assertIdentical(x, u[0])
+        self.assertIdentical(z, u[-1])
+        self.assertIdentical(sym.vector(x, y, z), u.to_vector())
+        self.assertTrue(u.is_identical_to(UnitN(sym.vector(x, y, z))))
+        self.assertTrue(u.is_identical_to(UnitN([x, y, z])))
+        self.assertTrue(u.subs(x, 1).is_identical_to(Unit3(1, y, z)))
+        self.assertEqual((3, 2), u.retract_derivative().shape)
+        self.assertEqual((2, 3), u.local_coordinates_derivative().shape)
+        self.assertEqual((3, 2), u.jacobian(sym.vector(x, y)).shape)
+        nondiff = Unit3(sym.sign(x), y, z)
+        self.assertIdentical(
+            nondiff.to_vector().jacobian(sym.vector(x), use_abstract=True),
+            nondiff.jacobian(sym.vector(x), use_abstract=True),
+        )
+        self.assertEqual(4, UnitN.with_name("v", 4).dimension)
+        self.assertRaises(exceptions.DimensionError, lambda: UnitN([1]))
+        self.assertRaises(exceptions.DimensionError, lambda: u.retract(sym.vector(1, 2, 3)))
+        np.testing.assert_array_equal(Unit3(0, 0, 1).eval(), [[0], [0], [1]])
+
+    def test_unit_vector_ceres_cost_codegen(self):
+        code = wf.generate_function(func=sphere_cost, generator=wf.CppGenerator())
+        self.assertIn("sphere_cost", code)
+        self.assertIn("residual_D_v", code)
+
     def assertQuatIdentical(self, a: Quaternion, b: Quaternion):
         self.assertIdentical(a.w, b.w)
         self.assertIdentical(a.x, b.x)

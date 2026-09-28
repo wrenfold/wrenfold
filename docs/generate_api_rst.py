@@ -43,6 +43,11 @@ def generate_rst_for_module(module: typing.Any, module_name: str, output_dir: Pa
             continue
 
         if inspect.isclass(member):
+            if member_name != member.__name__:
+                data.append(
+                    (member_name, f"Alias of :class:`wrenfold.{module_name}.{member.__name__}`.")
+                )
+                continue
             class_static_functions = []
             for child_member_name in sorted(dir(member)):
                 child_member = getattr(member, child_member_name)

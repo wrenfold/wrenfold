@@ -18,6 +18,7 @@
 
 #include "wf/expression.h"
 #include "wf/geometry/quaternion.h"
+#include "wf/geometry/unit_vector.h"
 #include "wf/matrix_expression.h"
 
 #include "docs/geometry_wrapper.h"
@@ -48,6 +49,72 @@ static auto eval_quaternion(const quaternion& q) {
 }
 
 void wrap_geometry_operations(py::module_& m) {
+  wrap_class<unit_vector>(m, "UnitN")
+      .def(py::init<matrix_expr>(), "value"_a,
+           "Construct from an Nx1 symbolic vector (N >= 2). The input is not normalized.")
+      .def(
+          "__init__",
+          [](unit_vector* self, const py::typed<py::iterable, scalar_expr>& values) {
+            std::vector<scalar_expr> components;
+            cast_to_expr(values, components);
+            const index_t dimension = static_cast<index_t>(components.size());
+            new (self) unit_vector{matrix_expr::create(dimension, 1, std::move(components))};
+          },
+          "values"_a, "Construct from an iterable of symbolic components.")
+      .def(
+          "__init__",
+          [](unit_vector* self, scalar_expr x, scalar_expr y, scalar_expr z) {
+            new (self)
+                unit_vector{matrix_expr::create(3, 1, {std::move(x), std::move(y), std::move(z)})};
+          },
+          "x"_a, "y"_a, "z"_a, "Construct a 3D unit vector from components.")
+      .def_static("with_name", &unit_vector::from_name_prefix, "name"_a, "dimension"_a,
+                  "Create a symbolic vector with names ``name_0`` through ``name_{N-1}``.")
+      .def("__repr__",
+           [](const unit_vector& self) {
+             return fmt::format("UnitN({})", fmt::join(self.to_vector().to_vector(), ", "));
+           })
+      .def_prop_ro("dimension", &unit_vector::dimension, "Ambient dimension N.")
+      .def("__getitem__",
+           [](const unit_vector& self, index_t i) {
+             if (i < 0) {
+               i += self.dimension();
+             }
+             if (i < 0 || i >= self.dimension()) {
+               throw py::index_error();
+             }
+             return self[i];
+           })
+      .def("to_vector", &unit_vector::to_vector, "Return the Nx1 ambient vector.")
+      .def(
+          "to_list", [](const unit_vector& self) { return self.to_vector().to_vector(); },
+          "Return ambient components as a list.")
+      .def(
+          "eval", [](const unit_vector& self) { return numpy_from_matrix(self.to_vector(), {}); },
+          "Evaluate numeric components to a NumPy column vector.")
+      .def("subs", &unit_vector::subs, "target"_a, "replacement"_a)
+      .def("squared_norm", &unit_vector::squared_norm)
+      .def("norm", &unit_vector::norm)
+      .def("normalized", &unit_vector::normalized)
+      .def(
+          "jacobian",
+          [](const unit_vector& self, const matrix_expr& vars, const bool use_abstract) {
+            return self.jacobian(vars, use_abstract ? non_differentiable_behavior::abstract
+                                                    : non_differentiable_behavior::constant);
+          },
+          "vars"_a, py::arg("use_abstract") = false,
+          "Compute the NxM ambient Jacobian with respect to vector variables.")
+      .def("retract", &unit_vector::retract, "delta"_a,
+           "Apply a (N-1)x1 tangent perturbation using Ceres' SphereManifold convention.")
+      .def("local_coordinates", &unit_vector::local_coordinates, "other"_a,
+           "Map another point to this point's (N-1)x1 tangent coordinates.")
+      .def("retract_derivative", &unit_vector::retract_derivative,
+           "Nx(N-1) Jacobian matching Ceres SphereManifold::PlusJacobian.")
+      .def("local_coordinates_derivative", &unit_vector::local_coordinates_derivative,
+           "(N-1)xN Jacobian matching Ceres SphereManifold::MinusJacobian.")
+      .doc() = "A symbolic point on an N-dimensional sphere, with Ceres tangent coordinates.";
+  m.attr("Unit3") = m.attr("UnitN");
+
   wrap_class<quaternion>(m, "Quaternion")
       .def(py::init<scalar_expr, scalar_expr, scalar_expr, scalar_expr>(), "w"_a, "x"_a, "y"_a,
            "z"_a, docstrings::quaternion_constructor.data())

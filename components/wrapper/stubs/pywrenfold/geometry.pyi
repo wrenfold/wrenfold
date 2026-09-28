@@ -1,13 +1,93 @@
 """Wrapped geometry methods."""
 
 from collections.abc import Iterable
-from typing import Annotated, overload
+from typing import Annotated, TypeAlias, overload
 
 import numpy
 from numpy.typing import NDArray
 
 import pywrenfold.sym
 
+
+class UnitN:
+    """
+    A symbolic point on an N-dimensional sphere, with Ceres tangent coordinates.
+    """
+
+    @overload
+    def __init__(self, value: pywrenfold.sym.MatrixExpr) -> None:
+        """
+        Construct from an Nx1 symbolic vector (N >= 2). The input is not normalized.
+        """
+
+    @overload
+    def __init__(self, values: Iterable[pywrenfold.sym.Expr | int | float]) -> None:
+        """Construct from an iterable of symbolic components."""
+
+    @overload
+    def __init__(self, x: pywrenfold.sym.Expr | int | float, y: pywrenfold.sym.Expr | int | float, z: pywrenfold.sym.Expr | int | float) -> None:
+        """Construct a 3D unit vector from components."""
+
+    def __hash__(self) -> int:
+        """Compute hash."""
+
+    def is_identical_to(self, other: UnitN) -> bool:
+        """
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
+        """
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Check for strict equality (identical expression trees). This is not the same as mathematical equivalence.
+        """
+
+    @staticmethod
+    def with_name(name: str, dimension: int) -> UnitN:
+        """Create a symbolic vector with names ``name_0`` through ``name_{N-1}``."""
+
+    def __repr__(self) -> str: ...
+
+    @property
+    def dimension(self) -> int:
+        """Ambient dimension N."""
+
+    def __getitem__(self, arg: int, /) -> pywrenfold.sym.Expr: ...
+
+    def to_vector(self) -> pywrenfold.sym.MatrixExpr:
+        """Return the Nx1 ambient vector."""
+
+    def to_list(self) -> list[pywrenfold.sym.Expr]:
+        """Return ambient components as a list."""
+
+    def eval(self) -> Annotated[NDArray[numpy.int64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.complex128], dict(shape=(None, None), order='C')]:
+        """Evaluate numeric components to a NumPy column vector."""
+
+    def subs(self, target: pywrenfold.sym.Expr | int | float, replacement: pywrenfold.sym.Expr | int | float) -> UnitN: ...
+
+    def squared_norm(self) -> pywrenfold.sym.Expr: ...
+
+    def norm(self) -> pywrenfold.sym.Expr: ...
+
+    def normalized(self) -> UnitN: ...
+
+    def jacobian(self, vars: pywrenfold.sym.MatrixExpr, use_abstract: bool = False) -> pywrenfold.sym.MatrixExpr:
+        """Compute the NxM ambient Jacobian with respect to vector variables."""
+
+    def retract(self, delta: pywrenfold.sym.MatrixExpr) -> UnitN:
+        """
+        Apply a (N-1)x1 tangent perturbation using Ceres' SphereManifold convention.
+        """
+
+    def local_coordinates(self, other: UnitN) -> pywrenfold.sym.MatrixExpr:
+        """Map another point to this point's (N-1)x1 tangent coordinates."""
+
+    def retract_derivative(self) -> pywrenfold.sym.MatrixExpr:
+        """Nx(N-1) Jacobian matching Ceres SphereManifold::PlusJacobian."""
+
+    def local_coordinates_derivative(self) -> pywrenfold.sym.MatrixExpr:
+        """(N-1)xN Jacobian matching Ceres SphereManifold::MinusJacobian."""
+
+Unit3: TypeAlias = UnitN
 
 class Quaternion:
     """A quaternion class used to represent 3D rotations and orientations."""
