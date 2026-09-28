@@ -87,7 +87,7 @@ struct row_iterator {
     if (parent_.cols() == 1) {
       return parent_[row_];
     } else {
-      return parent_.get_block(row_, 0, 1, parent_.cols());
+      return parent_.get_row(row_);
     }
   }
 
@@ -112,7 +112,7 @@ std::variant<scalar_expr, matrix_expr> matrix_get_row(const matrix_expr& self, c
     // Vectors convert to scalar automatically (don't form 1x1 matrix).
     return self[row < 0 ? (self.rows() + row) : row];
   } else {
-    return self.get_block(row < 0 ? (self.rows() + row) : row, 0, 1, self.cols());
+    return self.get_row(row < 0 ? (self.rows() + row) : row);
   }
 }
 
@@ -452,8 +452,13 @@ void wrap_matrix_operations(py::module_& m) {
                    "Alias for :func:`wrenfold.sym.MatrixExpr.transpose`.")
       .def("squared_norm", &matrix_expr::squared_norm, docstrings::matrix_expr_squared_norm.data())
       .def("norm", &matrix_expr::norm,
-           "The L2 norm of the matrix, or square root of "
+           "The Frobenius norm of the matrix (L2 norm for a vector), or square root of "
            ":func:`wrenfold.sym.MatrixExpr.squared_norm`.")
+      .def("normalized", &matrix_expr::normalized, docstrings::matrix_expr_normalized.data())
+      .def("colwise_normalized", &matrix_expr::colwise_normalized,
+           docstrings::matrix_expr_colwise_normalized.data())
+      .def("rowwise_normalized", &matrix_expr::rowwise_normalized,
+           docstrings::matrix_expr_rowwise_normalized.data())
       .def("det", &determinant, "Alias for :func:`wrenfold.sym.det`.")
       // Operators:
       .def("__add__",

@@ -286,6 +286,26 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(2, -8))
 
+    def test_normalized(self):
+        m = sym.matrix([[3, 4, 0], [0, 0, 12]])
+        self.assertEqual((2, 3), m.normalized().shape)
+        self.assertIdentical(m / 13, m.normalized())
+        self.assertIdentical(sym.matrix([[1, 1, 0], [0, 0, 1]]), m.colwise_normalized())
+        self.assertIdentical(
+            sym.matrix([[sym.rational(3, 5), sym.rational(4, 5), 0], [0, 0, 1]]),
+            m.rowwise_normalized(),
+        )
+
+        self.assertIdentical(sym.matrix([[sym.nan]]), sym.zeros(1, 1).normalized())
+        self.assertIdentical(
+            sym.matrix([[sym.nan, 1], [sym.nan, 0]]),
+            sym.matrix([[0, 3], [0, 0]]).colwise_normalized(),
+        )
+        self.assertIdentical(
+            sym.matrix([[sym.nan, sym.nan], [0, 1]]),
+            sym.matrix([[0, 0], [0, 3]]).rowwise_normalized(),
+        )
+
     def test_eye(self):
         """Test creating identity matrix."""
         self.assertIdentical(sym.matrix([(1, 0), (0, 1)]), sym.eye(2))
