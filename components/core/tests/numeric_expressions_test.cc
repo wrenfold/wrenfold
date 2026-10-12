@@ -29,6 +29,13 @@ TEST(NumericExpressionsTest, TestFormatters) {
   ASSERT_EQ(fmt::format("{}", 2.3123), fmt::format("{}", float_constant{2.3123}));
 }
 
+TEST(NumericExpressionsTest, TestFloatSignedZeroHash) {
+  const float_constant negative_zero{-0.0};
+  const float_constant positive_zero{0.0};
+  ASSERT_TRUE(are_identical(negative_zero, positive_zero));
+  ASSERT_EQ(hash(negative_zero), hash(positive_zero));
+}
+
 TEST(NumericExpressionsTest, TestRational) {
   const rational_constant a{15, 60};
   ASSERT_EQ(a.numerator(), 1);
