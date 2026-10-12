@@ -232,6 +232,24 @@ class CodeGenerationWrapperTest(MathTestBase):
         self._run_generators(definition)
         self._test_cse_function_description(desc)
 
+    def test_keyword_only_argument(self):
+        def f(x: wf.FloatScalar, *, y: wf.FloatScalar):
+            return x + y
+
+        desc = wf.create_function_description(f)
+        self.assertEqual(["x", "y"], [arg.name for arg in desc.arguments])
+        self.assertEqual(1, len(desc.output_expressions()))
+        self._run_generators(wf.transpile(desc))
+
+    def test_none_return(self):
+        def f(x: wf.FloatScalar) -> None:
+            return None
+
+        desc = wf.create_function_description(f)
+        self.assertEqual(["x"], [arg.name for arg in desc.arguments])
+        self.assertEqual({}, desc.output_expressions())
+        self._run_generators(wf.transpile(desc))
+
     def test_func2(self):
         """Test function with optional output arguments."""
         desc = wf.create_function_description(func2)
