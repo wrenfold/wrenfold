@@ -63,7 +63,7 @@ struct power_numerics_visitor {
     }
     const auto result = std::pow(static_cast<float_constant>(base).value(),
                                  static_cast<float_constant>(exp).value());
-    return make_expr<float_constant>(result);
+    return scalar_expr{result};
   }
 
   // If both operands are integers:
