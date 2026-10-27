@@ -63,7 +63,22 @@ int main() {
 #else
   const custom_cpp_code_generator generator{cpp_matrix_type_behavior::eigen};
 #endif
-  const std::string code = generator.apply_preamble(generate_test_expressions(generator), "gen");
+  std::string code = generate_test_expressions(generator);
+  generate_func(
+      generator, code,
+      [](symbolic::Point2d p) {
+        return std::make_tuple(return_value(p), output_arg("out", p),
+                               optional_output_arg("optional", p));
+      },
+      "forward_custom_type", arg("p"));
+  generate_func(
+      generator, code,
+      [](symbolic::FancyAggregateType p) {
+        return std::make_tuple(return_value(p), output_arg("out", p),
+                               optional_output_arg("optional", p));
+      },
+      "forward_nested_custom_type", arg("p"));
+  code = generator.apply_preamble(code, "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
   output.write(code.data(), code.size());

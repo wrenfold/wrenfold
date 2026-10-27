@@ -12,6 +12,7 @@ import dataclasses
 import typing
 import unittest
 
+import numpy as np
 import wrenfold as wf
 from wrenfold import ast, external_functions, sym, type_info
 from wrenfold.code_generation import Argument, ArgumentDirection, OutputKey
@@ -308,6 +309,68 @@ class CodeGenerationWrapperTest(MathTestBase):
 
         self._run_generators(definition)
         self._test_cse_function_description(desc)
+
+    def test_forward_custom_type_outputs(self):
+        """Forward input structs to return values and required/optional outputs."""
+
+        def forward_point(p: Point2d):
+            return [
+                wf.ReturnValue(p),
+                wf.OutputArg(p, name="out"),
+                wf.OutputArg(p, name="optional", is_optional=True),
+            ]
+
+        def forward_nested(p: NestedType3):
+            return [
+                wf.ReturnValue(p),
+                wf.OutputArg(p, name="out"),
+                wf.OutputArg(p, name="optional", is_optional=True),
+            ]
+
+        external = external_functions.declare_external_function(
+            "transform_point", arguments=[("p", Point2d)], return_type=Point2d
+        )
+
+        def forward_external(p: Point2d):
+            result = external(p)
+            return [
+                wf.ReturnValue(result),
+                wf.OutputArg(result, name="out"),
+                wf.OutputArg(result, name="optional", is_optional=True),
+            ]
+
+        context = {cls.__name__: cls for cls in (Point2d, NestedType1, NestedType2, NestedType3)}
+        context[external.name] = lambda p: Point2d(p.x + 1, p.y - 2)
+        point = Point2d(1.5, -2.0)
+        nested = NestedType3(NestedType1(2.5, -3.0), NestedType2(np.array([[4.0], [5.0]]), 6.0))
+        cases = (
+            (forward_point, point, point),
+            (forward_nested, nested, nested),
+            (forward_external, point, Point2d(2.5, -4.0)),
+        )
+        for func, value, expected in cases:
+            for convert_ternaries in (False, True):
+                with self.subTest(func=func.__name__, convert_ternaries=convert_ternaries):
+                    desc = wf.create_function_description(func)
+                    definition = wf.transpile(desc, convert_ternaries=convert_ternaries)
+                    wf.CppGenerator(matrix_args=wf.CppMatrixTypeBehavior.Eigen).generate(definition)
+                    generated, _ = wf.generate_python(
+                        func, context=context, convert_ternaries=convert_ternaries
+                    )
+                    for compute_optional in (False, True):
+                        returned, out, optional = generated(
+                            value, compute_optional=compute_optional
+                        )
+                        for result in (returned, out):
+                            np.testing.assert_equal(
+                                dataclasses.asdict(expected), dataclasses.asdict(result)
+                            )
+                        if compute_optional:
+                            np.testing.assert_equal(
+                                dataclasses.asdict(expected), dataclasses.asdict(optional)
+                            )
+                        else:
+                            self.assertIsNone(optional)
 
     def test_opaque_func(self):
         """Test we can customize invocation of a custom function."""

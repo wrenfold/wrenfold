@@ -430,6 +430,29 @@ TEST(CppGenerationTest, TestCustomType3) {
   EXPECT_EQ(M_E * 3.0, p.y);
 }
 
+TEST(CppGenerationTest, TestForwardCustomTypeOutputs) {
+  const numeric::Point2d input{1.5, -2.0};
+  numeric::Point2d out{}, optional{};
+  const auto returned = gen::forward_custom_type<double>(input, out, &optional);
+  EXPECT_EIGEN_NEAR(input.to_vector(), returned.to_vector(), 0.0);
+  EXPECT_EIGEN_NEAR(input.to_vector(), out.to_vector(), 0.0);
+  EXPECT_EIGEN_NEAR(input.to_vector(), optional.to_vector(), 0.0);
+  gen::forward_custom_type<double>(input, out, nullptr);
+  EXPECT_EIGEN_NEAR(input.to_vector(), out.to_vector(), 0.0);
+}
+
+TEST(CppGenerationTest, TestForwardNestedCustomTypeOutputs) {
+  const numeric::FancyAggregateType input{
+      {1.5, -2.0}, {{3.0, 4.0}, 5.0}, Eigen::Vector2d{6.0, 7.0}, 8.0};
+  numeric::FancyAggregateType out{}, optional{};
+  const auto returned = gen::forward_nested_custom_type<double>(input, out, &optional);
+  EXPECT_EIGEN_NEAR(input.to_vector(), returned.to_vector(), 0.0);
+  EXPECT_EIGEN_NEAR(input.to_vector(), out.to_vector(), 0.0);
+  EXPECT_EIGEN_NEAR(input.to_vector(), optional.to_vector(), 0.0);
+  gen::forward_nested_custom_type<double>(input, out, nullptr);
+  EXPECT_EIGEN_NEAR(input.to_vector(), out.to_vector(), 0.0);
+}
+
 // Convert to/from symbolic::Circle --> numeric::Circle.
 template <>
 struct custom_type_native_converter<symbolic::Circle> {
