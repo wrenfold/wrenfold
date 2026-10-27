@@ -601,9 +601,9 @@ struct convert_to_span<Dimensions, T, enable_if_inherits_matrix_base_t<T>> {
   }
 };
 
-// Enable conversion of `QuaternionBase` children to spans.
-template <typename Dimensions, typename T>
-struct convert_to_span<Dimensions, T, enable_if_inherits_quaternion_base_t<T>> {
+// Enable conversion of `QuaternionBase` children to 4x1 spans.
+template <typename T>
+struct convert_to_span<constant_value_pack<4, 1>, T, enable_if_inherits_quaternion_base_t<T>> {
   template <typename U>
   constexpr auto convert(U&& q) const noexcept {
     // Quaternion is convertible to 4x1 column vector.
