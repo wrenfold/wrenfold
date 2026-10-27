@@ -142,9 +142,10 @@ class determine_set_visitor {
         return number_set::unknown;
       case built_in_function::log: {
         if (args[0] == number_set::real_positive) {
-          return number_set::real_positive;
+          // log(x) can be negative, zero, or positive for x > 0.
+          return number_set::real;
         }
-        // Otherwise could be zero.
+        // Otherwise the logarithm may be undefined or complex.
         return number_set::unknown;
       }
       case built_in_function::exp: {
