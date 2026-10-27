@@ -898,6 +898,75 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
         return wrapped_func
 
 
+class OutputArgumentLayoutTest(MathTestBase):
+    """Output assignments must update the caller's array for every supported layout."""
+
+    def _check_output_argument_layouts(self, compile_with_numba: bool):
+        def outputs(x: wf.Vector4):
+            return [
+                wf.OutputArg(x, name="out"),
+                wf.OutputArg(2 * x.T, name="optional", is_optional=True),
+            ]
+
+        layouts = {
+            "flat": lambda dtype: np.full(4, -1, dtype=dtype),
+            "c_order": lambda dtype: np.full((2, 2), -1, dtype=dtype),
+            "f_order": lambda dtype: np.full((2, 2), -1, dtype=dtype, order="F"),
+            "transpose": lambda dtype: np.full((2, 2), -1, dtype=dtype).T,
+            "slice": lambda dtype: np.full((4, 4), -1, dtype=dtype)[::2, ::2],
+            "negative_stride": lambda dtype: np.full((2, 2), -1, dtype=dtype)[:, ::-1],
+            "higher_rank": lambda dtype: np.full((2, 2, 1), -1, dtype=dtype).transpose(1, 0, 2),
+        }
+        for dtype, width in (
+            (np.float32, wf.PythonGeneratorFloatWidth.Float32),
+            (np.float64, wf.PythonGeneratorFloatWidth.Float64),
+        ):
+            func, _ = wf.generate_python(
+                outputs,
+                generator=wf.PythonGenerator(use_output_arguments=True, float_width=width),
+            )
+            if compile_with_numba:
+                func = numba.njit(func)
+            values = np.array([1, 2, 3, 4], dtype=dtype)
+            for layout, make_output in layouts.items():
+                for compute_optional in (False, True):
+                    with self.subTest(dtype=dtype, layout=layout, optional=compute_optional):
+                        out = make_output(dtype)
+                        optional = make_output(dtype) if compute_optional else None
+                        self.assertIsNone(func(values, out, optional))
+                        np.testing.assert_array_equal(out.reshape(-1), values)
+                        if optional is not None:
+                            np.testing.assert_array_equal(optional.reshape(-1), 2 * values)
+                        # Sliced outputs must leave elements outside the view untouched.
+                        for array in (out, optional):
+                            if array is not None and array.base is not None:
+                                self.assertEqual(4, np.count_nonzero(array.base != -1))
+
+    def test_numpy_output_argument_layouts(self):
+        self._check_output_argument_layouts(compile_with_numba=False)
+
+    @unittest.skipIf(numba is None, "Numba is not installed")
+    def test_numba_output_argument_layouts(self):
+        self._check_output_argument_layouts(compile_with_numba=True)
+
+    def test_zero_dimensional_output(self):
+        """A one-element matrix can be written to a scalar-shaped array."""
+
+        def output(x: wf.FloatScalar):
+            return wf.OutputArg(sym.vector(x), name="out")
+
+        func, _ = wf.generate_python(
+            output, generator=wf.PythonGenerator(use_output_arguments=True)
+        )
+        functions = [func]
+        if numba is not None:
+            functions.append(numba.njit(func))
+        for generated in functions:
+            out = np.full((), -1.0)
+            generated(2.5, out)
+            self.assertEqual(2.5, out.item())
+
+
 def test_apply_preamble():
     """A simple test to check that we apply the preamble correctly to code."""
     targets_to_test = [
@@ -981,6 +1050,7 @@ def test_numpy_type_annotations():
 def main():
     # TODO: Find a better way to test the different permutations.
     test_cases = [
+        OutputArgumentLayoutTest,
         NumPyCodeGenerationF32Test,
         NumPyCodeGenerationF64Test,
         NumPyCodeGenerationF32OutputArgsTest,
