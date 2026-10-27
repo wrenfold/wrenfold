@@ -234,8 +234,8 @@ Returns:
   * A matrix of expressions.
 
 Raises:
-  wrenfold.sym.DimensionError: If the input is empty, or the number of columns is inconsistent
-    between rows.
+  wrenfold.sym.DimensionError: If the input is empty, a row has zero columns, or the number of
+    columns is inconsistent between rows.
 
 Examples:
   >>> sym.matrix([1,2,3])

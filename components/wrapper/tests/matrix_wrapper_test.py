@@ -104,6 +104,24 @@ class MatrixWrapperTest(MathTestBase):
             lambda: sym.matrix([(a, sym.pi, sym.E), (x, 5, z, b)]),
         )
 
+    def test_matrix_constructor_empty_rows(self):
+        """Empty rows must raise an exception instead of terminating Python."""
+        cases = {
+            "single_empty_row": lambda: [[]],
+            "multiple_empty_rows": lambda: [[], []],
+            "empty_tuple": lambda: [()],
+            "empty_row_generator": lambda: [iter(())],
+            "row_generator": lambda: ([] for _ in range(2)),
+            "numpy": lambda: np.zeros((2, 0)),
+            "matrix_slice": lambda: [sym.eye(2)[:, :0]],
+            "empty_first_row": lambda: [[], [1]],
+            "empty_last_row": lambda: [[1], []],
+        }
+        for constructor in (sym.matrix, sym.MatrixExpr):
+            for name, make_rows in cases.items():
+                with self.subTest(constructor=constructor.__name__, case=name):
+                    self.assertRaises(exceptions.DimensionError, constructor, make_rows())
+
     def test_is_identical_to(self):
         """Test that __eq__ is defined, and implements is_identical_to."""
         u = sym.vector(10, -3, 5)
