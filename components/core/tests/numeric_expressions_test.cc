@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include <array>
+
 #include <gtest/gtest.h>
 
 #include "wf/expressions/numeric_expressions.h"
@@ -72,6 +74,66 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_GT(rational_constant(9, 11), rational_constant(1, 3));
   ASSERT_GT(rational_constant(10, 24), rational_constant(2, 5));
   ASSERT_GT(rational_constant(-6, 7), rational_constant(12, -6));
+}
+
+TEST(NumericExpressionsTest, TestLargeRationalComparison) {
+  static_assert(rational_constant{4000000000LL, 4000000001LL} <
+                rational_constant{4000000001LL, 4000000000LL});
+  constexpr auto max = checked_int::max();
+  // Consecutive Fibonacci ratios require many reciprocal comparisons.
+  constexpr auto f90 = 2880067194370816120_chk;
+  constexpr auto f91 = 4660046610375530309_chk;
+  constexpr auto f92 = 7540113804746346429_chk;
+  // These values are in strictly increasing order. Several pairs have cross products
+  // that exceed int64, including distinct fractions that round to the same double.
+  const std::array<rational_constant, 21> values{
+      rational_constant{integer_constant{checked_int::min()}},
+      rational_constant{-max, 2},
+      rational_constant{-4000000001LL, 4000000000LL},
+      rational_constant{-max, max - 1},
+      rational_constant{-1, 1},
+      rational_constant{-(max - 1), max},
+      rational_constant{-4000000000LL, 4000000001LL},
+      rational_constant{-f91, f92},
+      rational_constant{-f90, f91},
+      rational_constant{-1, max},
+      rational_constant{0, 1},
+      rational_constant{1, max},
+      rational_constant{f90, f91},
+      rational_constant{f91, f92},
+      rational_constant{4000000000LL, 4000000001LL},
+      rational_constant{max - 1, max},
+      rational_constant{1, 1},
+      rational_constant{max, max - 1},
+      rational_constant{4000000001LL, 4000000000LL},
+      rational_constant{max, 2},
+      rational_constant{max, 1},
+  };
+  for (std::size_t i = 0; i < values.size(); ++i) {
+    for (std::size_t j = 0; j < values.size(); ++j) {
+      SCOPED_TRACE(fmt::format("a = {}, b = {}", values[i], values[j]));
+      ASSERT_EQ(order_by_comparison(i, j), determine_order(values[i], values[j]));
+      ASSERT_EQ(i < j, values[i] < values[j]);
+      ASSERT_EQ(i > j, values[i] > values[j]);
+      ASSERT_EQ(i == j, values[i] == values[j]);
+    }
+  }
+}
+
+TEST(NumericExpressionsTest, TestSmallRationalComparison) {
+  // For small inputs, cross multiplication provides an independent exact reference.
+  for (int n1 = -8; n1 <= 8; ++n1) {
+    for (int d1 = 1; d1 <= 8; ++d1) {
+      for (int n2 = -8; n2 <= 8; ++n2) {
+        for (int d2 = 1; d2 <= 8; ++d2) {
+          const rational_constant a{n1, d1};
+          const rational_constant b{n2, d2};
+          ASSERT_EQ(order_by_comparison(n1 * d2, n2 * d1), determine_order(a, b))
+              << fmt::format("a = {}, b = {}", a, b);
+        }
+      }
+    }
+  }
 }
 
 TEST(NumericExpressionsTest, TestRationalModulo) {

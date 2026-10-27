@@ -238,12 +238,58 @@ constexpr auto operator%(const rational_constant& a, const rational_constant& b)
   return rational_constant{quotient.numerator() % quotient.denominator(), quotient.denominator()};
 }
 
-constexpr bool operator<(const rational_constant& a, const rational_constant& b) {
-  return a.numerator() * b.denominator() < b.numerator() * a.denominator();
+template <>
+struct order_struct<rational_constant> {
+  constexpr relative_order operator()(const rational_constant& a,
+                                      const rational_constant& b) const noexcept {
+    if (a.denominator() == b.denominator()) {
+      return order_by_comparison(a.numerator(), b.numerator());
+    }
+    if (a.is_negative() != b.is_negative()) {
+      return order_by_comparison(a.numerator(), b.numerator());
+    }
+
+    // Compare magnitudes, reversing the result for two negative fractions. Unsigned
+    // arithmetic handles the magnitude of INT64_MIN without overflowing negation.
+    auto left_n = static_cast<std::uint64_t>(a.numerator().value());
+    auto right_n = static_cast<std::uint64_t>(b.numerator().value());
+    if (a.is_negative()) {
+      left_n = 0 - left_n;
+      right_n = 0 - right_n;
+    }
+    auto left_d = static_cast<std::uint64_t>(a.denominator().value());
+    auto right_d = static_cast<std::uint64_t>(b.denominator().value());
+    bool reverse = a.is_negative();
+    while (true) {
+      const auto left_q = left_n / left_d;
+      const auto right_q = right_n / right_d;
+      if (left_q != right_q) {
+        return reverse ? order_by_comparison(right_q, left_q)
+                       : order_by_comparison(left_q, right_q);
+      }
+      const auto left_r = left_n % left_d;
+      const auto right_r = right_n % right_d;
+      if (left_r == 0 || right_r == 0) {
+        return reverse ? order_by_comparison(right_r, left_r)
+                       : order_by_comparison(left_r, right_r);
+      }
+      // Equal integer parts leave only the fractional remainders. Compare their
+      // reciprocals, which reverses the order and reduces the denominators.
+      left_n = left_d;
+      left_d = left_r;
+      right_n = right_d;
+      right_d = right_r;
+      reverse = !reverse;
+    }
+  }
+};
+
+constexpr bool operator<(const rational_constant& a, const rational_constant& b) noexcept {
+  return order_struct<rational_constant>{}(a, b) == relative_order::less_than;
 }
 
-constexpr bool operator>(const rational_constant& a, const rational_constant& b) {
-  return a.numerator() * b.denominator() > b.numerator() * a.denominator();
+constexpr bool operator>(const rational_constant& a, const rational_constant& b) noexcept {
+  return order_struct<rational_constant>{}(a, b) == relative_order::greater_than;
 }
 
 constexpr bool operator==(const rational_constant& a, const rational_constant& b) noexcept {
@@ -273,19 +319,6 @@ template <>
 struct is_identical_struct<rational_constant> {
   constexpr bool operator()(const rational_constant& a, const rational_constant& b) const noexcept {
     return a.numerator() == b.numerator() && a.denominator() == b.denominator();
-  }
-};
-
-template <>
-struct order_struct<rational_constant> {
-  constexpr relative_order operator()(const rational_constant& a,
-                                      const rational_constant& b) const noexcept {
-    if (a.denominator() == b.denominator()) {
-      return order_by_comparison(a.numerator(), b.numerator());
-    }
-    const auto left = a.numerator() * b.denominator();
-    const auto right = b.numerator() * a.denominator();
-    return order_by_comparison(left, right);
   }
 };
 
