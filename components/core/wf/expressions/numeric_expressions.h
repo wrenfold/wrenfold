@@ -329,6 +329,9 @@ constexpr bool operator!=(const float_constant& a, const float_constant& b) noex
 template <>
 struct hash_struct<float_constant> {
   std::size_t operator()(const float_constant& f) const noexcept {
+    if (f.is_zero()) {
+      return 0;
+    }
     static_assert(std::is_trivially_copyable_v<float_constant> &&
                   sizeof(float_constant) == sizeof(std::size_t));
     std::size_t hash;

@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include <unordered_set>
+
 #include "wf/collect.h"
 #include "wf/constants.h"
 #include "wf/expressions/addition.h"
@@ -51,6 +53,18 @@ TEST(ScalarOperationsTest, TestNumericConstructors) {
 
   ASSERT_IDENTICAL(constants::boolean_true, boolean_expr{true});
   ASSERT_IDENTICAL(constants::boolean_false, boolean_expr{false});
+}
+
+TEST(ScalarOperationsTest, TestFloatSignedZeroHashLookup) {
+  const scalar_expr negative_zero{-0.0};
+  const scalar_expr positive_zero = make_expr<float_constant>(0.0);
+  ASSERT_TRUE(negative_zero.is_identical_to(positive_zero));
+  ASSERT_EQ(negative_zero.hash(), positive_zero.hash());
+
+  std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
+      values;
+  values.insert(negative_zero);
+  ASSERT_EQ(values.count(positive_zero), 1);
 }
 
 TEST(ScalarOperationsTest, TestAddition) {
