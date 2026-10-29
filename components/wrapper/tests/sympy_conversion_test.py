@@ -151,6 +151,16 @@ class SympyConversionTest(MathTestBase):
         self.assertIdenticalFromSp(y * y * 0.8294, spy(y) * spy(y) * 0.8294)
         self.assertIdenticalFromSp(x / y / 55, spy(x) / spy(y) / 55)
 
+    def test_fractional_power_real_assumptions(self):
+        """Preserve the principal square root when a real base may be negative."""
+        x = sym.symbol("x", NumberSet.Real)
+        expression = sym.sqrt(sym.exp(sym.sqrt(x)))
+        for k in (1, 2, 3):
+            with self.subTest(k=k):
+                value = -4 * k * k * sym.pi**2
+                # exp(sqrt(value)) = exp(2*k*pi*I) = 1, whose principal root is 1.
+                self.assertEqual(sp.Integer(1), spy(expression.subs(x, value)))
+
     def test_power(self):
         x, y = sym.make_symbols("x", "y")
         w = sym.symbol("w", set=NumberSet.RealNonNegative)
