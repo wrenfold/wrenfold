@@ -127,6 +127,12 @@ def test_kb_camera_model_methods():
     pixel_radius = jnp.sqrt(cx**2 + cy**2)
 
     p_pixels_in = get_pixel_coords(shape=(image_h, image_w)).astype(jnp.float32)
+    # The raster has no sample exactly at the principal point, where polar coordinates
+    # are singular. Include it explicitly, along with nearby points on both sides.
+    center_pixels = jnp.array(
+        [[cx, cy], [cx + 0.01, cy], [cx - 0.01, cy], [cx, cy + 0.01], [cx, cy - 0.01]]
+    ).reshape(-1, 2, 1)
+    p_pixels_in = jnp.concatenate([p_pixels_in, center_pixels], axis=0)
 
     for coeffs, max_radius in get_test_camera_coeffs():
         focal_length = pixel_radius / max_radius
@@ -134,10 +140,39 @@ def test_kb_camera_model_methods():
 
         # `unproject` will return a dict of tensors. For convenience build a namespace object so
         # that we can use `.member` syntax.
-        p_cam, _p_cam_D_pixels, p_cam_D_K, p_cam_D_coeffs = unproject(p_pixels_in, K, coeffs)
+        p_cam, p_cam_D_pixels, p_cam_D_K, p_cam_D_coeffs = unproject(p_pixels_in, K, coeffs)
 
         # project back the other way:
-        p_pixels, _p_pixels_D_p_cam, p_pixels_D_K, p_pixels_D_coeffs = project(p_cam, K, coeffs)
+        p_pixels, p_pixels_D_p_cam, p_pixels_D_K, p_pixels_D_coeffs = project(p_cam, K, coeffs)
+
+        # Check the analytic limits independently of autodiff at the exact image center.
+        center_index = image_w * image_h
+        fx, fy = K[0, 0], K[1, 0]
+        np.testing.assert_allclose(
+            actual=p_cam_D_pixels[center_index],
+            desired=[[1 / fx, 0], [0, 1 / fy], [0, 0]],
+            rtol=1.0e-6,
+        )
+        np.testing.assert_allclose(
+            actual=p_pixels_D_p_cam[center_index],
+            desired=[[fx, 0, 0], [0, fy, 0]],
+            rtol=1.0e-6,
+        )
+        # Compare coordinate Jacobians on just these samples to avoid a dense Jacobian
+        # over the entire image batch.
+        p_cam_center = p_cam[center_index:]
+        center_D_points = jax.vmap(
+            jax.jacfwd(lambda p, K=K, coeffs=coeffs: project_no_jacobians(p[None], K, coeffs)[0])
+        )(p_cam_center).reshape(-1, 2, 3)
+        center_D_pixels = jax.vmap(
+            jax.jacfwd(lambda p, K=K, coeffs=coeffs: unproject_no_jacobians(p[None], K, coeffs)[0])
+        )(center_pixels).reshape(-1, 3, 2)
+        np.testing.assert_allclose(
+            actual=p_pixels_D_p_cam[center_index:], desired=center_D_points, atol=1.0e-4
+        )
+        np.testing.assert_allclose(
+            actual=p_cam_D_pixels[center_index:], desired=center_D_pixels, atol=1.0e-7
+        )
 
         # check round-trip conversion produced the same coordinates
         np.testing.assert_allclose(desired=p_pixels_in, actual=p_pixels, atol=1.0e-4)

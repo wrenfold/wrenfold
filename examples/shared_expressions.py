@@ -72,17 +72,21 @@ def kb_camera_projection(
     # Angle with respect to the optical axis.
     # We could use acos() here and probably be a bit faster, although we would additionally need to
     # normalized `p_cam` as well.
-    xy_norm = p_cam[0:2].norm()
-    theta = sym.where(xy_norm > 0, sym.atan2(xy_norm, p_cam[2, 0]), 0)
-
-    # Angle in the image plane:
-    phi = sym.where(xy_norm > 0, sym.atan2(p_cam[1, 0], p_cam[0, 0]), 0)
+    xy_squared_norm = p_cam[0:2].squared_norm()
+    # Keep the inactive branch finite, including its derivatives when evaluated by JAX.
+    xy_norm = sym.sqrt(sym.where(xy_squared_norm > 0, xy_squared_norm, 1))
+    theta = sym.atan2(xy_norm, p_cam[2, 0])
 
     # Distort theta with the radial model:
     r = kb_fisheye_distortion(theta=theta, coeffs=coeffs)
 
     # Compute image plane location:
-    p_image = sym.vector(sym.cos(phi) * r, sym.sin(phi) * r, 1)
+    # On the forward optical axis, r / xy_norm tends to 1 / z. Multiplying this
+    # scale by x and y preserves the nonzero image-coordinate derivatives there.
+    scale = sym.where(xy_squared_norm > 0, r, 1) / sym.where(
+        xy_squared_norm > 0, xy_norm, p_cam[2, 0]
+    )
+    p_image = sym.vector(p_cam[0, 0] * scale, p_cam[1, 0] * scale)
 
     # Convert to pixel coordinates
     fx, fy, cx, cy = K.to_flat_list()
@@ -106,16 +110,17 @@ def kb_camera_unprojection(
     """
     fx, fy, cx, cy = K.to_flat_list()
     p_image = sym.vector((p_pixels[0, 0] - cx) / fx, (p_pixels[1, 0] - cy) / fy)
-    radius = p_image.norm()
+    squared_radius = p_image.squared_norm()
+    safe_radius = sym.sqrt(sym.where(squared_radius > 0, squared_radius, 1))
+    radius = sym.where(squared_radius > 0, safe_radius, 0)
 
     # Convert to angle in radians.
     theta = kb_fisheye_invert_distortion(radius, coeffs)
 
-    # Angle to the point in the image plane:
-    phi = sym.where(radius > 0, sym.atan2(p_image[1, 0], p_image[0, 0]), sym.integer(0))
-
-    # Convert back to a unit vector:
-    return sym.vector(sym.cos(phi) * sym.sin(theta), sym.sin(phi) * sym.sin(theta), sym.cos(theta))
+    # sin(theta) / radius tends to one at the image center. Avoid polar coordinates,
+    # whose angle and radial derivatives are singular at that point.
+    scale = sym.where(squared_radius > 0, sym.sin(theta) / safe_radius, 1)
+    return sym.vector(p_image[0, 0] * scale, p_image[1, 0] * scale, sym.cos(theta))
 
 
 def kb_camera_projection_with_jacobians(

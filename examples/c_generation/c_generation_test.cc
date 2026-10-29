@@ -69,6 +69,78 @@ TEST(CGenerationTest, TestKbCameraRoundTrip) {
   }
 }
 
+TEST(CGenerationTest, TestKbCameraCenterJacobians) {
+  const Eigen::Vector4d K{300.0, 320.0, 80.0, 60.0};
+  const Eigen::Vector2d center = K.tail<2>();
+  for (const auto& [coeffs, _] : get_fisheye_coefficients()) {
+    Eigen::Vector3d p_cam;
+    Eigen::Matrix<double, 3, 2> p_cam_D_pixels;
+    Eigen::Matrix<double, 3, 4> p_cam_D_K, p_cam_D_coeffs;
+    auto p_cam_D_pixels_span = output_span_from_eigen(p_cam_D_pixels);
+    auto p_cam_D_K_span = output_span_from_eigen(p_cam_D_K);
+    auto p_cam_D_coeffs_span = output_span_from_eigen(p_cam_D_coeffs);
+    kb_camera_unprojection_with_jacobians(
+        input_span_from_eigen(center), input_span_from_eigen(K), input_span_from_eigen(coeffs),
+        output_span_from_eigen(p_cam), &p_cam_D_pixels_span, &p_cam_D_K_span,
+        &p_cam_D_coeffs_span);
+
+    Eigen::Matrix<double, 3, 2> expected_D_pixels;
+    expected_D_pixels << 1 / K[0], 0, 0, 1 / K[1], 0, 0;
+    Eigen::Matrix<double, 3, 4> expected_D_K = Eigen::Matrix<double, 3, 4>::Zero();
+    expected_D_K(0, 2) = -1 / K[0];
+    expected_D_K(1, 3) = -1 / K[1];
+    ASSERT_EIGEN_NEAR(Eigen::Vector3d::UnitZ(), p_cam, 0.0);
+    ASSERT_EIGEN_NEAR(expected_D_pixels, p_cam_D_pixels, 1.0e-15);
+    ASSERT_EIGEN_NEAR(expected_D_K, p_cam_D_K, 1.0e-15);
+    ASSERT_EIGEN_NEAR((Eigen::Matrix<double, 3, 4>::Zero()), p_cam_D_coeffs, 0.0);
+
+    const auto numeric_D_pixels = numerical_jacobian(center, [&](const Eigen::Vector2d& pixel) {
+      Eigen::Vector3d result;
+      kb_camera_unprojection_with_jacobians(
+          input_span_from_eigen(pixel), input_span_from_eigen(K), input_span_from_eigen(coeffs),
+          output_span_from_eigen(result), nullptr, nullptr, nullptr);
+      return result;
+    });
+    ASSERT_EIGEN_NEAR(numeric_D_pixels, p_cam_D_pixels, 1.0e-10);
+
+    for (const double depth : {0.5, 1.0, 2.5}) {
+      const Eigen::Vector3d point{0.0, 0.0, depth};
+      Eigen::Vector2d p_pixels;
+      Eigen::Matrix<double, 2, 3> p_pixels_D_p_cam;
+      Eigen::Matrix<double, 2, 4> p_pixels_D_K, p_pixels_D_coeffs;
+      auto p_pixels_D_p_cam_span = output_span_from_eigen(p_pixels_D_p_cam);
+      auto p_pixels_D_K_span = output_span_from_eigen(p_pixels_D_K);
+      auto p_pixels_D_coeffs_span = output_span_from_eigen(p_pixels_D_coeffs);
+      kb_camera_projection_with_jacobians(
+          input_span_from_eigen(point), input_span_from_eigen(K), input_span_from_eigen(coeffs),
+          output_span_from_eigen(p_pixels), &p_pixels_D_p_cam_span, &p_pixels_D_K_span,
+          &p_pixels_D_coeffs_span);
+
+      Eigen::Matrix<double, 2, 3> expected_D_point;
+      expected_D_point << K[0] / depth, 0, 0, 0, K[1] / depth, 0;
+      Eigen::Matrix<double, 2, 4> expected_D_intrinsics = Eigen::Matrix<double, 2, 4>::Zero();
+      expected_D_intrinsics(0, 2) = 1;
+      expected_D_intrinsics(1, 3) = 1;
+      ASSERT_EIGEN_NEAR(center, p_pixels, 0.0);
+      ASSERT_EIGEN_NEAR(expected_D_point, p_pixels_D_p_cam, 1.0e-12);
+      ASSERT_EIGEN_NEAR(expected_D_intrinsics, p_pixels_D_K, 0.0);
+      ASSERT_EIGEN_NEAR((Eigen::Matrix<double, 2, 4>::Zero()), p_pixels_D_coeffs, 0.0);
+
+      const auto numeric_D_point = numerical_jacobian(
+          point,
+          [&](const Eigen::Vector3d& p) {
+            Eigen::Vector2d result;
+            kb_camera_projection_with_jacobians(
+                input_span_from_eigen(p), input_span_from_eigen(K), input_span_from_eigen(coeffs),
+                output_span_from_eigen(result), nullptr, nullptr, nullptr);
+            return result;
+          },
+          1.0e-3);
+      ASSERT_EIGEN_NEAR(numeric_D_point, p_pixels_D_p_cam, 1.0e-8);
+    }
+  }
+}
+
 // Test jacobians of the KB camera model projection.
 TEST(CGenerationTest, TestKbCameraProjectJacobian) {
   constexpr double cx = (320.0 - 1) / 2.0;
