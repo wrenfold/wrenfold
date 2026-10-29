@@ -232,6 +232,7 @@ std::string python_code_generator::operator()(const ast::function_definition& de
 
 std::string python_code_generator::operator()(const ast::function_signature& signature) const {
   std::vector<std::string> args{};
+  std::vector<std::string> optional_args{};
   args.reserve(signature.num_arguments());
 
   for (const auto& arg : signature.arguments()) {
@@ -244,11 +245,15 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
       }
     } else if (arg.direction() == argument_direction::optional_output) {
       if (use_output_arguments_) {
-        args.push_back(fmt::format("{}: {} | None = None", arg.name(), formatted_type));
+        optional_args.push_back(fmt::format("{}: {} | None = None", arg.name(), formatted_type));
       } else {
         args.push_back(fmt::format("compute_{}: bool", arg.name()));
       }
     }
+  }
+  // Python requires parameters with defaults to follow all required parameters.
+  for (std::string& arg : optional_args) {
+    args.push_back(std::move(arg));
   }
 
   std::vector<std::string> output_arg_ret_annotations;

@@ -916,7 +916,69 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
 
 
 class OutputArgumentLayoutTest(MathTestBase):
-    """Output assignments must update the caller's array for every supported layout."""
+    """Output arguments support different declaration orders and array layouts."""
+
+    def test_optional_output_parameter_order(self):
+        factors = {"required_a": 2, "optional_a": 3, "required_b": 5, "optional_b": 7}
+        orders = (
+            ("optional_a", "required_a", "optional_b", "required_b"),
+            ("required_a", "optional_a", "required_b", "optional_b"),
+            ("required_a", "required_b", "optional_a", "optional_b"),
+            ("optional_b", "optional_a", "required_b", "required_a"),
+        )
+
+        def make_outputs(order):
+            def outputs(x: wf.Vector2):
+                return [
+                    wf.OutputArg(x * factors[name], name, is_optional=name.startswith("optional"))
+                    for name in order
+                ]
+
+            return outputs
+
+        for order in orders:
+            with self.subTest(order=order):
+                func, _ = wf.generate_python(
+                    make_outputs(order), generator=wf.PythonGenerator(use_output_arguments=True)
+                )
+                required = [name for name in order if name.startswith("required")]
+                optional = [name for name in order if name.startswith("optional")]
+                signature = inspect.signature(func)
+                self.assertEqual(["x", *required, *optional], list(signature.parameters))
+                for name in required:
+                    self.assertIs(inspect.Parameter.empty, signature.parameters[name].default)
+                for name in optional:
+                    self.assertIsNone(signature.parameters[name].default)
+
+                values = np.array([11.0, 13.0])
+                for mode in ("omitted", "none", "positional", "keyword"):
+                    with self.subTest(mode=mode):
+                        buffers = {name: np.full((2, 1), -1.0) for name in order}
+                        required_args = [buffers[name] for name in required]
+                        active_optional = []
+                        if mode == "omitted":
+                            result = func(values, *required_args)
+                        elif mode == "none":
+                            result = func(values, *required_args, None, None)
+                        elif mode == "positional":
+                            active_optional = optional
+                            result = func(
+                                values, *required_args, *(buffers[name] for name in optional)
+                            )
+                        else:
+                            active_optional = optional[-1:]
+                            result = func(
+                                values,
+                                **{name: buffers[name] for name in required + active_optional},
+                            )
+                        self.assertIsNone(result)
+                        for name in order:
+                            expected = (
+                                values.reshape(2, 1) * factors[name]
+                                if name in required + active_optional
+                                else np.full((2, 1), -1.0)
+                            )
+                            np.testing.assert_array_equal(buffers[name], expected)
 
     def _check_output_argument_layouts(self, compile_with_numba: bool):
         def outputs(x: wf.Vector4):
