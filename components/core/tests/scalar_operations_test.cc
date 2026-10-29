@@ -534,6 +534,16 @@ TEST(ScalarOperationsTest, TestPowerCombinationInnerNonNegative) {
   ASSERT_IDENTICAL(abs(v), pow(pow(abs(v), 2), 1_s / 2));
 }
 
+TEST(ScalarOperationsTest, TestPowerCombinationLog) {
+  const scalar_expr x{"x", number_set::real_positive};
+  const scalar_expr magnitude = sqrt(pow(log(x), 2));
+
+  // The square root of a squared logarithm must be nonnegative even when x < 1.
+  for (const double value : {0.125, 0.5, 1.0, 2.0, 8.0}) {
+    ASSERT_COMPLEX_NEAR(std::abs(std::log(value)), magnitude.subs(x, value), 1.0e-15);
+  }
+}
+
 // Test: int**int
 TEST(ScalarOperationsTest, TestPowerIntToInt) {
   ASSERT_IDENTICAL(1, pow(1, 1));
@@ -1404,11 +1414,11 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(exp(real_positive)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(exp(complex)));
 
-  // not implemented
+  // Only strictly positive arguments are guaranteed to have real logarithms.
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real_non_negative)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(complex)));
-  ASSERT_EQ(number_set::real_positive, determine_numeric_set(log(real_positive)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(log(real_positive)));
 
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(abs(real_positive)));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(real)));

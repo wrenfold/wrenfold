@@ -233,6 +233,23 @@ class PythonCodeGenerationTestBase(MathTestBase):
         np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
         np.testing.assert_allclose(desired=oa_sym["J_theta"], actual=J_theta_num, rtol=1.0e-6)
 
+    def test_logarithm_magnitude(self):
+        """The magnitude of log(exp(x)) must remain nonnegative for negative x."""
+
+        def logarithm_magnitude(x: wf.FloatScalar):
+            return sym.sqrt(sym.log(sym.exp(x)) ** 2)
+
+        func = self._generator(logarithm_magnitude)
+        values = np.array([-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0])
+        for value in values:
+            np.testing.assert_allclose(func(value), np.abs(value), rtol=1.0e-6, atol=1.0e-6)
+
+        if self.SUPPORTS_BATCH:
+            func_batched = self._generator(logarithm_magnitude, batch=True)
+            np.testing.assert_allclose(
+                func_batched(values), np.abs(values), rtol=1.0e-6, atol=1.0e-6
+            )
+
     def test_nested_conditional(self):
         """Test a function that creates a nested conditional."""
 
