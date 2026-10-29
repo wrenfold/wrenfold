@@ -342,6 +342,10 @@ def generate_python(
       To suppress the default import behavior, specify ``import_target_module=False``. You will then
       need to pass your own import in the ``context`` dict.
 
+      Integer inputs and casts use signed 64-bit values with NumPy and PyTorch, independently of
+      ``float_width``. JAX follows its configured default integer width; enable ``jax_enable_x64``
+      to use 64-bit integers with JAX.
+
     Tip:
 
       Because python lacks formal "output arguments", any symbolic outputs tagged as

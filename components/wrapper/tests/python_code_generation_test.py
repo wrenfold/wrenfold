@@ -8,6 +8,7 @@ import inspect
 import sys
 import typing
 import unittest
+import warnings
 
 import numpy as np
 import numpy.typing as npt
@@ -510,6 +511,56 @@ class PythonCodeGenerationTestBase(MathTestBase):
                 if not isinstance(sum_numerical, float):
                     self.assertEqual(sum_numerical.dtype, self.EXPECTED_TYPE)
 
+    def test_large_integer_inputs(self):
+        """Integer inputs and intermediate arithmetic must retain their 64-bit range."""
+
+        def integer_checks(value: wf.IntScalar):
+            return sym.vector(
+                sym.iverson(value > 0),
+                sym.iverson(sym.eq(value, 2**40)),
+                sym.iverson(sym.eq(value, -(2**40))),
+                sym.iverson(sym.eq(value, 2**63 - 1)),
+                sym.iverson(sym.eq(value, -(2**63))),
+            )
+
+        func = self._generator(integer_checks)
+        values = (
+            0,
+            1,
+            -1,
+            2**31 - 1,
+            2**31,
+            -(2**31),
+            -(2**31) - 1,
+            2**40,
+            -(2**40),
+            2**63 - 1,
+            -(2**63),
+        )
+        for value in values:
+            for convert in (int, np.int64):
+                with self.subTest(value=value, input_type=convert):
+                    expected = np.array(
+                        [
+                            value > 0,
+                            value == 2**40,
+                            value == -(2**40),
+                            value == 2**63 - 1,
+                            value == -(2**63),
+                        ]
+                    ).reshape(5, 1)
+                    np.testing.assert_array_equal(func(convert(value)), expected)
+
+        def twice(value: wf.IntScalar):
+            return 2 * value
+
+        func = self._generator(twice)
+        for value in (2**30, -(2**30) - 1, 2**40, -(2**40)):
+            with self.subTest(arithmetic_input=value):
+                np.testing.assert_equal(
+                    func(np.int64(value)), np.asarray(2 * value, dtype=self.EXPECTED_TYPE)
+                )
+
 
 @dataclasses.dataclass
 class SimParamsSymbolic:
@@ -833,7 +884,23 @@ class NumbaCodeGenerationF64OutputArgsTest(NumbaCodeGenerationTestBase):
 class JaxCodeGenerationTest(PythonCodeGenerationTestBase):
     """Run with JAX configuration."""
 
-    EXPECTED_TYPE = np.float32  # Jax only supports F32
+    EXPECTED_TYPE = np.float32  # Use F32 outputs with either JAX integer width.
+
+    def test_large_integer_inputs(self):
+        with jax.experimental.enable_x64():
+            super().test_large_integer_inputs()
+
+    def test_integer_inputs_without_x64(self):
+        """The default JAX mode must still support integer casts without dtype warnings."""
+
+        def positive(value: wf.IntScalar):
+            return sym.iverson(value > 0)
+
+        with jax.experimental.disable_x64(), warnings.catch_warnings():
+            warnings.simplefilter("error")
+            func = self._generator(positive)
+            self.assertEqual(1, func(np.int32(3)))
+            self.assertEqual(0, func(np.int32(-3)))
 
     def _generator(
         self,
