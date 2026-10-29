@@ -527,6 +527,39 @@ TEST(SpanTest, TestEigenQuaternion) {
 
   const auto q_output = make_output_span<4, 1>(q);
   EXPECT_EIGEN_SPAN_EQ(q.coeffs(), q_output);
+
+  q_output(0, 0) = 0.5;
+  EXPECT_EQ(0.5, q.x());
+
+  const auto q_optional_output = make_optional_output_span<4, 1>(q);
+  q_optional_output(3, 0) = 0.75;
+  EXPECT_EQ(0.75, q.w());
+}
+
+TEST(SpanTest, TestEigenQuaternionDimensions) {
+  using quaternion_type = Eigen::Quaternion<double>;
+  static_assert(detail::is_convertible_to_span_v<constant_value_pack<4, 1>, quaternion_type>);
+  static_assert(!detail::is_convertible_to_span_v<constant_value_pack<3, 3>, quaternion_type>);
+  static_assert(!detail::is_convertible_to_span_v<constant_value_pack<3, 1>, quaternion_type>);
+  static_assert(!detail::is_convertible_to_span_v<constant_value_pack<5, 1>, quaternion_type>);
+  static_assert(!detail::is_convertible_to_span_v<constant_value_pack<4, 2>, quaternion_type>);
+  static_assert(!detail::is_convertible_to_span_v<constant_value_pack<1, 4>, quaternion_type>);
+  static_assert(!detail::is_convertible_to_span_v<constant_value_pack<4>, quaternion_type>);
+  static_assert(!detail::is_convertible_to_span_v<constant_value_pack<4, 1, 1>, quaternion_type>);
+}
+
+TEST(SpanTest, TestEigenQuaternionMap) {
+  std::array<double, 4> data{0.1, 0.2, 0.3, 0.4};
+  const Eigen::Map<const Eigen::Quaternion<double>> q_input{data.data()};
+  EXPECT_EIGEN_SPAN_EQ(q_input.coeffs(), (make_input_span<4, 1>(q_input)));
+
+  Eigen::Map<Eigen::Quaternion<double>> q_output{data.data()};
+  const auto output = make_output_span<4, 1>(q_output);
+  output(2, 0) = 0.5;
+  EXPECT_EQ(0.5, data[2]);
+
+  Eigen::Map<Eigen::Quaternion<double>> q_null{nullptr};
+  EXPECT_FALSE((make_optional_output_span<4, 1>(q_null)));
 }
 
 }  // namespace wf
