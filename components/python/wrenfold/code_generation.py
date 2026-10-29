@@ -349,6 +349,8 @@ def generate_python(
       function as elements of a tuple. The example listing below illustrates this behavior.
       When targeting NumPy, this behavior can be changed by passing ``use_output_arguments=True``
       to :class:`wrenfold.code_generation.PythonGenerator`.
+      In this mode, required parameters precede optional output parameters, which default to
+      ``None``. Relative declaration order is preserved within each group.
 
       **Additionally**, remember that your target framework may not be able to reason about your
       custom types. For example,
