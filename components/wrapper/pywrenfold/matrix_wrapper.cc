@@ -158,7 +158,7 @@ matrix_expr matrix_get_row_and_col_slice(const matrix_expr& self,
 matrix_expr matrix_get_row_index_and_col_slice(
     const matrix_expr& self, const std::tuple<index_t, py::slice>& row_and_col_slice) {
   const auto [row, col_slice] = row_and_col_slice;
-  const index_t wrapped_row = row < 0 ? self.rows() - row : row;
+  const index_t wrapped_row = row < 0 ? self.rows() + row : row;
   const slice col_index{self.cols(), col_slice};
 
   std::vector<scalar_expr> elements;
@@ -173,7 +173,7 @@ matrix_expr matrix_get_row_index_and_col_slice(
 matrix_expr matrix_get_row_slice_and_col_index(
     const matrix_expr& self, const std::tuple<py::slice, index_t>& row_slice_and_col) {
   const auto [row_slice, col] = row_slice_and_col;
-  const index_t wrapped_col = col < 0 ? self.cols() - col : col;
+  const index_t wrapped_col = col < 0 ? self.cols() + col : col;
   const slice row_index{self.rows(), row_slice};
 
   std::vector<scalar_expr> elements;

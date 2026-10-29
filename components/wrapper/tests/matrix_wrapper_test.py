@@ -234,8 +234,12 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(sym.matrix(np.flip(symbol_array, axis=(0, 1))), m[::-1, ::-1])
 
         # slice on cols:
-        for i in range(m.shape[0]):
-            for col_slice in self.generate_slices(m.shape[1]):
+        for i in range(-m.shape[0], m.shape[0]):
+            for col_slice in (
+                slice(None),
+                slice(None, None, -1),
+                *self.generate_slices(m.shape[1]),
+            ):
                 sliced_symbols = symbol_array[i, col_slice].reshape((1, -1))
                 if sliced_symbols.size != 0:
                     self.assertIdentical(sym.matrix(sliced_symbols), m[i, col_slice])
@@ -243,8 +247,12 @@ class MatrixWrapperTest(MathTestBase):
                     self.assertTrue(m[i, col_slice].is_empty)
 
         # slice on rows:
-        for j in range(m.shape[1]):
-            for row_slice in self.generate_slices(m.shape[0]):
+        for j in range(-m.shape[1], m.shape[1]):
+            for row_slice in (
+                slice(None),
+                slice(None, None, -1),
+                *self.generate_slices(m.shape[0]),
+            ):
                 sliced_symbols = symbol_array[row_slice, j].reshape((-1, 1))
                 if sliced_symbols.size != 0:
                     self.assertIdentical(sym.matrix(sliced_symbols), m[row_slice, j])
@@ -264,6 +272,12 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: m[0, -6])
         self.assertRaises(exceptions.DimensionError, lambda: m[0, 10])
         self.assertRaises(exceptions.DimensionError, lambda: m[11, 2])
+        for row in (-m.shape[0] - 1, m.shape[0]):
+            with self.subTest(row=row):
+                self.assertRaises(exceptions.DimensionError, m.__getitem__, (row, slice(None)))
+        for col in (-m.shape[1] - 1, m.shape[1]):
+            with self.subTest(col=col):
+                self.assertRaises(exceptions.DimensionError, m.__getitem__, (slice(None), col))
 
         # Test iteration:
         self.assertEqual(4, len(m))
