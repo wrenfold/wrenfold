@@ -227,6 +227,9 @@ inline matrix_expr stack_iterables(const std::vector<py::object>& rows) {
   // Transform the first row to get the # of columns.
   auto it = rows.begin();
   const std::size_t expected_num_cols = extract_iterable_rows(*it, converted);
+  if (expected_num_cols == 0) {
+    throw dimension_error("Cannot construct matrix from rows with zero columns.");
+  }
   converted.reserve(rows.size() * expected_num_cols);
 
   // All other elements must match.
