@@ -5,6 +5,7 @@
 
 #include <ranges>
 #include <span>
+#include <unordered_set>
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
@@ -231,6 +232,28 @@ std::string python_code_generator::operator()(const ast::function_definition& de
 }
 
 std::string python_code_generator::operator()(const ast::function_signature& signature) const {
+  // Outputs are locals even when they are returned rather than passed as arguments.
+  std::unordered_set<std::string_view> argument_names;
+  for (const auto& arg : signature.arguments()) {
+    argument_names.insert(arg.name());
+  }
+  const auto check_helper_name = [&](const std::string_view name) {
+    if (argument_names.count(name)) {
+      throw invalid_argument_error(
+          "Python argument `{}` conflicts with a generated helper name in function `{}`. "
+          "Rename the argument.",
+          name, signature.name());
+    }
+  };
+  check_helper_name(python_module_prefix_from_target(target_));
+  if (!use_output_arguments_) {
+    for (const auto& arg : signature.arguments()) {
+      if (arg.is_optional()) {
+        check_helper_name(fmt::format("compute_{}", arg.name()));
+      }
+    }
+  }
+
   std::vector<std::string> args{};
   args.reserve(signature.num_arguments());
 

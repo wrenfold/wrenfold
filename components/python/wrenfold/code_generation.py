@@ -262,6 +262,13 @@ def generate_function(
     Returns:
       * A string of generated code.
 
+    Raises:
+      wrenfold.exceptions.InvalidArgumentError: An input or output name conflicts with a backend
+        helper. C++ reserves ``Scalar`` and, in span mode, ``T<argument index>`` and
+        ``_<matrix argument name>``. Python reserves the selected module alias (``np``, ``th``, or
+        ``jnp``) and, when returning output arguments, ``compute_<optional output name>``.
+        Rename the conflicting argument before generating code.
+
     Example:
       >>> import wrenfold as wf
       >>>
