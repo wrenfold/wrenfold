@@ -2,8 +2,10 @@
 
 from collections.abc import Callable
 
+import numpy as np
 import pywrenfold
 import wrenfold as wf
+from numpy.typing import NDArray
 from pywrenfold import gen, geometry, sym, type_info
 
 x = sym.symbol("x")
@@ -56,6 +58,11 @@ constructed_vectors: tuple[sym.MatrixExpr, ...] = (
 matrix_shape: tuple[int, int] = constructed_vectors[0].shape
 matrix_rows: list[list[sym.Expr]] = constructed_vectors[0].to_list()
 matrix_from_rows = sym.matrix([[x, 1], [2.5, y]])
+
+numeric_matrix = sym.matrix([[1, 2], [3, 4]])
+numeric_array = numeric_matrix.__array__(np.dtype("float32"), copy=True)
+numeric_array_by_keyword = numeric_matrix.__array__(dtype=np.float32, copy=None)
+float_array: NDArray[np.float32] = np.asarray(numeric_matrix, dtype=np.float32)
 
 expr_args: tuple[sym.Expr | sym.BooleanExpr, ...] = (x + y).args
 boolean_args: tuple[sym.Expr | sym.BooleanExpr, ...] = (x > y).args
