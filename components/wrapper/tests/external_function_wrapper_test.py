@@ -100,6 +100,29 @@ class ExternalFunctionWrapperTest(MathTestBase):
         self.assertRaises(TypeError, lambda: func(foo=2, bar=TestType(a=1, b=v)))
         self.assertRaises(RuntimeError, lambda: func(bar=v))
 
+    def test_custom_type_field_shapes(self):
+        """Reject malformed matrix fields passed to an external function."""
+
+        @dataclasses.dataclass
+        class MatrixFields:
+            first: wf.Vector2
+            second: wf.Vector2
+
+        func = external_functions.declare_external_function(
+            name="consume", arguments=[("value", MatrixFields)], return_type=wf.FloatScalar
+        )
+        for first, second, field_name in (
+            (sym.vector(1), sym.vector(2, 3, 4), "first"),
+            (sym.vector(1, 2, 3), sym.vector(4), "first"),
+            (sym.row_vector(1, 2), sym.vector(3, 4), "first"),
+            (sym.vector(1, 2), sym.row_vector(3, 4), "second"),
+        ):
+            with (
+                self.subTest(first=first.shape, second=second.shape),
+                self.assertRaisesRegex(TypeError, rf"field `{field_name}`.*shape \(2, 1\)"),
+            ):
+                func(MatrixFields(first, second))
+
     def test_opaque_types(self):
         """Define an external function that accepts and returns opaque types."""
 

@@ -306,12 +306,11 @@ constexpr static std::string_view python_matrix_constructor_from_target(
 std::string python_code_generator::operator()(const ast::assign_output_matrix& x) const {
   if (use_output_arguments_) {
     const matrix_type* mat = std::get_if<matrix_type>(&x.arg.type());
-    // TODO: We _should_ pass copy=False here to ensure no accidental copy occurs, and that we
-    // are still mutating the same array. However this doesn't work because Numba crashes during
-    // type inference if copy=False is specified.
     WF_ASSERT(mat, "Argument {} should be a matrix", x.arg.name());
-    return fmt::format("{}.reshape({}, {})[:] = {}", x.arg.name(), mat->rows(),
-                       mat->cols(), operator()(x.value));
+    // Reshape the result instead of the destination, since reshaping a strided output
+    // can create a copy and silently discard the assignment.
+    return fmt::format("{}[...] = {}.reshape({}.shape)", x.arg.name(), operator()(x.value),
+                       x.arg.name());
   } else {
     return fmt::format("{} = {}", x.arg.name(), operator()(x.value));
   }
