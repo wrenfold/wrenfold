@@ -370,6 +370,17 @@ class CodeGenerationWrapperTest(MathTestBase):
 
         self.assertRaises(TypeError, lambda wf: wf.create_function_description(func=invalid_5))
 
+    def test_non_class_annotation_reports_context(self):
+        def f1(x: wf.FloatScalar, y: list[float]):
+            return x
+
+        with self.assertRaisesRegex(
+            TypeError,
+            r"Invalid type used in annotation: `list\[float\]`\. "
+            r"This error was thrown while processing: Argument `y` of function `f1`",
+        ):
+            wf.create_function_description(func=f1)
+
     def test_incomplete_annotations_disallowed(self):
         """Test that incomplete or invalid type annotations are caught."""
 

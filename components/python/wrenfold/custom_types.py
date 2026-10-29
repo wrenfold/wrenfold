@@ -46,10 +46,8 @@ def convert_to_internal_type(
                 f"Invalid type used in annotation: `{origin_type}`. "
                 f"This error was thrown while processing: {context}"
             )
-    elif (
-        isinstance(python_type, type)
-        and dataclasses.is_dataclass(python_type)
-        or issubclass(python_type, type_annotations.Opaque)
+    elif isinstance(python_type, type) and (
+        dataclasses.is_dataclass(python_type) or issubclass(python_type, type_annotations.Opaque)
     ):
         return _maybe_create_custom_type(
             python_type=python_type, cached_custom_types=cached_custom_types
