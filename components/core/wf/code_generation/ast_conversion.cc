@@ -140,7 +140,18 @@ void ast_form_visitor::push_back_output_operations(const ir::const_block_ptr blo
             emplace_operation<ast::assign_output_matrix>(
                 *arg, *get_if<construct_matrix>(converted_value));
           },
-          [&](const custom_type&) {
+          [&](const custom_type& custom) {
+            if (!get_if<construct_custom_type>(converted_value)) {
+              // Construction may have been replaced with a reference to an input or
+              // external result. Output assignments still require an explicit constructor.
+              std::vector<ast::ast_element> contents;
+              contents.reserve(custom.total_size());
+              for (std::size_t i = 0; i < custom.total_size(); ++i) {
+                contents.push_back(make_field_access_sequence(converted_value, custom, i));
+              }
+              type_constructor constructor{std::move(contents)};
+              converted_value = ast::ast_element{constructor(custom)};
+            }
             emplace_operation<ast::assign_output_struct>(
                 *arg, *get_if<construct_custom_type>(converted_value));
           });
