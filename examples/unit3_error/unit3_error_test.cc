@@ -106,6 +106,43 @@ TEST(Unit3ErrorTest, EigenSignature) {
   EXPECT_EIGEN_NEAR(D1_num, D1, 1.0e-11);
 }
 
+TEST(Unit3ErrorTest, ZeroResidualJacobians) {
+  // These points have a smooth tangent frame and exactly zero local coordinates at equality.
+  for (const Vector3d& x : {Vector3d(1, 0, 0), Vector3d(-1, 0, 0), Vector3d(0, 1, 0),
+                            Vector3d(0.6, -0.8, 0)}) {
+    SCOPED_TRACE(testing::Message() << "x = " << x.transpose());
+    constexpr double weight = 2.0;
+    Vector2d error;
+    Matrix2d D0, D1;
+    gen::unit3_error(x, x, weight, error, D0, D1);
+    EXPECT_EIGEN_NEAR(error, Vector2d::Zero(), 1.0e-15);
+    EXPECT_EIGEN_NEAR(D0, (-weight * Matrix2d::Identity()).eval(), 1.0e-12);
+    EXPECT_EIGEN_NEAR(D1, (weight * Matrix2d::Identity()).eval(), 1.0e-12);
+
+    const auto D0_num = numerical_jacobian(
+        Vector2d::Zero(),
+        [&](const Vector2d& delta) {
+          gen::unit3_error(sphere_retract(x, delta), x, weight, error, nullptr, nullptr);
+          return error;
+        },
+        1.0e-3);
+    const auto D1_num = numerical_jacobian(
+        Vector2d::Zero(),
+        [&](const Vector2d& delta) {
+          gen::unit3_error(x, sphere_retract(x, delta), weight, error, nullptr, nullptr);
+          return error;
+        },
+        1.0e-3);
+    EXPECT_EIGEN_NEAR(D0, D0_num, 1.0e-11);
+    EXPECT_EIGEN_NEAR(D1, D1_num, 1.0e-11);
+
+    gen::unit3_error_eigen<double>(x, x, weight, error, &D0, &D1);
+    EXPECT_EIGEN_NEAR(error, Vector2d::Zero(), 1.0e-15);
+    EXPECT_EIGEN_NEAR(D0, D0_num, 1.0e-11);
+    EXPECT_EIGEN_NEAR(D1, D1_num, 1.0e-11);
+  }
+}
+
 TEST(Unit3ErrorTest, RuntimeAntipode) {
   const Vector3d north = Vector3d::UnitZ();
   const Vector3d south = -north;
