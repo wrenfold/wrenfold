@@ -50,6 +50,10 @@ class matrix {
   // Get a sub-block from this matrix.
   matrix get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
 
+  // Get a full row or column, retaining its matrix shape.
+  matrix get_row(index_t row) const;
+  matrix get_col(index_t col) const;
+
   // Transpose the matrix.
   matrix transposed() const;
 

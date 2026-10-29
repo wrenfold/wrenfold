@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include <unordered_set>
+
 #include "wf/collect.h"
 #include "wf/constants.h"
 #include "wf/expressions/addition.h"
@@ -51,6 +53,18 @@ TEST(ScalarOperationsTest, TestNumericConstructors) {
 
   ASSERT_IDENTICAL(constants::boolean_true, boolean_expr{true});
   ASSERT_IDENTICAL(constants::boolean_false, boolean_expr{false});
+}
+
+TEST(ScalarOperationsTest, TestFloatSignedZeroHashLookup) {
+  const scalar_expr negative_zero{-0.0};
+  const scalar_expr positive_zero = make_expr<float_constant>(0.0);
+  ASSERT_TRUE(negative_zero.is_identical_to(positive_zero));
+  ASSERT_EQ(negative_zero.hash(), positive_zero.hash());
+
+  std::unordered_set<scalar_expr, hash_struct<scalar_expr>, is_identical_struct<scalar_expr>>
+      values;
+  values.insert(negative_zero);
+  ASSERT_EQ(values.count(positive_zero), 1);
 }
 
 TEST(ScalarOperationsTest, TestAddition) {
@@ -520,6 +534,16 @@ TEST(ScalarOperationsTest, TestPowerCombinationInnerNonNegative) {
   ASSERT_IDENTICAL(abs(v), pow(pow(abs(v), 2), 1_s / 2));
 }
 
+TEST(ScalarOperationsTest, TestPowerCombinationLog) {
+  const scalar_expr x{"x", number_set::real_positive};
+  const scalar_expr magnitude = sqrt(pow(log(x), 2));
+
+  // The square root of a squared logarithm must be nonnegative even when x < 1.
+  for (const double value : {0.125, 0.5, 1.0, 2.0, 8.0}) {
+    ASSERT_COMPLEX_NEAR(std::abs(std::log(value)), magnitude.subs(x, value), 1.0e-15);
+  }
+}
+
 // Test: int**int
 TEST(ScalarOperationsTest, TestPowerIntToInt) {
   ASSERT_IDENTICAL(1, pow(1, 1));
@@ -553,6 +577,10 @@ TEST(ScalarOperationsTest, TestPowerFloats) {
   ASSERT_IDENTICAL(std::pow(0.5, 3.4), pow(1_s / 2, 3.4));
   ASSERT_IDENTICAL(std::pow(2.2, 0.75), pow(2.2, 3_s / 4));
   ASSERT_IDENTICAL(constants::complex_infinity, pow(0.0, -1));
+  ASSERT_IDENTICAL(constants::undefined, pow(-2.0, 1_s / 2));
+  ASSERT_IDENTICAL(constants::undefined, pow(-2.0, 0.5));
+  ASSERT_IDENTICAL(constants::undefined, pow(-2, 0.5));
+  ASSERT_IDENTICAL(constants::complex_infinity, pow(1.0e300, 2.0));
 }
 
 // Test: int**rational
@@ -1386,11 +1414,11 @@ TEST(ScalarOperationsTest, TestNumericSetsFunctions) {
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(exp(real_positive)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(exp(complex)));
 
-  // not implemented
+  // Only strictly positive arguments are guaranteed to have real logarithms.
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(real_non_negative)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(log(complex)));
-  ASSERT_EQ(number_set::real_positive, determine_numeric_set(log(real_positive)));
+  ASSERT_EQ(number_set::real, determine_numeric_set(log(real_positive)));
 
   ASSERT_EQ(number_set::real_positive, determine_numeric_set(abs(real_positive)));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(abs(real)));

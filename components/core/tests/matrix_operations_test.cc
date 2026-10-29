@@ -82,6 +82,8 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   ASSERT_IDENTICAL(make_row_vector(y, b), m1.get_block(1, 0, 1, 2));
   ASSERT_IDENTICAL(make_row_vector(y), m1.get_block(1, 0, 1, 1));
   ASSERT_IDENTICAL(make_matrix(2, 2, y, b, z, c), m1.get_block(1, 0, 2, 2));
+  ASSERT_IDENTICAL(make_row_vector(y, b), m1.get_row(1));
+  ASSERT_IDENTICAL(make_vector(a, b, c), m1.get_col(1));
 
   // clang-format off
   const matrix_expr m2 = make_matrix(3, 4,
@@ -98,6 +100,10 @@ TEST(MatrixOperationsTest, TestGetBlock) {
   ASSERT_THROW(m2.get_block(1, -5, 1, 1), dimension_error);
   ASSERT_THROW(m2.get_block(1, 1, 4, 1), dimension_error);
   ASSERT_THROW(m2.get_block(1, 1, 2, 5), dimension_error);
+  ASSERT_THROW(m2.get_row(-1), dimension_error);
+  ASSERT_THROW(m2.get_row(m2.rows()), dimension_error);
+  ASSERT_THROW(m2.get_col(-1), dimension_error);
+  ASSERT_THROW(m2.get_col(m2.cols()), dimension_error);
 }
 
 TEST(MatrixOperationsTest, TestTranspose) {
@@ -264,6 +270,22 @@ TEST(MatrixOperationsTest, TestSquaredNorm) {
   ASSERT_IDENTICAL(4 * x * x + 9 * y * y + 36, make_vector(2 * x, 3 * y, 6).squared_norm());
   ASSERT_IDENTICAL(0, make_zeros(2, 3).squared_norm());
   ASSERT_IDENTICAL(3, make_identity(3).squared_norm());
+}
+
+TEST(MatrixOperationsTest, TestNormalized) {
+  const matrix_expr m = make_matrix(2, 3, 3, 4, 0, 0, 0, 12);
+
+  ASSERT_IDENTICAL(make_matrix(2, 3, 3_s / 13, 4_s / 13, 0, 0, 0, 12_s / 13), m.normalized());
+  ASSERT_IDENTICAL(make_matrix(2, 3, 1, 1, 0, 0, 0, 1), m.colwise_normalized());
+  ASSERT_IDENTICAL(make_matrix(2, 3, 3_s / 5, 4_s / 5, 0, 0, 0, 1), m.rowwise_normalized());
+
+  const matrix_expr column = make_vector(3, 4);
+  ASSERT_IDENTICAL(column.normalized(), column.colwise_normalized());
+  ASSERT_IDENTICAL(make_vector(1, 1), column.rowwise_normalized());
+
+  const matrix_expr row = make_row_vector(3, 4);
+  ASSERT_IDENTICAL(row.normalized(), row.rowwise_normalized());
+  ASSERT_IDENTICAL(make_row_vector(1, 1), row.colwise_normalized());
 }
 
 TEST(MatrixOperationsTest, TestJacobian) {

@@ -61,7 +61,11 @@ ReturnValueOrOutputArg = ReturnValue | OutputArg
 
 # Things that can be returned from symbolic python functions.
 CodegenFuncInvocationResult = (
-    sym.Expr | sym.MatrixExpr | ReturnValueOrOutputArg | typing.Sequence[ReturnValueOrOutputArg]
+    sym.Expr
+    | sym.MatrixExpr
+    | ReturnValueOrOutputArg
+    | typing.Sequence[ReturnValueOrOutputArg]
+    | None
 )
 
 
@@ -83,6 +87,7 @@ def create_function_description(
           :class:`wrenfold.code_generation.OutputArg` objects, OR
         * A single :class:`wrenfold.sym.Expr` or :class:`wrenfold.sym.MatrixExpr` object, which will
           be interpreted as a ``ReturnValue``.
+        * ``None`` for a function with no outputs.
 
     Args:
       func: A symbolic python function with type-annotated arguments.
@@ -136,7 +141,7 @@ def create_function_description(
 
     cached_types: dict[type[typing.Any], type_info.CustomType] = dict()
     kwargs: dict[str, object] = {}
-    for arg_name in spec.args:
+    for arg_name in spec.args + spec.kwonlyargs:
         if arg_name not in annotations:
             raise KeyError(f"Missing type annotation for argument: {arg_name}")
         # Map argument types to something the code-generation logic can understand:
@@ -163,6 +168,9 @@ def create_function_description(
 
     # run the function
     result_expressions: CodegenFuncInvocationResult = func(**kwargs)
+
+    if result_expressions is None:
+        return description
 
     if isinstance(result_expressions, (sym.Expr, sym.MatrixExpr)) or dataclasses.is_dataclass(
         result_expressions

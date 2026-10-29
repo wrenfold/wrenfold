@@ -170,6 +170,32 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertTrue(sym.integer(5) > 0)
         self.assertFalse(sym.pi == 22)
 
+    def test_compare_large_rationals(self):
+        """Compare large rationals exactly without overflowing cross products."""
+        max_int = 2**63 - 1
+        cases = (
+            ((4000000000, 4000000001), (4000000001, 4000000000)),
+            ((-4000000001, 4000000000), (-4000000000, 4000000001)),
+            ((-4000000001, 4000000000), (4000000000, 4000000001)),
+            ((max_int - 2, max_int - 1), (max_int - 1, max_int)),
+            ((-max_int + 1, max_int), (-max_int + 2, max_int - 1)),
+            (
+                (2880067194370816120, 4660046610375530309),
+                (4660046610375530309, 7540113804746346429),
+            ),
+        )
+        for left, right in cases:
+            with self.subTest(left=left, right=right):
+                a, b = sym.rational(*left), sym.rational(*right)
+                self.assertEqual(-1, sym.compare(a, b))
+                self.assertEqual(1, sym.compare(b, a))
+                self.assertEqual(0, sym.compare(a, a))
+                self.assertTrue(a < b)
+                self.assertTrue(b > a)
+                self.assertFalse(a > b)
+                self.assertFalse(b < a)
+                self.assertFalse(sym.eq(a, b))
+
     def test_compare(self):
         """Test that we can canonically order expressions."""
         a, b, c = sym.make_symbols("a", "b", "c")

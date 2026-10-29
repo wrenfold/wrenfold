@@ -46,10 +46,8 @@ def convert_to_internal_type(
                 f"Invalid type used in annotation: `{origin_type}`. "
                 f"This error was thrown while processing: {context}"
             )
-    elif (
-        isinstance(python_type, type)
-        and dataclasses.is_dataclass(python_type)
-        or issubclass(python_type, type_annotations.Opaque)
+    elif isinstance(python_type, type) and (
+        dataclasses.is_dataclass(python_type) or issubclass(python_type, type_annotations.Opaque)
     ):
         return _maybe_create_custom_type(
             python_type=python_type, cached_custom_types=cached_custom_types
@@ -206,6 +204,11 @@ def map_expressions_out_of_custom_type(
                 raise TypeError(
                     f"Expected field `{field.name}` on type `{custom_type.name}` to be an "
                     f"instance of sym.MatrixExpr, but found `{type(value)}`."
+                )
+            if value.shape != field.type.shape:
+                raise TypeError(
+                    f"Expected field `{field.name}` on type `{custom_type.name}` to have shape "
+                    f"{field.type.shape}, but found {value.shape}."
                 )
             expressions.extend(value.to_flat_list())
         else:

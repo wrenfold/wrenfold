@@ -97,6 +97,10 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
   // Get a block of rows [start, start + length).
   matrix_expr get_block(index_t row, index_t col, index_t nrows, index_t ncols) const;
 
+  // Get a full row or column, retaining its matrix shape.
+  matrix_expr get_row(index_t row) const;
+  matrix_expr get_col(index_t col) const;
+
   // Transpose the matrix.
   [[nodiscard]] matrix_expr transposed() const;
 
@@ -108,6 +112,15 @@ class matrix_expr final : public expression_base<matrix_expr, matrix_meta_type> 
 
   // Get the norm of the matrix.
   scalar_expr norm() const;
+
+  // Divide the matrix by its Frobenius norm.
+  [[nodiscard]] matrix_expr normalized() const;
+
+  // Normalize each column independently by its L2 norm.
+  [[nodiscard]] matrix_expr colwise_normalized() const;
+
+  // Normalize each row independently by its L2 norm.
+  [[nodiscard]] matrix_expr rowwise_normalized() const;
 
   // Cast to underlying matrix type.
   const matrix& as_matrix() const;

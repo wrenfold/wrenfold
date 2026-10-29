@@ -104,6 +104,24 @@ class MatrixWrapperTest(MathTestBase):
             lambda: sym.matrix([(a, sym.pi, sym.E), (x, 5, z, b)]),
         )
 
+    def test_matrix_constructor_empty_rows(self):
+        """Empty rows must raise an exception instead of terminating Python."""
+        cases = {
+            "single_empty_row": lambda: [[]],
+            "multiple_empty_rows": lambda: [[], []],
+            "empty_tuple": lambda: [()],
+            "empty_row_generator": lambda: [iter(())],
+            "row_generator": lambda: ([] for _ in range(2)),
+            "numpy": lambda: np.zeros((2, 0)),
+            "matrix_slice": lambda: [sym.eye(2)[:, :0]],
+            "empty_first_row": lambda: [[], [1]],
+            "empty_last_row": lambda: [[1], []],
+        }
+        for constructor in (sym.matrix, sym.MatrixExpr):
+            for name, make_rows in cases.items():
+                with self.subTest(constructor=constructor.__name__, case=name):
+                    self.assertRaises(exceptions.DimensionError, constructor, make_rows())
+
     def test_is_identical_to(self):
         """Test that __eq__ is defined, and implements is_identical_to."""
         u = sym.vector(10, -3, 5)
@@ -216,8 +234,12 @@ class MatrixWrapperTest(MathTestBase):
         self.assertIdentical(sym.matrix(np.flip(symbol_array, axis=(0, 1))), m[::-1, ::-1])
 
         # slice on cols:
-        for i in range(m.shape[0]):
-            for col_slice in self.generate_slices(m.shape[1]):
+        for i in range(-m.shape[0], m.shape[0]):
+            for col_slice in (
+                slice(None),
+                slice(None, None, -1),
+                *self.generate_slices(m.shape[1]),
+            ):
                 sliced_symbols = symbol_array[i, col_slice].reshape((1, -1))
                 if sliced_symbols.size != 0:
                     self.assertIdentical(sym.matrix(sliced_symbols), m[i, col_slice])
@@ -225,8 +247,12 @@ class MatrixWrapperTest(MathTestBase):
                     self.assertTrue(m[i, col_slice].is_empty)
 
         # slice on rows:
-        for j in range(m.shape[1]):
-            for row_slice in self.generate_slices(m.shape[0]):
+        for j in range(-m.shape[1], m.shape[1]):
+            for row_slice in (
+                slice(None),
+                slice(None, None, -1),
+                *self.generate_slices(m.shape[0]),
+            ):
                 sliced_symbols = symbol_array[row_slice, j].reshape((-1, 1))
                 if sliced_symbols.size != 0:
                     self.assertIdentical(sym.matrix(sliced_symbols), m[row_slice, j])
@@ -246,6 +272,12 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: m[0, -6])
         self.assertRaises(exceptions.DimensionError, lambda: m[0, 10])
         self.assertRaises(exceptions.DimensionError, lambda: m[11, 2])
+        for row in (-m.shape[0] - 1, m.shape[0]):
+            with self.subTest(row=row):
+                self.assertRaises(exceptions.DimensionError, m.__getitem__, (row, slice(None)))
+        for col in (-m.shape[1] - 1, m.shape[1]):
+            with self.subTest(col=col):
+                self.assertRaises(exceptions.DimensionError, m.__getitem__, (slice(None), col))
 
         # Test iteration:
         self.assertEqual(4, len(m))
@@ -285,6 +317,26 @@ class MatrixWrapperTest(MathTestBase):
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(2).reshape((4, 5)))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(-2, 8))
         self.assertRaises(exceptions.DimensionError, lambda: sym.eye(4).reshape(2, -8))
+
+    def test_normalized(self):
+        m = sym.matrix([[3, 4, 0], [0, 0, 12]])
+        self.assertEqual((2, 3), m.normalized().shape)
+        self.assertIdentical(m / 13, m.normalized())
+        self.assertIdentical(sym.matrix([[1, 1, 0], [0, 0, 1]]), m.colwise_normalized())
+        self.assertIdentical(
+            sym.matrix([[sym.rational(3, 5), sym.rational(4, 5), 0], [0, 0, 1]]),
+            m.rowwise_normalized(),
+        )
+
+        self.assertIdentical(sym.matrix([[sym.nan]]), sym.zeros(1, 1).normalized())
+        self.assertIdentical(
+            sym.matrix([[sym.nan, 1], [sym.nan, 0]]),
+            sym.matrix([[0, 3], [0, 0]]).colwise_normalized(),
+        )
+        self.assertIdentical(
+            sym.matrix([[sym.nan, sym.nan], [0, 1]]),
+            sym.matrix([[0, 0], [0, 3]]).rowwise_normalized(),
+        )
 
     def test_eye(self):
         """Test creating identity matrix."""
