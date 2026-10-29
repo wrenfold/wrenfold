@@ -8,6 +8,7 @@ don't accidentally remove any.
 import functools
 import typing
 import unittest
+from fractions import Fraction
 
 from wrenfold import enumerations, exceptions, sym
 
@@ -132,6 +133,36 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertRaises(TypeError, lambda: sym.BooleanExpr(-0.231))
         self.assertRaises(TypeError, lambda: sym.BooleanExpr(True))
         self.assertRaises(TypeError, lambda: sym.BooleanExpr(False))
+
+    def test_rational_int64_bounds(self):
+        """Normalize boundary inputs exactly or raise a recoverable overflow error."""
+        min_int, max_int = -(2**63), 2**63 - 1
+        values = (min_int, min_int + 1, -2, -1, 0, 1, 2, max_int - 1, max_int)
+        for numerator in values:
+            for denominator in values:
+                if denominator == 0:
+                    continue
+                with self.subTest(numerator=numerator, denominator=denominator):
+                    expected = Fraction(numerator, denominator)
+                    if min_int <= expected.numerator <= max_int and expected.denominator <= max_int:
+                        self.assertReprEqual(str(expected), sym.rational(numerator, denominator))
+                    else:
+                        self.assertRaises(
+                            exceptions.ArithmeticError, sym.rational, numerator, denominator
+                        )
+
+    def test_rational_int64_min_exponent(self):
+        """Checking whether an INT64_MIN rational exponent is proper must not overflow."""
+        exponent = sym.rational(-(2**63), 3)
+        x = sym.symbol("x")
+        expression = (x**exponent) ** sym.rational(1, 2)
+        self.assertIdentical(1, expression.subs(x, 1))
+
+        positive = sym.symbol("p", set=enumerations.NumberSet.RealPositive)
+        self.assertIdentical(
+            positive ** sym.rational(-(2**63), 6),
+            (positive**exponent) ** sym.rational(1, 2),
+        )
 
     def test_repr(self):
         """Test __repr__ method."""
