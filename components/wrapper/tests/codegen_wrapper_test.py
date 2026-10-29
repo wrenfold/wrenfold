@@ -13,7 +13,7 @@ import typing
 import unittest
 
 import wrenfold as wf
-from wrenfold import ast, external_functions, sym, type_info
+from wrenfold import ast, exceptions, external_functions, sym, type_info
 from wrenfold.code_generation import Argument, ArgumentDirection, OutputKey
 
 from .test_base import MathTestBase
@@ -147,6 +147,82 @@ class InvalidType3:
 
 
 class CodeGenerationWrapperTest(MathTestBase):
+    def test_cpp_helper_name_collisions(self):
+        scalar = type_info.ScalarType(type_info.NumericType.Float)
+        for name in ("_x", "Scalar", "T0"):
+            for direction in ("input", "output", "optional_output"):
+                with self.subTest(name=name, direction=direction):
+                    desc = wf.FunctionDescription("collision")
+                    x = desc.add_input_argument("x", type_info.MatrixType(2, 1))
+                    if direction == "input":
+                        y = desc.add_input_argument(name, scalar)
+                        desc.set_return_value(x[0] + y)
+                    else:
+                        desc.add_output_argument(name, direction == "optional_output", x[0])
+                    definition = wf.transpile(desc)
+                    generator = wf.CppGenerator()
+                    for generate, element in (
+                        (generator.generate, definition),
+                        (generator.format, definition.signature),
+                    ):
+                        with self.assertRaisesRegex(exceptions.InvalidArgumentError, name):
+                            generate(element)
+
+                    # Eigen does not emit span locals or per-matrix template parameters.
+                    if name != "Scalar":
+                        wf.CppGenerator(wf.CppMatrixTypeBehavior.Eigen).generate(definition)
+
+    def test_python_optional_flag_name_collisions(self):
+        scalar = type_info.ScalarType(type_info.NumericType.Float)
+        for direction in ("input", "output", "optional_output"):
+            with self.subTest(direction=direction):
+                desc = wf.FunctionDescription("collision")
+                if direction == "input":
+                    value = desc.add_input_argument("compute_y", scalar)
+                else:
+                    value = sym.one
+                    desc.add_output_argument("compute_y", direction == "optional_output", value)
+                desc.add_output_argument("y", True, value + 1)
+                definition = wf.transpile(desc)
+                generator = wf.PythonGenerator()
+                for generate, element in (
+                    (generator.generate, definition),
+                    (generator.format, definition.signature),
+                ):
+                    with self.assertRaisesRegex(exceptions.InvalidArgumentError, "compute_y"):
+                        generate(element)
+
+        # Output-argument mode does not emit compute_* flags.
+        def output_arguments(compute_y: wf.Vector2):
+            return wf.OutputArg(compute_y * 2, "y", is_optional=True)
+
+        wf.generate_function(output_arguments, wf.PythonGenerator(use_output_arguments=True))
+
+    def test_python_module_alias_name_collisions(self):
+        scalar = type_info.ScalarType(type_info.NumericType.Float)
+        targets = (
+            (wf.PythonGeneratorTarget.NumPy, "np"),
+            (wf.PythonGeneratorTarget.PyTorch, "th"),
+            (wf.PythonGeneratorTarget.JAX, "jnp"),
+        )
+        for target, alias in targets:
+            for name in ("np", "th", "jnp"):
+                for direction in ("input", "output", "optional_output"):
+                    with self.subTest(target=target, name=name, direction=direction):
+                        desc = wf.FunctionDescription("collision")
+                        if direction == "input":
+                            value = desc.add_input_argument(name, scalar)
+                            desc.set_return_value(value + 1)
+                        else:
+                            desc.add_output_argument(name, direction == "optional_output", sym.one)
+                        definition = wf.transpile(desc)
+                        generator = wf.PythonGenerator(target=target)
+                        if name == alias:
+                            with self.assertRaisesRegex(exceptions.InvalidArgumentError, alias):
+                                generator.generate(definition)
+                        else:
+                            generator.generate(definition)
+
     @staticmethod
     def _run_generators(
         definition: ast.FunctionDefinition | typing.Sequence[ast.FunctionDefinition],
