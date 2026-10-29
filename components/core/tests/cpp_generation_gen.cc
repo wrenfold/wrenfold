@@ -63,7 +63,26 @@ int main() {
 #else
   const custom_cpp_code_generator generator{cpp_matrix_type_behavior::eigen};
 #endif
-  const std::string code = generator.apply_preamble(generate_test_expressions(generator), "gen");
+  std::string functions = generate_test_expressions(generator);
+  generate_func(
+      generator, functions, [](scalar_expr a, scalar_expr b) { return a + b; },
+      "temporary_name_collision", arg("v01"), arg("x"));
+  generate_func(
+      generator, functions,
+      [](scalar_expr a, scalar_expr b, scalar_expr c, scalar_expr d) { return a + b + c + d; },
+      "temporary_name_collision_suffixed", arg("v01"), arg("v01_1"), arg("v01_2"), arg("x"));
+  generate_func(
+      generator, functions, [](scalar_expr a, scalar_expr b) { return where(a > b, a - b, b - a); },
+      "temporary_name_collision_conditional", arg("v000"), arg("v009"));
+  generate_func(
+      generator, functions,
+      [](scalar_expr x, scalar_expr y) {
+        return std::make_tuple(
+            return_value(x + y), output_arg("v000", ta::static_matrix<1, 1>{make_vector(x - y)}),
+            optional_output_arg("v001", ta::static_matrix<1, 1>{make_vector(x * y)}));
+      },
+      "temporary_name_collision_outputs", arg("x"), arg("y"));
+  const std::string code = generator.apply_preamble(functions, "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
   output.write(code.data(), code.size());

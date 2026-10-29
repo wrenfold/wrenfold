@@ -60,6 +60,22 @@ TEST(CppGenerationTest, TestSimpleMultiplyAdd) {
   ASSERT_NEAR(evaluator(5.112, -0.01, -4.2), gen::simple_multiply_add(5.112, -0.01, -4.2), 1.0e-15);
 }
 
+TEST(CppGenerationTest, TestTemporaryNameCollisions) {
+  EXPECT_EQ(5.0, gen::temporary_name_collision(2.0, 3.0));
+  EXPECT_EQ(15.0, gen::temporary_name_collision_suffixed(1.0, 2.0, 4.0, 8.0));
+  EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(2.0, 3.0));
+  EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(3.0, 2.0));
+  EXPECT_EQ(0.0, gen::temporary_name_collision_conditional(2.0, 2.0));
+
+  Eigen::Matrix<double, 1, 1> required, optional;
+  EXPECT_EQ(5.0, gen::temporary_name_collision_outputs(2.0, 3.0, required, OPT_OUTPUT(optional)));
+  EXPECT_EQ(-1.0, required(0, 0));
+  EXPECT_EQ(6.0, optional(0, 0));
+
+  EXPECT_EQ(5.0, gen::temporary_name_collision_outputs<double>(3.0, 2.0, required, nullptr));
+  EXPECT_EQ(1.0, required(0, 0));
+}
+
 TEST(CppGenerationTest, TestVectorRotation2D) {
   auto evaluator = create_evaluator(&vector_rotation_2d);
 

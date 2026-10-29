@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
 #pragma once
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -25,7 +26,11 @@ class ast_form_visitor {
  public:
   ast_form_visitor(const std::size_t value_width, const function_description& description)
       : value_width_(value_width),
-        signature_{description.name(), description.return_value_type(), description.arguments()} {}
+        signature_{description.name(), description.return_value_type(), description.arguments()} {
+    for (const argument& arg : signature_.arguments()) {
+      argument_names_.insert(arg.name());
+    }
+  }
 
   // Convert a function, starting from `block`.
   ast::function_definition convert_function(ir::const_block_ptr block,
@@ -56,7 +61,11 @@ class ast_form_visitor {
 
   // Convert the value integer to the formatted variable name that will appear in code.
   std::string format_variable_name(const ir::const_value_ptr val) const {
-    return fmt::format("v{:0>{}}", val->name(), value_width_);
+    std::string name = fmt::format("v{:0>{}}", val->name(), value_width_);
+    for (std::size_t suffix = 1; argument_names_.contains(name); ++suffix) {
+      name = fmt::format("v{:0>{}}_{}", val->name(), value_width_, suffix);
+    }
+    return name;
   }
 
   // Visit the operation type on `value`, and delegate to the appropriate method on self.
@@ -110,6 +119,9 @@ class ast_form_visitor {
 
   std::size_t value_width_;
   function_signature signature_;
+
+  // Reserve both input and output names so temporary assignments cannot overwrite arguments.
+  std::unordered_set<std::string> argument_names_;
 
   // Operations accrued in the current block.
   std::vector<ast::ast_element> operations_;
