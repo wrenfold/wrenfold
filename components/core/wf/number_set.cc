@@ -232,7 +232,10 @@ class determine_set_visitor {
         // base is either real_non_negative or real_positive
         return base;
       }
-      return number_set::real;
+      // A possibly negative base raised to a non-integer power may be complex.
+      if (pow.exponent().is_type<integer_constant>() || is_non_negative(base)) {
+        return number_set::real;
+      }
     }
     return number_set::unknown;
   }
