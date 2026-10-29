@@ -553,6 +553,10 @@ TEST(ScalarOperationsTest, TestPowerFloats) {
   ASSERT_IDENTICAL(std::pow(0.5, 3.4), pow(1_s / 2, 3.4));
   ASSERT_IDENTICAL(std::pow(2.2, 0.75), pow(2.2, 3_s / 4));
   ASSERT_IDENTICAL(constants::complex_infinity, pow(0.0, -1));
+  ASSERT_IDENTICAL(constants::undefined, pow(-2.0, 1_s / 2));
+  ASSERT_IDENTICAL(constants::undefined, pow(-2.0, 0.5));
+  ASSERT_IDENTICAL(constants::undefined, pow(-2, 0.5));
+  ASSERT_IDENTICAL(constants::complex_infinity, pow(1.0e300, 2.0));
 }
 
 // Test: int**rational
