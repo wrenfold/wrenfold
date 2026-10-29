@@ -205,6 +205,11 @@ def map_expressions_out_of_custom_type(
                     f"Expected field `{field.name}` on type `{custom_type.name}` to be an "
                     f"instance of sym.MatrixExpr, but found `{type(value)}`."
                 )
+            if value.shape != field.type.shape:
+                raise TypeError(
+                    f"Expected field `{field.name}` on type `{custom_type.name}` to have shape "
+                    f"{field.type.shape}, but found {value.shape}."
+                )
             expressions.extend(value.to_flat_list())
         else:
             expressions += map_expressions_out_of_custom_type(value, custom_type=field.type)

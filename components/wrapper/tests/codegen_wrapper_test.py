@@ -309,6 +309,80 @@ class CodeGenerationWrapperTest(MathTestBase):
         self._run_generators(definition)
         self._test_cse_function_description(desc)
 
+    def test_custom_type_field_shapes(self):
+        """Reject invalid matrix fields before flattening can shift their values."""
+
+        @dataclasses.dataclass
+        class MatrixFields:
+            first: wf.Vector2
+            second: wf.Vector2
+
+        cases = (
+            (
+                MatrixFields(sym.vector(1), sym.vector(2, 3, 4)),
+                "MatrixFields",
+                "first",
+                (1, 1),
+            ),
+            (
+                MatrixFields(sym.vector(1, 2, 3), sym.vector(4)),
+                "MatrixFields",
+                "first",
+                (3, 1),
+            ),
+            (
+                MatrixFields(sym.row_vector(1, 2), sym.vector(3, 4)),
+                "MatrixFields",
+                "first",
+                (1, 2),
+            ),
+            (
+                MatrixFields(sym.vector(1, 2), sym.row_vector(3, 4)),
+                "MatrixFields",
+                "second",
+                (1, 2),
+            ),
+            (
+                NestedType3(
+                    NestedType1(sym.one, sym.zero), NestedType2(sym.row_vector(2, 3), sym.one)
+                ),
+                "NestedType2",
+                "v",
+                (1, 2),
+            ),
+        )
+        wrappers = {
+            "implicit_return": lambda value: value,
+            "return_value": wf.ReturnValue,
+            "output": lambda value: [wf.OutputArg(value, name="out")],
+            "optional_output": lambda value: [wf.OutputArg(value, name="out", is_optional=True)],
+        }
+
+        def make_function(value, wrap):
+            def invalid():
+                return wrap(value)
+
+            return invalid
+
+        for value, type_name, field_name, actual_shape in cases:
+            for mode, wrap in wrappers.items():
+                with self.subTest(type=type_name, shape=actual_shape, mode=mode):
+                    with self.assertRaises(TypeError) as error:
+                        wf.create_function_description(make_function(value, wrap))
+                    self.assertIn(
+                        f"field `{field_name}` on type `{type_name}`", str(error.exception)
+                    )
+                    self.assertIn("shape (2, 1)", str(error.exception))
+                    self.assertIn(f"found {actual_shape}", str(error.exception))
+
+        valid = MatrixFields(sym.vector(1, 2), sym.vector(3, 4))
+        generated, _ = wf.generate_python(
+            make_function(valid, wf.ReturnValue), context={"MatrixFields": MatrixFields}
+        )
+        result = generated()
+        self.assertEqual([[1.0], [2.0]], result.first.tolist())
+        self.assertEqual([[3.0], [4.0]], result.second.tolist())
+
     def test_opaque_func(self):
         """Test we can customize invocation of a custom function."""
         code = wf.generate_function(opaque_type_func, generator=CustomCppGenerator())
