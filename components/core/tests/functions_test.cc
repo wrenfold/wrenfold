@@ -1,9 +1,12 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
-#include "wf/functions.h"
+#include <cmath>
+#include <limits>
+
 #include "wf/constants.h"
 #include "wf/expressions/function_expressions.h"
+#include "wf/functions.h"
 
 #include "wf_test_support/test_macros.h"
 
@@ -488,6 +491,22 @@ TEST(FunctionsTest, TestFloor) {
 
   // Simplify nested call:
   ASSERT_IDENTICAL(floor(x), floor(floor(x)));
+}
+
+TEST(FunctionsTest, TestFloorFloatBounds) {
+  const double upper = std::ldexp(1.0, 63);
+  const double lower = -upper;
+  const double max_float = std::numeric_limits<double>::max();
+  for (const double value :
+       {upper, std::nextafter(lower, -max_float), 1.0e20, -1.0e20, max_float, -max_float}) {
+    EXPECT_THROW(floor(scalar_expr{value}), arithmetic_error) << value;
+  }
+
+  // The upper bound is exclusive: converting INT64_MAX to double rounds up to 2^63.
+  ASSERT_IDENTICAL(checked_int::max() - 1023, floor(scalar_expr{std::nextafter(upper, 0.0)}));
+  ASSERT_IDENTICAL(checked_int::min(), floor(scalar_expr{lower}));
+  ASSERT_IDENTICAL(checked_int::min() + 1024, floor(scalar_expr{std::nextafter(lower, 0.0)}));
+  ASSERT_IDENTICAL(0, floor(scalar_expr{-0.0}));
 }
 
 TEST(FunctionTest, TestMinMax) {
