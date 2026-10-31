@@ -6,6 +6,8 @@ don't accidentally remove any.
 """
 
 import functools
+import math
+import sys
 import typing
 import unittest
 
@@ -328,6 +330,29 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(7, sym.floor(7.12312))
         self.assertIdentical(-3, sym.floor(-sym.integer(5) / 2))
         self.assertIdentical(sym.floor(x), sym.floor(sym.floor(x)))
+
+    def test_floor_float_bounds(self):
+        """Reject out-of-range results while preserving valid integer boundary values."""
+        upper = float(2**63)
+        lower = -upper
+        for value in (
+            upper,
+            math.nextafter(lower, -math.inf),
+            1e20,
+            -1e20,
+            sys.float_info.max,
+            -sys.float_info.max,
+        ):
+            with self.subTest(value=value):
+                self.assertRaises(exceptions.ArithmeticError, sym.floor, value)
+
+        for value in (math.nextafter(upper, 0.0), lower, math.nextafter(lower, 0.0), -0.0):
+            with self.subTest(value=value):
+                self.assertIdentical(sym.integer(math.floor(value)), sym.floor(value))
+
+        self.assertIdentical(sym.nan, sym.floor(float("nan")))
+        self.assertIdentical(sym.zoo, sym.floor(float("inf")))
+        self.assertIdentical(sym.zoo, sym.floor(float("-inf")))
 
     def test_distribute(self):
         """Test calling distribute on scalar expressions."""
