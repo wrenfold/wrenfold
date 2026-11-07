@@ -28,7 +28,7 @@ class ast_form_visitor {
       : value_width_(value_width),
         signature_{description.name(), description.return_value_type(), description.arguments()} {
     for (const argument& arg : signature_.arguments()) {
-      argument_names_.insert(arg.name());
+      reserved_names_.insert(arg.name());
     }
   }
 
@@ -62,7 +62,7 @@ class ast_form_visitor {
   // Convert the value integer to the formatted variable name that will appear in code.
   std::string format_variable_name(const ir::const_value_ptr val) const {
     std::string name = fmt::format("v{:0>{}}", val->name(), value_width_);
-    for (std::size_t suffix = 1; argument_names_.contains(name); ++suffix) {
+    for (std::size_t suffix = 1; reserved_names_.contains(name); ++suffix) {
       name = fmt::format("v{:0>{}}_{}", val->name(), value_width_, suffix);
     }
     return name;
@@ -120,8 +120,8 @@ class ast_form_visitor {
   std::size_t value_width_;
   function_signature signature_;
 
-  // Reserve both input and output names so temporary assignments cannot overwrite arguments.
-  std::unordered_set<std::string> argument_names_;
+  // Reserve argument and external function names so temporaries cannot shadow either.
+  std::unordered_set<std::string> reserved_names_;
 
   // Operations accrued in the current block.
   std::vector<ast::ast_element> operations_;

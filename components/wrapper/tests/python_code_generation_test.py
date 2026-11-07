@@ -678,6 +678,48 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
             return wrapped_func_capture_output_args
 
+    def test_temporary_names_match_external_functions(self):
+        """Reserve external names before naming temporaries, including across branches."""
+
+        def make_functions(names: tuple[str, ...]):
+            externals = [
+                external_functions.declare_external_function(
+                    name, arguments=[("x", wf.FloatScalar)], return_type=wf.FloatScalar
+                )
+                for name in names
+            ]
+
+            def call_external(v01: wf.FloatScalar, x: wf.FloatScalar, y: wf.FloatScalar):
+                value = x + y
+                result = value
+                for external in externals:
+                    result += external(value)
+                return result
+
+            def conditional(v01: wf.FloatScalar, x: wf.FloatScalar, y: wf.FloatScalar):
+                value = x + y
+                return sym.where(x > y, externals[0](value) + value, value)
+
+            return call_external, conditional
+
+        for names in (("v01_1",), ("v01_1", "v01_2"), ("v00",)):
+            call_external, conditional = make_functions(names)
+            context = {name: lambda value: 2 * value for name in names}
+            for convert_ternaries in (False, True):
+                cases = (
+                    (call_external, 2.0, 3.0, 5 * (1 + 2 * len(names))),
+                    (conditional, 2.0, 3.0, 5.0),
+                    (conditional, 3.0, 2.0, 15.0),
+                )
+                for func, x, y, expected in cases:
+                    with self.subTest(
+                        names=names, func=func.__name__, convert_ternaries=convert_ternaries
+                    ):
+                        generated = self._generator(
+                            func, context=context, convert_ternaries=convert_ternaries
+                        )
+                        np.testing.assert_allclose(generated(99.0, x, y), expected)
+
     def test_external_function_call_np(self):
         """
         Test calling an external function via a generated python method.

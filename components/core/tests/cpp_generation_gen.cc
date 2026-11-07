@@ -5,10 +5,17 @@
 #include <ranges>
 
 #include "wf/code_generation/cpp_code_generator.h"
+#include "wf/code_generation/declare_external_function.h"
 
 #include "test_expressions_codegen.h"
 
 namespace wf {
+
+struct temporary_name_external
+    : declare_external_function<temporary_name_external, scalar_expr, type_list<scalar_expr>> {
+  static constexpr std::string_view name() noexcept { return "v01_1"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("x"); }
+};
 
 class custom_cpp_code_generator final : public cpp_code_generator {
  public:
@@ -82,6 +89,20 @@ int main() {
             optional_output_arg("v001", ta::static_matrix<1, 1>{make_vector(x * y)}));
       },
       "temporary_name_collision_outputs", arg("x"), arg("y"));
+  // Use unqualified calls so a temporary cannot hide the external function.
+  const cpp_code_generator external_generator{cpp_matrix_type_behavior::generic_span};
+  generate_func(
+      external_generator, functions,
+      [](scalar_expr, scalar_expr x, scalar_expr y) {
+        return temporary_name_external::call(x + y) + x + y;
+      },
+      "temporary_name_collision_external", arg("v01"), arg("x"), arg("y"));
+  generate_func(
+      external_generator, functions,
+      [](scalar_expr, scalar_expr x, scalar_expr y) {
+        return where(x > y, temporary_name_external::call(x + y) + x + y, x + y);
+      },
+      "temporary_name_collision_external_conditional", arg("v01"), arg("x"), arg("y"));
   const std::string code = generator.apply_preamble(functions, "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};

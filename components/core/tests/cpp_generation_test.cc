@@ -50,6 +50,11 @@ double external_function_5(const wf::numeric::Circle& a, const wf::numeric::Circ
 
 }  // namespace test
 
+template <typename Scalar>
+Scalar v01_1(const Scalar x) {
+  return 2 * x;
+}
+
 #include "generated.h"
 
 namespace wf {
@@ -63,6 +68,9 @@ TEST(CppGenerationTest, TestSimpleMultiplyAdd) {
 TEST(CppGenerationTest, TestTemporaryNameCollisions) {
   EXPECT_EQ(5.0, gen::temporary_name_collision(2.0, 3.0));
   EXPECT_EQ(15.0, gen::temporary_name_collision_suffixed(1.0, 2.0, 4.0, 8.0));
+  EXPECT_EQ(15.0, gen::temporary_name_collision_external(99.0, 2.0, 3.0));
+  EXPECT_EQ(5.0, gen::temporary_name_collision_external_conditional(99.0, 2.0, 3.0));
+  EXPECT_EQ(15.0, gen::temporary_name_collision_external_conditional(99.0, 3.0, 2.0));
   EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(2.0, 3.0));
   EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(3.0, 2.0));
   EXPECT_EQ(0.0, gen::temporary_name_collision_conditional(2.0, 2.0));
