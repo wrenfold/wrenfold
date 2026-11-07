@@ -583,6 +583,43 @@ class MatrixWrapperTest(MathTestBase):
                         self.assertEqual(expected.dtype, result.dtype)
                         np.testing.assert_array_equal(expected, result)
 
+    def test_numpy_array_dtype_preserves_mixed_integer_values(self):
+        """Apply dtype before mixed real/complex entries can round exact integers."""
+        converters = (
+            np.array,
+            np.asarray,
+            lambda matrix, dtype: matrix.__array__(dtype),
+            lambda matrix, dtype: matrix.__array__(dtype=dtype),
+        )
+        for integer in (2**53 + 1, -(2**53 + 1), 2**63 - 1, -(2**63) + 1):
+            cases = (
+                (0.5, 0.5, (np.int64, object, np.longdouble, "U32")),
+                (1 + 2 * sym.I, 1 + 2j, (object, np.clongdouble, "U64")),
+            )
+            for symbolic_value, numeric_value, dtypes in cases:
+                matrix = sym.matrix([[integer, symbolic_value], [integer, 2]])
+                for dtype in dtypes:
+                    expected = np.asarray([[integer, numeric_value], [integer, 2]], dtype=dtype)
+                    for convert in converters:
+                        with self.subTest(integer=integer, dtype=dtype, conversion=convert):
+                            result = convert(matrix, dtype=dtype)
+                            self.assertEqual(expected.dtype, result.dtype)
+                            np.testing.assert_array_equal(expected, result)
+                            if dtype is object:
+                                self.assertIsInstance(result[0, 0], int)
+
+    def test_numpy_array_dtype_empty_shapes(self):
+        """Explicit dtypes preserve both dimensions of an empty matrix."""
+        matrix = sym.matrix([[1, 2, 3], [4, 5, 6]])
+        for empty in (matrix[:0, :], matrix[:, :0], matrix[:0, :0]):
+            for dtype in (np.int64, np.float32, object, "U32"):
+                with self.subTest(shape=empty.shape, dtype=dtype):
+                    expected = np.empty(empty.shape, dtype=dtype)
+                    for convert in (np.array, np.asarray):
+                        result = convert(empty, dtype=dtype)
+                        self.assertEqual(expected.dtype, result.dtype)
+                        np.testing.assert_array_equal(expected, result)
+
     def test_numpy_array_copy(self):
         """A symbolic matrix must allocate storage and cannot provide a zero-copy array."""
         matrix = sym.matrix([[1, 2], [3, 4]])

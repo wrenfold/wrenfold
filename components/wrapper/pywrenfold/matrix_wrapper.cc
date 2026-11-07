@@ -424,11 +424,10 @@ void wrap_matrix_operations(py::module_& m) {
               throw py::value_error(
                   "Cannot convert a symbolic matrix to a NumPy array without a copy.");
             }
-            py::object array = py::cast(numpy_from_matrix(self, {}));
             if (!dtype.is_none()) {
-              array = array.attr("astype")(dtype, py::arg("copy") = false);
+              return numpy_from_matrix_with_dtype(self, dtype);
             }
-            return array;
+            return py::cast(numpy_from_matrix(self, {}));
           },
           py::arg("dtype") = py::none(), py::arg("copy") = py::none(),
           "Convert to a numeric NumPy array, optionally specifying dtype. Conversion requires "
