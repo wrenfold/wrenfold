@@ -31,8 +31,7 @@ constexpr static std::string_view python_string_from_cast_destination_type(
     case numeric_primitive_type::boolean:
       return "bool";
     case numeric_primitive_type::integral:
-      // Int32 because JAX does not support 64 by default. TODO: add a parameter for this.
-      return "int32";
+      return "int64";
     case numeric_primitive_type::floating_point: {
       return python_string_from_float_width(float_width);
     }
@@ -86,6 +85,10 @@ inline std::string format_scalar_type_cast(const python_generator_target target,
                                            const std::string_view arg,
                                            const numeric_primitive_type expected_type,
                                            const python_generator_float_width float_width) {
+  if (target == python_generator_target::jax && expected_type == numeric_primitive_type::integral) {
+    // Respect JAX's configured integer width without changing its global x64 setting.
+    return fmt::format("jnp.asarray({}, dtype=jnp.result_type(0))", arg);
+  }
   if (target == python_generator_target::pytorch) {
     // torch dtypes are not callable.
     return fmt::format("{}.asarray({}, dtype={}.{})", python_module_prefix_from_target(target), arg,
