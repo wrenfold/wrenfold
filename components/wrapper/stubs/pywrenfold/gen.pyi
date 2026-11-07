@@ -1361,8 +1361,9 @@ class PythonGenerator:
           indentation: Number of spaces of indentation to apply. Typically 2 or 4.
           use_output_arguments: By default, output arguments are emitted as return values when generating
             Python. When ``use_output_arguments=True``, matrix-type output arguments will become actual
-            output arguments in the generated code. Optional outputs will have type ``np.ndarray | None``.
-            This mode is only supported with ``target=NumPy``, and is untested in other configurations.
+            output arguments in the generated code. Optional outputs default to ``None``.
+            This mode supports NumPy arrays and PyTorch tensors, including strided output views. JAX arrays
+            are immutable, so this mode is unsupported with ``target=JAX``.
           include_assert_message: Include a descriptive message in assertions that validate the size of
             optional output arguments. Disable this to reduce recursion depth when compiling generated code
             with Numba.
