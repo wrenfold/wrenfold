@@ -37,12 +37,13 @@ matrix_expr sphere_log(const matrix_expr& z) {
   const scalar_expr scale = where(v_norm > 0, atan2(v_norm, w) / v_norm, 1);
 
   // When ||v|| = 0, w < 0 is the antipode. Ceres puts pi on the last tangent
-  // axis in that case; otherwise the zero-tangent result is zero.
-  const scalar_expr antipode_angle = where(w < 0, constants::pi, constants::zero);
+  // axis in that case. For w > 0, retain the first-order term v / w so that
+  // differentiation at coincident vectors recovers the local-coordinate Jacobian.
   std::vector<scalar_expr> result;
   result.reserve(tangent_dim);
   for (index_t i = 0; i < tangent_dim; ++i) {
-    const scalar_expr fallback = i == tangent_dim - 1 ? antipode_angle : constants::zero;
+    const scalar_expr antipode = i == tangent_dim - 1 ? constants::pi : constants::zero;
+    const scalar_expr fallback = where(w < 0, antipode, z[i] / w);
     result.push_back(where(v_norm > 0, scale * z[i], fallback));
   }
   return matrix_expr::create(tangent_dim, 1, std::move(result));
@@ -133,8 +134,10 @@ unit_vector unit_vector::retract(const matrix_expr& delta) const {
   // and exp_sphere(delta) has unit norm, so multiply by ||x|| to keep that radius.
   const matrix_expr updated = householder() * exp * norm();
 
-  // x plus delta = { updated if a > 0; x if a = 0 }.
-  return unit_vector{where(angle > 0, updated, value_)};
+  // Retain the first-order term at zero so symbolic differentiation agrees with
+  // retract_derivative(), while a zero perturbation still returns x exactly.
+  const matrix_expr first_order = value_ + retract_derivative() * delta;
+  return unit_vector{where(angle > 0, updated, first_order)};
 }
 
 matrix_expr unit_vector::local_coordinates(const unit_vector& other) const {
