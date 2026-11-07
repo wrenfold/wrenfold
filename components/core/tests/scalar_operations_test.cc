@@ -544,6 +544,16 @@ TEST(ScalarOperationsTest, TestPowerCombinationLog) {
   }
 }
 
+TEST(ScalarOperationsTest, TestPowerCombinationFractionalRealBase) {
+  const scalar_expr x{"x", number_set::real};
+  const scalar_expr expression = sqrt(exp(sqrt(x)));
+
+  // sqrt(x) may be complex, so exp(sqrt(x)) is not guaranteed positive.
+  ASSERT_IDENTICAL(make_pow(exp(sqrt(x)), 1_s / 2), expression);
+  const scalar_expr value = -4 * pow(constants::pi, 2);
+  ASSERT_IDENTICAL(sqrt(exp(sqrt(value))), expression.subs(x, value));
+}
+
 // Test: int**int
 TEST(ScalarOperationsTest, TestPowerIntToInt) {
   ASSERT_IDENTICAL(1, pow(1, 1));
@@ -1327,11 +1337,18 @@ TEST(ScalarOperationsTest, TestNumericSetsPow) {
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(real * real));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real, 4)));
   ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, 3)));
-  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, real_positive)));
-  ASSERT_EQ(number_set::real, determine_numeric_set(pow(real, real_non_negative)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, real_positive)));
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, real_non_negative)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, real)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, complex)));
   ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, unknown)));
+
+  // A negative real base raised to a fractional exponent may be complex.
+  for (const scalar_expr& exponent :
+       {1_s / 2, 1_s / 3, 2_s / 3, 3_s / 2, 0.5_s, 1.5_s, constants::pi}) {
+    ASSERT_EQ(number_set::unknown, determine_numeric_set(pow(real, exponent)));
+  }
+  ASSERT_EQ(number_set::unknown, determine_numeric_set(exp(sqrt(real))));
 
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 2)));
   ASSERT_EQ(number_set::real_non_negative, determine_numeric_set(pow(real_non_negative, 3)));
