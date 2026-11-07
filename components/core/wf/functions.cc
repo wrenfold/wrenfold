@@ -600,6 +600,11 @@ struct floor_visitor {
       return std::nullopt;
     }
     const auto floored = std::floor(f.value());
+    if (compare_int_float(checked_int::min().value(), floored) == relative_order::greater_than ||
+        compare_int_float(checked_int::max().value(), floored) == relative_order::less_than) {
+      throw arithmetic_error("Floor of {} is outside the range of a 64-bit signed integer.",
+                             f.value());
+    }
     return scalar_expr{static_cast<std::int64_t>(floored)};
   }
 
@@ -613,8 +618,7 @@ struct floor_visitor {
   }
 
   std::optional<scalar_expr> operator()(const symbolic_constant& c) const {
-    const auto cf = double_from_symbolic_constant(c.name());
-    return scalar_expr{static_cast<std::int64_t>(std::floor(cf))};
+    return operator()(float_constant{double_from_symbolic_constant(c.name())});
   }
 
   std::optional<scalar_expr> operator()(const complex_infinity&) const {
