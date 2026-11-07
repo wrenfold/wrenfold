@@ -5,6 +5,7 @@
 
 #include <iterator>
 #include <ranges>
+#include <unordered_set>
 
 #include "wf/code_generation/ast.h"
 #include "wf/code_generation/ast_visitor.h"
@@ -150,6 +151,29 @@ std::string cpp_code_generator::operator()(const ast::function_definition& defin
 }
 
 std::string cpp_code_generator::operator()(const ast::function_signature& signature) const {
+  // Keep user arguments distinct from the template parameters and span locals emitted below.
+  std::unordered_set<std::string_view> argument_names;
+  for (const argument& arg : signature.arguments()) {
+    argument_names.insert(arg.name());
+  }
+  const auto check_helper_name = [&](const std::string_view name) {
+    if (argument_names.count(name)) {
+      throw invalid_argument_error(
+          "C++ argument `{}` conflicts with a generated helper name in function `{}`. "
+          "Rename the argument.",
+          name, signature.name());
+    }
+  };
+  check_helper_name("Scalar");
+  if (behavior_ == cpp_matrix_type_behavior::generic_span) {
+    for (const argument& arg : signature.arguments()) {
+      if (arg.is_matrix()) {
+        check_helper_name(fmt::format("T{}", arg.index()));
+        check_helper_name(fmt::format("_{}", arg.name()));
+      }
+    }
+  }
+
   // Template parameter list:
   std::string result = "template <typename Scalar";
   if (signature.has_matrix_arguments() && behavior_ == cpp_matrix_type_behavior::generic_span) {
