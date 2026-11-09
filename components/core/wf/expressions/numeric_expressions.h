@@ -113,13 +113,24 @@ class rational_constant {
   }
 
   // True if the absolute value of the fraction is less than one.
-  bool is_proper() const noexcept { return abs(n_) < d_; }
+  bool is_proper() const noexcept { return -d_ < n_ && n_ < d_; }
 
  private:
-  static constexpr std::pair<value_type, value_type> create_pair(value_type n,
-                                                                 value_type d) noexcept {
-    // Find the largest common denominator and reduce:
-    const auto gcd = std::gcd(n.value(), d.value());
+  static constexpr std::pair<value_type, value_type> create_pair(value_type n, value_type d) {
+    if (d == 0) {
+      throw arithmetic_error("Rational denominator must be non-zero: {} / {}", n, d);
+    }
+    // Signed std::gcd requires representable magnitudes, which excludes INT64_MIN.
+    const auto magnitude = [](const value_type value) constexpr {
+      const auto bits = static_cast<std::uint64_t>(value.value());
+      return value < 0 ? 0 - bits : bits;
+    };
+    const auto unsigned_gcd = std::gcd(magnitude(n), magnitude(d));
+    if (unsigned_gcd > static_cast<std::uint64_t>(checked_int::max().value())) {
+      // With d != 0, a gcd of 2^63 occurs only for 0/INT64_MIN or INT64_MIN/INT64_MIN.
+      return {n == 0 ? 0 : 1, 1};
+    }
+    const auto gcd = static_cast<std::int64_t>(unsigned_gcd);
     n = n / gcd;
     d = d / gcd;
     if (d < 0) {

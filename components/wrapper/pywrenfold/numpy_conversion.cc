@@ -3,6 +3,8 @@
 // For license information refer to accompanying LICENSE file.
 #include "type_casters.h"
 
+#include <nanobind/stl/complex.h>
+
 #include "numpy_conversion.h"
 
 #include "wf/expressions/matrix.h"
@@ -12,9 +14,11 @@
 namespace wf {
 namespace py = nanobind;
 
-numerical_array_variant numpy_from_matrix(const matrix_expr& self, const py::kwargs&) {
-  using numerical_variant = std::variant<std::int64_t, double, std::complex<double>>;
+namespace {
 
+using numerical_variant = std::variant<std::int64_t, double, std::complex<double>>;
+
+std::vector<numerical_variant> numerical_values_from_matrix(const matrix_expr& self) {
   std::vector<numerical_variant> numerical_values;
   numerical_values.reserve(self.size());
   for (const scalar_expr& expr : self.as_matrix()) {
@@ -27,6 +31,13 @@ numerical_array_variant numpy_from_matrix(const matrix_expr& self, const py::kwa
           expr.type_name());
     }
   }
+  return numerical_values;
+}
+
+}  // namespace
+
+numerical_array_variant numpy_from_matrix(const matrix_expr& self, const py::kwargs&) {
+  const auto numerical_values = numerical_values_from_matrix(self);
 
   // In order to create a single array type, we promote:
   //  int64 -> double -> std::complex<double>
@@ -68,6 +79,28 @@ numerical_array_variant numpy_from_matrix(const matrix_expr& self, const py::kwa
           throw wf::type_error("Cannot coerce `{}` to std::int64_t.", typeid(arg).name());
         }));
   }
+}
+
+py::object numpy_from_matrix_with_dtype(const matrix_expr& self, const py::object& dtype) {
+  const auto numerical_values = numerical_values_from_matrix(self);
+  const py::module_ numpy = py::module_::import_("numpy");
+  if (self.rows() == 0) {
+    // An empty row list cannot convey the column count.
+    return numpy.attr("empty")(py::make_tuple(self.rows(), self.cols()), py::arg("dtype") = dtype);
+  }
+
+  // Keep each element's numeric type until NumPy applies the requested dtype.
+  py::list rows;
+  std::size_t element_index = 0;
+  for (index_t row = 0; row < self.rows(); ++row) {
+    py::list values;
+    for (index_t col = 0; col < self.cols(); ++col) {
+      std::visit([&](const auto& value) { values.append(py::cast(value)); },
+                 numerical_values[element_index++]);
+    }
+    rows.append(values);
+  }
+  return numpy.attr("array")(rows, py::arg("dtype") = dtype);
 }
 
 }  // namespace wf

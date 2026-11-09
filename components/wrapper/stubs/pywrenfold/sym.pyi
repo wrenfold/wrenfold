@@ -1348,9 +1348,9 @@ class MatrixExpr:
     def __getitem__(self, row_slice_and_col: tuple[slice, int]) -> MatrixExpr:
         """Slice a specific column."""
 
-    def __array__(self, **kwargs) -> Annotated[NDArray[numpy.int64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.float64], dict(shape=(None, None), order='C')] | Annotated[NDArray[numpy.complex128], dict(shape=(None, None), order='C')]:
+    def __array__(self, dtype: object = None, copy: bool | None = None) -> NDArray[Any]:
         """
-        Convert to numpy array. See :func:`wrenfold.sym.MatrixExpr.eval` for limitations.
+        Convert to a numeric NumPy array, optionally specifying dtype. Conversion requires new storage, so copy=False raises ValueError. See :func:`wrenfold.sym.MatrixExpr.eval` for limitations.
         """
 
     def __len__(self) -> int:

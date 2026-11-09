@@ -14,10 +14,11 @@ using numerical_array_variant = std::variant<
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
     Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
 
-// Convert matrix to numpy array.
-// We need `kwargs` here because numpy might pass copy=True. This argument doesn't matter to us,
-// because we never copy expressions. But we need to be able to accept the argument for nanobind to
-// do method resolution.
+// Convert matrix to a numpy array with default numeric promotion.
 numerical_array_variant numpy_from_matrix(const matrix_expr& self, const nanobind::kwargs&);
+
+// Apply an explicit dtype before promoting mixed numeric elements, preserving exact integers.
+nanobind::object numpy_from_matrix_with_dtype(const matrix_expr& self,
+                                              const nanobind::object& dtype);
 
 }  // namespace wf

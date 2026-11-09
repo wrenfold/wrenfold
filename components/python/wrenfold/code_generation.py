@@ -262,6 +262,13 @@ def generate_function(
     Returns:
       * A string of generated code.
 
+    Raises:
+      wrenfold.exceptions.InvalidArgumentError: An input or output name conflicts with a backend
+        helper. C++ reserves ``Scalar`` and, in span mode, ``T<argument index>`` and
+        ``_<matrix argument name>``. Python reserves the selected module alias (``np``, ``th``, or
+        ``jnp``) and, when returning output arguments, ``compute_<optional output name>``.
+        Rename the conflicting argument before generating code.
+
     Example:
       >>> import wrenfold as wf
       >>>
@@ -342,6 +349,10 @@ def generate_python(
       To suppress the default import behavior, specify ``import_target_module=False``. You will then
       need to pass your own import in the ``context`` dict.
 
+      Integer inputs and casts use signed 64-bit values with NumPy and PyTorch, independently of
+      ``float_width``. JAX follows its configured default integer width; enable ``jax_enable_x64``
+      to use 64-bit integers with JAX.
+
     Tip:
 
       Because python lacks formal "output arguments", any symbolic outputs tagged as
@@ -349,6 +360,8 @@ def generate_python(
       function as elements of a tuple. The example listing below illustrates this behavior.
       When targeting NumPy, this behavior can be changed by passing ``use_output_arguments=True``
       to :class:`wrenfold.code_generation.PythonGenerator`.
+      In this mode, required parameters precede optional output parameters, which default to
+      ``None``. Relative declaration order is preserved within each group.
 
       **Additionally**, remember that your target framework may not be able to reason about your
       custom types. For example,

@@ -6,8 +6,11 @@ don't accidentally remove any.
 """
 
 import functools
+import math
+import sys
 import typing
 import unittest
+from fractions import Fraction
 
 from wrenfold import enumerations, exceptions, sym
 
@@ -132,6 +135,36 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertRaises(TypeError, lambda: sym.BooleanExpr(-0.231))
         self.assertRaises(TypeError, lambda: sym.BooleanExpr(True))
         self.assertRaises(TypeError, lambda: sym.BooleanExpr(False))
+
+    def test_rational_int64_bounds(self):
+        """Normalize boundary inputs exactly or raise a recoverable overflow error."""
+        min_int, max_int = -(2**63), 2**63 - 1
+        values = (min_int, min_int + 1, -2, -1, 0, 1, 2, max_int - 1, max_int)
+        for numerator in values:
+            for denominator in values:
+                if denominator == 0:
+                    continue
+                with self.subTest(numerator=numerator, denominator=denominator):
+                    expected = Fraction(numerator, denominator)
+                    if min_int <= expected.numerator <= max_int and expected.denominator <= max_int:
+                        self.assertReprEqual(str(expected), sym.rational(numerator, denominator))
+                    else:
+                        self.assertRaises(
+                            exceptions.ArithmeticError, sym.rational, numerator, denominator
+                        )
+
+    def test_rational_int64_min_exponent(self):
+        """Checking whether an INT64_MIN rational exponent is proper must not overflow."""
+        exponent = sym.rational(-(2**63), 3)
+        x = sym.symbol("x")
+        expression = (x**exponent) ** sym.rational(1, 2)
+        self.assertIdentical(1, expression.subs(x, 1))
+
+        positive = sym.symbol("p", set=enumerations.NumberSet.RealPositive)
+        self.assertIdentical(
+            positive ** sym.rational(-(2**63), 6),
+            (positive**exponent) ** sym.rational(1, 2),
+        )
 
     def test_repr(self):
         """Test __repr__ method."""
@@ -328,6 +361,29 @@ class ExpressionWrapperTest(MathTestBase):
         self.assertIdentical(7, sym.floor(7.12312))
         self.assertIdentical(-3, sym.floor(-sym.integer(5) / 2))
         self.assertIdentical(sym.floor(x), sym.floor(sym.floor(x)))
+
+    def test_floor_float_bounds(self):
+        """Reject out-of-range results while preserving valid integer boundary values."""
+        upper = float(2**63)
+        lower = -upper
+        for value in (
+            upper,
+            math.nextafter(lower, -math.inf),
+            1e20,
+            -1e20,
+            sys.float_info.max,
+            -sys.float_info.max,
+        ):
+            with self.subTest(value=value):
+                self.assertRaises(exceptions.ArithmeticError, sym.floor, value)
+
+        for value in (math.nextafter(upper, 0.0), lower, math.nextafter(lower, 0.0), -0.0):
+            with self.subTest(value=value):
+                self.assertIdentical(sym.integer(math.floor(value)), sym.floor(value))
+
+        self.assertIdentical(sym.nan, sym.floor(float("nan")))
+        self.assertIdentical(sym.zoo, sym.floor(float("inf")))
+        self.assertIdentical(sym.zoo, sym.floor(float("-inf")))
 
     def test_distribute(self):
         """Test calling distribute on scalar expressions."""

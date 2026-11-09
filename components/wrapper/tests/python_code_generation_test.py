@@ -8,6 +8,7 @@ import inspect
 import sys
 import typing
 import unittest
+import warnings
 
 import numpy as np
 import numpy.typing as npt
@@ -553,6 +554,56 @@ class PythonCodeGenerationTestBase(MathTestBase):
                 if not isinstance(sum_numerical, float):
                     self.assertEqual(sum_numerical.dtype, self.EXPECTED_TYPE)
 
+    def test_large_integer_inputs(self):
+        """Integer inputs and intermediate arithmetic must retain their 64-bit range."""
+
+        def integer_checks(value: wf.IntScalar):
+            return sym.vector(
+                sym.iverson(value > 0),
+                sym.iverson(sym.eq(value, 2**40)),
+                sym.iverson(sym.eq(value, -(2**40))),
+                sym.iverson(sym.eq(value, 2**63 - 1)),
+                sym.iverson(sym.eq(value, -(2**63))),
+            )
+
+        func = self._generator(integer_checks)
+        values = (
+            0,
+            1,
+            -1,
+            2**31 - 1,
+            2**31,
+            -(2**31),
+            -(2**31) - 1,
+            2**40,
+            -(2**40),
+            2**63 - 1,
+            -(2**63),
+        )
+        for value in values:
+            for convert in (int, np.int64):
+                with self.subTest(value=value, input_type=convert):
+                    expected = np.array(
+                        [
+                            value > 0,
+                            value == 2**40,
+                            value == -(2**40),
+                            value == 2**63 - 1,
+                            value == -(2**63),
+                        ]
+                    ).reshape(5, 1)
+                    np.testing.assert_array_equal(func(convert(value)), expected)
+
+        def twice(value: wf.IntScalar):
+            return 2 * value
+
+        func = self._generator(twice)
+        for value in (2**30, -(2**30) - 1, 2**40, -(2**40)):
+            with self.subTest(arithmetic_input=value):
+                np.testing.assert_equal(
+                    func(np.int64(value)), np.asarray(2 * value, dtype=self.EXPECTED_TYPE)
+                )
+
 
 @dataclasses.dataclass
 class SimParamsSymbolic:
@@ -918,7 +969,23 @@ class NumbaCodeGenerationF64OutputArgsTest(NumbaCodeGenerationTestBase):
 class JaxCodeGenerationTest(PythonCodeGenerationTestBase):
     """Run with JAX configuration."""
 
-    EXPECTED_TYPE = np.float32  # Jax only supports F32
+    EXPECTED_TYPE = np.float32  # Use F32 outputs with either JAX integer width.
+
+    def test_large_integer_inputs(self):
+        with jax.experimental.enable_x64():
+            super().test_large_integer_inputs()
+
+    def test_integer_inputs_without_x64(self):
+        """The default JAX mode must still support integer casts without dtype warnings."""
+
+        def positive(value: wf.IntScalar):
+            return sym.iverson(value > 0)
+
+        with jax.experimental.disable_x64(), warnings.catch_warnings():
+            warnings.simplefilter("error")
+            func = self._generator(positive)
+            self.assertEqual(1, func(np.int32(3)))
+            self.assertEqual(0, func(np.int32(-3)))
 
     def _generator(
         self,
@@ -1001,7 +1068,69 @@ class PyTorchCodeGenerationTest(PythonCodeGenerationTestBase):
 
 
 class OutputArgumentLayoutTest(MathTestBase):
-    """Output assignments must update the caller's array for every supported layout."""
+    """Output arguments support different declaration orders and array layouts."""
+
+    def test_optional_output_parameter_order(self):
+        factors = {"required_a": 2, "optional_a": 3, "required_b": 5, "optional_b": 7}
+        orders = (
+            ("optional_a", "required_a", "optional_b", "required_b"),
+            ("required_a", "optional_a", "required_b", "optional_b"),
+            ("required_a", "required_b", "optional_a", "optional_b"),
+            ("optional_b", "optional_a", "required_b", "required_a"),
+        )
+
+        def make_outputs(order):
+            def outputs(x: wf.Vector2):
+                return [
+                    wf.OutputArg(x * factors[name], name, is_optional=name.startswith("optional"))
+                    for name in order
+                ]
+
+            return outputs
+
+        for order in orders:
+            with self.subTest(order=order):
+                func, _ = wf.generate_python(
+                    make_outputs(order), generator=wf.PythonGenerator(use_output_arguments=True)
+                )
+                required = [name for name in order if name.startswith("required")]
+                optional = [name for name in order if name.startswith("optional")]
+                signature = inspect.signature(func)
+                self.assertEqual(["x", *required, *optional], list(signature.parameters))
+                for name in required:
+                    self.assertIs(inspect.Parameter.empty, signature.parameters[name].default)
+                for name in optional:
+                    self.assertIsNone(signature.parameters[name].default)
+
+                values = np.array([11.0, 13.0])
+                for mode in ("omitted", "none", "positional", "keyword"):
+                    with self.subTest(mode=mode):
+                        buffers = {name: np.full((2, 1), -1.0) for name in order}
+                        required_args = [buffers[name] for name in required]
+                        active_optional = []
+                        if mode == "omitted":
+                            result = func(values, *required_args)
+                        elif mode == "none":
+                            result = func(values, *required_args, None, None)
+                        elif mode == "positional":
+                            active_optional = optional
+                            result = func(
+                                values, *required_args, *(buffers[name] for name in optional)
+                            )
+                        else:
+                            active_optional = optional[-1:]
+                            result = func(
+                                values,
+                                **{name: buffers[name] for name in required + active_optional},
+                            )
+                        self.assertIsNone(result)
+                        for name in order:
+                            expected = (
+                                values.reshape(2, 1) * factors[name]
+                                if name in required + active_optional
+                                else np.full((2, 1), -1.0)
+                            )
+                            np.testing.assert_array_equal(buffers[name], expected)
 
     def _check_output_argument_layouts(self, compile_with_numba: bool):
         def outputs(x: wf.Vector4):

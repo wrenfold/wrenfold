@@ -83,6 +83,35 @@ TEST(NumericExpressionsTest, TestRational) {
   ASSERT_GT(rational_constant(-6, 7), rational_constant(12, -6));
 }
 
+TEST(NumericExpressionsTest, TestRationalInt64MinConstruction) {
+  constexpr auto min = checked_int::min();
+  static_assert(rational_constant(min, min).is_one());
+  static_assert(rational_constant(0, min).is_zero());
+  static_assert(rational_constant(min, 3).numerator() == min);
+  EXPECT_EQ(rational_constant(integer_constant{min}), rational_constant(min, 1));
+  EXPECT_EQ(rational_constant(min / 2, 1), rational_constant(min, 2));
+  EXPECT_EQ(rational_constant(-(min / 2), 1), rational_constant(min, -2));
+  EXPECT_EQ(rational_constant(-1, -(min / 2)), rational_constant(2, min));
+  EXPECT_EQ(rational_constant(0, 1), rational_constant(0, min));
+  EXPECT_EQ(rational_constant(1, 1), rational_constant(min, min));
+
+  // Canonical numerator and positive denominator must both fit in int64.
+  EXPECT_THROW(rational_constant(min, -1), arithmetic_error);
+  EXPECT_THROW(rational_constant(1, min), arithmetic_error);
+  EXPECT_THROW(rational_constant(1, 0), arithmetic_error);
+  EXPECT_THROW(rational_constant(0, 0), arithmetic_error);
+}
+
+TEST(NumericExpressionsTest, TestRationalInt64MinProperness) {
+  constexpr auto min = checked_int::min();
+  EXPECT_FALSE(rational_constant(integer_constant{min}).is_proper());
+  const rational_constant fraction{min, 3};
+  EXPECT_FALSE(fraction.is_proper());
+  EXPECT_TRUE(rational_constant(min + 2, checked_int::max()).is_proper());
+  EXPECT_EQ(std::make_pair(integer_constant(min / 3), rational_constant(-2, 3)),
+            fraction.normalized());
+}
+
 TEST(NumericExpressionsTest, TestLargeRationalComparison) {
   static_assert(rational_constant{4000000000LL, 4000000001LL} <
                 rational_constant{4000000001LL, 4000000000LL});

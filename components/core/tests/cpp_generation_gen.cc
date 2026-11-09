@@ -103,6 +103,20 @@ int main() {
         return where(x > y, temporary_name_external::call(x + y) + x + y, x + y);
       },
       "temporary_name_collision_external_conditional", arg("v01"), arg("x"), arg("y"));
+  generate_func(
+      generator, functions,
+      [](symbolic::Point2d p) {
+        return std::make_tuple(return_value(p), output_arg("out", p),
+                               optional_output_arg("optional", p));
+      },
+      "forward_custom_type", arg("p"));
+  generate_func(
+      generator, functions,
+      [](symbolic::FancyAggregateType p) {
+        return std::make_tuple(return_value(p), output_arg("out", p),
+                               optional_output_arg("optional", p));
+      },
+      "forward_nested_custom_type", arg("p"));
   const std::string code = generator.apply_preamble(functions, "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};

@@ -417,8 +417,22 @@ void wrap_matrix_operations(py::module_& m) {
       .def("__getitem__", &matrix_get_row_slice_and_col_index, py::arg("row_slice_and_col"),
            "Slice a specific column.")
       // Support conversion to numpy.
-      .def("__array__", &numpy_from_matrix,
-           "Convert to numpy array. See :func:`wrenfold.sym.MatrixExpr.eval` for limitations.")
+      .def(
+          "__array__",
+          [](const matrix_expr& self, const py::object& dtype, const std::optional<bool> copy) {
+            if (copy.has_value() && !*copy) {
+              throw py::value_error(
+                  "Cannot convert a symbolic matrix to a NumPy array without a copy.");
+            }
+            if (!dtype.is_none()) {
+              return numpy_from_matrix_with_dtype(self, dtype);
+            }
+            return py::cast(numpy_from_matrix(self, {}));
+          },
+          py::arg("dtype") = py::none(), py::arg("copy") = py::none(),
+          "Convert to a numeric NumPy array, optionally specifying dtype. Conversion requires "
+          "new storage, so copy=False raises ValueError. See "
+          ":func:`wrenfold.sym.MatrixExpr.eval` for limitations.")
       // Iterable:
       .def("__len__", &matrix_expr::rows, "Number of rows in the matrix.")
       .def(

@@ -69,6 +69,14 @@ static void compare_with_numerical_jacobian(const Eigen::Matrix<double, N, 1>& d
     EXPECT_EIGEN_NEAR(eigen_matrix_from_matrix_expr(symbolic_x.retract_derivative()),
                       retract_jacobian, 1.0e-12);
 
+    const matrix_expr delta = make_matrix_of_symbols("delta", N - 1, 1);
+    matrix_expr differentiated_retract = symbolic_x.retract(delta).jacobian(delta);
+    for (index_t i = 0; i < N - 1; ++i) {
+      differentiated_retract = differentiated_retract.subs(delta[i], 0);
+    }
+    EXPECT_EIGEN_NEAR(eigen_matrix_from_matrix_expr(differentiated_retract), retract_jacobian,
+                      1.0e-12);
+
     // Differentiate local coordinates with respect to additive ambient perturbations at y = x.
     const auto local_coordinates_jacobian = numerical_jacobian(
         x,
@@ -78,6 +86,14 @@ static void compare_with_numerical_jacobian(const Eigen::Matrix<double, N, 1>& d
         },
         1.0e-3);
     EXPECT_EIGEN_NEAR(eigen_matrix_from_matrix_expr(symbolic_x.local_coordinates_derivative()),
+                      local_coordinates_jacobian, 1.0e-12);
+
+    const unit_vector y = unit_vector::from_name_prefix("y", N);
+    matrix_expr differentiated_local = symbolic_x.local_coordinates(y).jacobian(y.to_vector());
+    for (index_t i = 0; i < N; ++i) {
+      differentiated_local = differentiated_local.subs(y[i], symbolic_x[i]);
+    }
+    EXPECT_EIGEN_NEAR(eigen_matrix_from_matrix_expr(differentiated_local),
                       local_coordinates_jacobian, 1.0e-12);
   }
 }

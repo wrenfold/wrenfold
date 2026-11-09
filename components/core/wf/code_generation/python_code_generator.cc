@@ -5,6 +5,7 @@
 
 #include <ranges>
 #include <span>
+#include <unordered_set>
 
 #include "wf/code_generation/ast_formatters.h"
 #include "wf/code_generation/ast_visitor.h"
@@ -31,8 +32,7 @@ constexpr static std::string_view python_string_from_cast_destination_type(
     case numeric_primitive_type::boolean:
       return "bool";
     case numeric_primitive_type::integral:
-      // Int32 because JAX does not support 64 by default. TODO: add a parameter for this.
-      return "int32";
+      return "int64";
     case numeric_primitive_type::floating_point: {
       return python_string_from_float_width(float_width);
     }
@@ -86,6 +86,10 @@ inline std::string format_scalar_type_cast(const python_generator_target target,
                                            const std::string_view arg,
                                            const numeric_primitive_type expected_type,
                                            const python_generator_float_width float_width) {
+  if (target == python_generator_target::jax && expected_type == numeric_primitive_type::integral) {
+    // Respect JAX's configured integer width without changing its global x64 setting.
+    return fmt::format("jnp.asarray({}, dtype=jnp.result_type(0))", arg);
+  }
   if (target == python_generator_target::pytorch) {
     // torch dtypes are not callable.
     return fmt::format("{}.asarray({}, dtype={}.{})", python_module_prefix_from_target(target), arg,
@@ -231,7 +235,30 @@ std::string python_code_generator::operator()(const ast::function_definition& de
 }
 
 std::string python_code_generator::operator()(const ast::function_signature& signature) const {
+  // Outputs are locals even when they are returned rather than passed as arguments.
+  std::unordered_set<std::string_view> argument_names;
+  for (const auto& arg : signature.arguments()) {
+    argument_names.insert(arg.name());
+  }
+  const auto check_helper_name = [&](const std::string_view name) {
+    if (argument_names.count(name)) {
+      throw invalid_argument_error(
+          "Python argument `{}` conflicts with a generated helper name in function `{}`. "
+          "Rename the argument.",
+          name, signature.name());
+    }
+  };
+  check_helper_name(python_module_prefix_from_target(target_));
+  if (!use_output_arguments_) {
+    for (const auto& arg : signature.arguments()) {
+      if (arg.is_optional()) {
+        check_helper_name(fmt::format("compute_{}", arg.name()));
+      }
+    }
+  }
+
   std::vector<std::string> args{};
+  std::vector<std::string> optional_args{};
   args.reserve(signature.num_arguments());
 
   for (const auto& arg : signature.arguments()) {
@@ -244,11 +271,15 @@ std::string python_code_generator::operator()(const ast::function_signature& sig
       }
     } else if (arg.direction() == argument_direction::optional_output) {
       if (use_output_arguments_) {
-        args.push_back(fmt::format("{}: {} | None = None", arg.name(), formatted_type));
+        optional_args.push_back(fmt::format("{}: {} | None = None", arg.name(), formatted_type));
       } else {
         args.push_back(fmt::format("compute_{}: bool", arg.name()));
       }
     }
+  }
+  // Python requires parameters with defaults to follow all required parameters.
+  for (std::string& arg : optional_args) {
+    args.push_back(std::move(arg));
   }
 
   std::vector<std::string> output_arg_ret_annotations;

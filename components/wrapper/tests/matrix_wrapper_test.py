@@ -549,6 +549,99 @@ class MatrixWrapperTest(MathTestBase):
             ).eval(),
         )
 
+    def test_numpy_array_dtype(self):
+        """NumPy and direct __array__ calls must honor positional and keyword dtypes."""
+        cases = (
+            (
+                sym.matrix([[1, 2], [3, 4]]),
+                np.array([[1, 2], [3, 4]]),
+                (None, np.float32, np.dtype("float32"), "int16", object, "U12"),
+            ),
+            (
+                sym.matrix([[1.5, -2.25]]),
+                np.array([[1.5, -2.25]]),
+                (None, np.float32, "float64", np.complex64),
+            ),
+            (
+                sym.matrix([[1 + 2 * sym.I, -3.5 - 4.25 * sym.I]]),
+                np.array([[1 + 2j, -3.5 - 4.25j]]),
+                (None, np.complex64, "complex128", object),
+            ),
+        )
+        converters = (
+            ("array", np.array),
+            ("asarray", np.asarray),
+            ("direct_positional", lambda matrix, dtype: matrix.__array__(dtype)),
+            ("direct_keyword", lambda matrix, dtype: matrix.__array__(dtype=dtype)),
+        )
+        for matrix, values, dtypes in cases:
+            for dtype in dtypes:
+                for name, convert in converters:
+                    with self.subTest(shape=matrix.shape, dtype=dtype, conversion=name):
+                        expected = np.asarray(values, dtype=dtype)
+                        result = convert(matrix, dtype)
+                        self.assertEqual(expected.dtype, result.dtype)
+                        np.testing.assert_array_equal(expected, result)
+
+    def test_numpy_array_dtype_preserves_mixed_integer_values(self):
+        """Apply dtype before mixed real/complex entries can round exact integers."""
+        converters = (
+            np.array,
+            np.asarray,
+            lambda matrix, dtype: matrix.__array__(dtype),
+            lambda matrix, dtype: matrix.__array__(dtype=dtype),
+        )
+        for integer in (2**53 + 1, -(2**53 + 1), 2**63 - 1, -(2**63) + 1):
+            cases = (
+                (0.5, 0.5, (np.int64, object, np.longdouble, "U32")),
+                (1 + 2 * sym.I, 1 + 2j, (object, np.clongdouble, "U64")),
+            )
+            for symbolic_value, numeric_value, dtypes in cases:
+                matrix = sym.matrix([[integer, symbolic_value], [integer, 2]])
+                for dtype in dtypes:
+                    expected = np.asarray([[integer, numeric_value], [integer, 2]], dtype=dtype)
+                    for convert in converters:
+                        with self.subTest(integer=integer, dtype=dtype, conversion=convert):
+                            result = convert(matrix, dtype=dtype)
+                            self.assertEqual(expected.dtype, result.dtype)
+                            np.testing.assert_array_equal(expected, result)
+                            if dtype is object:
+                                self.assertIsInstance(result[0, 0], int)
+
+    def test_numpy_array_dtype_empty_shapes(self):
+        """Explicit dtypes preserve both dimensions of an empty matrix."""
+        matrix = sym.matrix([[1, 2, 3], [4, 5, 6]])
+        for empty in (matrix[:0, :], matrix[:, :0], matrix[:0, :0]):
+            for dtype in (np.int64, np.float32, object, "U32"):
+                with self.subTest(shape=empty.shape, dtype=dtype):
+                    expected = np.empty(empty.shape, dtype=dtype)
+                    for convert in (np.array, np.asarray):
+                        result = convert(empty, dtype=dtype)
+                        self.assertEqual(expected.dtype, result.dtype)
+                        np.testing.assert_array_equal(expected, result)
+
+    def test_numpy_array_copy(self):
+        """A symbolic matrix must allocate storage and cannot provide a zero-copy array."""
+        matrix = sym.matrix([[1, 2], [3, 4]])
+        for convert in (np.array, np.asarray):
+            for dtype in (None, np.float32):
+                for copy in (None, True):
+                    with self.subTest(conversion=convert.__name__, dtype=dtype, copy=copy):
+                        result = convert(matrix, dtype=dtype, copy=copy)
+                        other = convert(matrix, dtype=dtype, copy=copy)
+                        self.assertFalse(np.shares_memory(result, other))
+                        result[0, 0] = -1
+                        self.assertEqual(1, other[0, 0])
+                        self.assertIdentical(1, matrix[0, 0])
+                with (
+                    self.subTest(conversion=convert.__name__, dtype=dtype, copy=False),
+                    self.assertRaisesRegex(ValueError, "copy"),
+                ):
+                    convert(matrix, dtype=dtype, copy=False)
+
+        with self.assertRaisesRegex(ValueError, "copy"):
+            matrix.__array__(copy=False)
+
     def test_scalar_multiply(self):
         """Test we can call different overloads for matrix/scalar multiplication and division."""
         x, y = sym.make_symbols("x", "y")

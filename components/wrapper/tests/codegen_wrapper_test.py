@@ -12,8 +12,9 @@ import dataclasses
 import typing
 import unittest
 
+import numpy as np
 import wrenfold as wf
-from wrenfold import ast, external_functions, sym, type_info
+from wrenfold import ast, exceptions, external_functions, sym, type_info
 from wrenfold.code_generation import Argument, ArgumentDirection, OutputKey
 
 from .test_base import MathTestBase
@@ -147,6 +148,82 @@ class InvalidType3:
 
 
 class CodeGenerationWrapperTest(MathTestBase):
+    def test_cpp_helper_name_collisions(self):
+        scalar = type_info.ScalarType(type_info.NumericType.Float)
+        for name in ("_x", "Scalar", "T0"):
+            for direction in ("input", "output", "optional_output"):
+                with self.subTest(name=name, direction=direction):
+                    desc = wf.FunctionDescription("collision")
+                    x = desc.add_input_argument("x", type_info.MatrixType(2, 1))
+                    if direction == "input":
+                        y = desc.add_input_argument(name, scalar)
+                        desc.set_return_value(x[0] + y)
+                    else:
+                        desc.add_output_argument(name, direction == "optional_output", x[0])
+                    definition = wf.transpile(desc)
+                    generator = wf.CppGenerator()
+                    for generate, element in (
+                        (generator.generate, definition),
+                        (generator.format, definition.signature),
+                    ):
+                        with self.assertRaisesRegex(exceptions.InvalidArgumentError, name):
+                            generate(element)
+
+                    # Eigen does not emit span locals or per-matrix template parameters.
+                    if name != "Scalar":
+                        wf.CppGenerator(wf.CppMatrixTypeBehavior.Eigen).generate(definition)
+
+    def test_python_optional_flag_name_collisions(self):
+        scalar = type_info.ScalarType(type_info.NumericType.Float)
+        for direction in ("input", "output", "optional_output"):
+            with self.subTest(direction=direction):
+                desc = wf.FunctionDescription("collision")
+                if direction == "input":
+                    value = desc.add_input_argument("compute_y", scalar)
+                else:
+                    value = sym.one
+                    desc.add_output_argument("compute_y", direction == "optional_output", value)
+                desc.add_output_argument("y", True, value + 1)
+                definition = wf.transpile(desc)
+                generator = wf.PythonGenerator()
+                for generate, element in (
+                    (generator.generate, definition),
+                    (generator.format, definition.signature),
+                ):
+                    with self.assertRaisesRegex(exceptions.InvalidArgumentError, "compute_y"):
+                        generate(element)
+
+        # Output-argument mode does not emit compute_* flags.
+        def output_arguments(compute_y: wf.Vector2):
+            return wf.OutputArg(compute_y * 2, "y", is_optional=True)
+
+        wf.generate_function(output_arguments, wf.PythonGenerator(use_output_arguments=True))
+
+    def test_python_module_alias_name_collisions(self):
+        scalar = type_info.ScalarType(type_info.NumericType.Float)
+        targets = (
+            (wf.PythonGeneratorTarget.NumPy, "np"),
+            (wf.PythonGeneratorTarget.PyTorch, "th"),
+            (wf.PythonGeneratorTarget.JAX, "jnp"),
+        )
+        for target, alias in targets:
+            for name in ("np", "th", "jnp"):
+                for direction in ("input", "output", "optional_output"):
+                    with self.subTest(target=target, name=name, direction=direction):
+                        desc = wf.FunctionDescription("collision")
+                        if direction == "input":
+                            value = desc.add_input_argument(name, scalar)
+                            desc.set_return_value(value + 1)
+                        else:
+                            desc.add_output_argument(name, direction == "optional_output", sym.one)
+                        definition = wf.transpile(desc)
+                        generator = wf.PythonGenerator(target=target)
+                        if name == alias:
+                            with self.assertRaisesRegex(exceptions.InvalidArgumentError, alias):
+                                generator.generate(definition)
+                        else:
+                            generator.generate(definition)
+
     @staticmethod
     def _run_generators(
         definition: ast.FunctionDefinition | typing.Sequence[ast.FunctionDefinition],
@@ -326,6 +403,68 @@ class CodeGenerationWrapperTest(MathTestBase):
 
         self._run_generators(definition)
         self._test_cse_function_description(desc)
+
+    def test_forward_custom_type_outputs(self):
+        """Forward input structs to return values and required/optional outputs."""
+
+        def forward_point(p: Point2d):
+            return [
+                wf.ReturnValue(p),
+                wf.OutputArg(p, name="out"),
+                wf.OutputArg(p, name="optional", is_optional=True),
+            ]
+
+        def forward_nested(p: NestedType3):
+            return [
+                wf.ReturnValue(p),
+                wf.OutputArg(p, name="out"),
+                wf.OutputArg(p, name="optional", is_optional=True),
+            ]
+
+        external = external_functions.declare_external_function(
+            "transform_point", arguments=[("p", Point2d)], return_type=Point2d
+        )
+
+        def forward_external(p: Point2d):
+            result = external(p)
+            return [
+                wf.ReturnValue(result),
+                wf.OutputArg(result, name="out"),
+                wf.OutputArg(result, name="optional", is_optional=True),
+            ]
+
+        context = {cls.__name__: cls for cls in (Point2d, NestedType1, NestedType2, NestedType3)}
+        context[external.name] = lambda p: Point2d(p.x + 1, p.y - 2)
+        point = Point2d(1.5, -2.0)
+        nested = NestedType3(NestedType1(2.5, -3.0), NestedType2(np.array([[4.0], [5.0]]), 6.0))
+        cases = (
+            (forward_point, point, point),
+            (forward_nested, nested, nested),
+            (forward_external, point, Point2d(2.5, -4.0)),
+        )
+        for func, value, expected in cases:
+            for convert_ternaries in (False, True):
+                with self.subTest(func=func.__name__, convert_ternaries=convert_ternaries):
+                    desc = wf.create_function_description(func)
+                    definition = wf.transpile(desc, convert_ternaries=convert_ternaries)
+                    wf.CppGenerator(matrix_args=wf.CppMatrixTypeBehavior.Eigen).generate(definition)
+                    generated, _ = wf.generate_python(
+                        func, context=context, convert_ternaries=convert_ternaries
+                    )
+                    for compute_optional in (False, True):
+                        returned, out, optional = generated(
+                            value, compute_optional=compute_optional
+                        )
+                        for result in (returned, out):
+                            np.testing.assert_equal(
+                                dataclasses.asdict(expected), dataclasses.asdict(result)
+                            )
+                        if compute_optional:
+                            np.testing.assert_equal(
+                                dataclasses.asdict(expected), dataclasses.asdict(optional)
+                            )
+                        else:
+                            self.assertIsNone(optional)
 
     def test_custom_type_field_shapes(self):
         """Reject invalid matrix fields before flattening can shift their values."""
