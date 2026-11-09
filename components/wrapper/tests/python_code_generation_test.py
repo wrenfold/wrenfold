@@ -234,6 +234,49 @@ class PythonCodeGenerationTestBase(MathTestBase):
         np.testing.assert_allclose(desired=rv_sym, actual=rv_num, rtol=1.0e-6)
         np.testing.assert_allclose(desired=oa_sym["J_theta"], actual=J_theta_num, rtol=1.0e-6)
 
+    def test_temporary_names_match_inputs(self):
+        """Temporary declarations must not overwrite inputs, including suffixed names."""
+
+        def add(v01: wf.FloatScalar, x: wf.FloatScalar):
+            return v01 + x
+
+        def add_suffixed(
+            v01: wf.FloatScalar, v01_1: wf.FloatScalar, v01_2: wf.FloatScalar, x: wf.FloatScalar
+        ):
+            return v01 + v01_1 + v01_2 + x
+
+        def conditional(v000: wf.FloatScalar, v001: wf.FloatScalar):
+            return sym.where(v000 > v001, v000 - v001, v001 - v000)
+
+        for func, args, expected in [
+            (add, (2.0, 3.0), 5.0),
+            (add_suffixed, (1.0, 2.0, 4.0, 8.0), 15.0),
+            (conditional, (2.0, 3.0), 1.0),
+            (conditional, (3.0, 2.0), 1.0),
+            (conditional, (2.0, 2.0), 0.0),
+        ]:
+            with self.subTest(func=func.__name__, args=args):
+                generated = self._generator(func)
+                np.testing.assert_allclose(generated(*args), expected, rtol=1.0e-6)
+
+    def test_temporary_names_match_outputs(self):
+        """Required and optional output names must also be reserved for assignments."""
+
+        def outputs(x: wf.FloatScalar, y: wf.FloatScalar):
+            return [
+                wf.ReturnValue(x + y),
+                wf.OutputArg(sym.vector(x - y), "v000"),
+                wf.OutputArg(sym.vector(x * y), "v001", is_optional=True),
+            ]
+
+        generated = self._generator(outputs)
+        for x, y in [(2.0, 3.0), (3.0, 2.0), (-2.0, 3.0), (0.0, 0.0)]:
+            with self.subTest(x=x, y=y):
+                result, required, optional = generated(x, y)
+                np.testing.assert_allclose(result, x + y, rtol=1.0e-6)
+                np.testing.assert_allclose(required, [[x - y]], rtol=1.0e-6)
+                np.testing.assert_allclose(optional, [[x * y]], rtol=1.0e-6)
+
     def test_logarithm_magnitude(self):
         """The magnitude of log(exp(x)) must remain nonnegative for negative x."""
 
@@ -685,6 +728,48 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
                     return tuple(output_args.values())
 
             return wrapped_func_capture_output_args
+
+    def test_temporary_names_match_external_functions(self):
+        """Reserve external names before naming temporaries, including across branches."""
+
+        def make_functions(names: tuple[str, ...]):
+            externals = [
+                external_functions.declare_external_function(
+                    name, arguments=[("x", wf.FloatScalar)], return_type=wf.FloatScalar
+                )
+                for name in names
+            ]
+
+            def call_external(v01: wf.FloatScalar, x: wf.FloatScalar, y: wf.FloatScalar):
+                value = x + y
+                result = value
+                for external in externals:
+                    result += external(value)
+                return result
+
+            def conditional(v01: wf.FloatScalar, x: wf.FloatScalar, y: wf.FloatScalar):
+                value = x + y
+                return sym.where(x > y, externals[0](value) + value, value)
+
+            return call_external, conditional
+
+        for names in (("v01_1",), ("v01_1", "v01_2"), ("v00",)):
+            call_external, conditional = make_functions(names)
+            context = {name: lambda value: 2 * value for name in names}
+            for convert_ternaries in (False, True):
+                cases = (
+                    (call_external, 2.0, 3.0, 5 * (1 + 2 * len(names))),
+                    (conditional, 2.0, 3.0, 5.0),
+                    (conditional, 3.0, 2.0, 15.0),
+                )
+                for func, x, y, expected in cases:
+                    with self.subTest(
+                        names=names, func=func.__name__, convert_ternaries=convert_ternaries
+                    ):
+                        generated = self._generator(
+                            func, context=context, convert_ternaries=convert_ternaries
+                        )
+                        np.testing.assert_allclose(generated(99.0, x, y), expected)
 
     def test_external_function_call_np(self):
         """

@@ -5,10 +5,17 @@
 #include <ranges>
 
 #include "wf/code_generation/cpp_code_generator.h"
+#include "wf/code_generation/declare_external_function.h"
 
 #include "test_expressions_codegen.h"
 
 namespace wf {
+
+struct temporary_name_external
+    : declare_external_function<temporary_name_external, scalar_expr, type_list<scalar_expr>> {
+  static constexpr std::string_view name() noexcept { return "v01_1"; }
+  static constexpr auto arg_names() noexcept { return std::make_tuple("x"); }
+};
 
 class custom_cpp_code_generator final : public cpp_code_generator {
  public:
@@ -63,22 +70,54 @@ int main() {
 #else
   const custom_cpp_code_generator generator{cpp_matrix_type_behavior::eigen};
 #endif
-  std::string code = generate_test_expressions(generator);
+  std::string functions = generate_test_expressions(generator);
   generate_func(
-      generator, code,
+      generator, functions, [](scalar_expr a, scalar_expr b) { return a + b; },
+      "temporary_name_collision", arg("v01"), arg("x"));
+  generate_func(
+      generator, functions,
+      [](scalar_expr a, scalar_expr b, scalar_expr c, scalar_expr d) { return a + b + c + d; },
+      "temporary_name_collision_suffixed", arg("v01"), arg("v01_1"), arg("v01_2"), arg("x"));
+  generate_func(
+      generator, functions, [](scalar_expr a, scalar_expr b) { return where(a > b, a - b, b - a); },
+      "temporary_name_collision_conditional", arg("v000"), arg("v009"));
+  generate_func(
+      generator, functions,
+      [](scalar_expr x, scalar_expr y) {
+        return std::make_tuple(
+            return_value(x + y), output_arg("v000", ta::static_matrix<1, 1>{make_vector(x - y)}),
+            optional_output_arg("v001", ta::static_matrix<1, 1>{make_vector(x * y)}));
+      },
+      "temporary_name_collision_outputs", arg("x"), arg("y"));
+  // Use unqualified calls so a temporary cannot hide the external function.
+  const cpp_code_generator external_generator{cpp_matrix_type_behavior::generic_span};
+  generate_func(
+      external_generator, functions,
+      [](scalar_expr, scalar_expr x, scalar_expr y) {
+        return temporary_name_external::call(x + y) + x + y;
+      },
+      "temporary_name_collision_external", arg("v01"), arg("x"), arg("y"));
+  generate_func(
+      external_generator, functions,
+      [](scalar_expr, scalar_expr x, scalar_expr y) {
+        return where(x > y, temporary_name_external::call(x + y) + x + y, x + y);
+      },
+      "temporary_name_collision_external_conditional", arg("v01"), arg("x"), arg("y"));
+  generate_func(
+      generator, functions,
       [](symbolic::Point2d p) {
         return std::make_tuple(return_value(p), output_arg("out", p),
                                optional_output_arg("optional", p));
       },
       "forward_custom_type", arg("p"));
   generate_func(
-      generator, code,
+      generator, functions,
       [](symbolic::FancyAggregateType p) {
         return std::make_tuple(return_value(p), output_arg("out", p),
                                optional_output_arg("optional", p));
       },
       "forward_nested_custom_type", arg("p"));
-  code = generator.apply_preamble(code, "gen");
+  const std::string code = generator.apply_preamble(functions, "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};
   output.write(code.data(), code.size());
