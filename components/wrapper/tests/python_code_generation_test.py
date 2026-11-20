@@ -632,6 +632,53 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
     SUPPORTS_BATCH = False
     USE_OUTPUT_ARGUMENTS = False
 
+    def test_mixed_comparisons(self):
+        def comparisons(i: wf.IntScalar, f: wf.FloatScalar):
+            return sym.vector(
+                *map(sym.iverson, (sym.eq(i, f), i < f, i <= f, sym.eq(f, i), f < i, f <= i))
+            )
+
+        generated = self._generator(comparisons)
+        for f in (
+            2.0**53,
+            -(2.0**53),
+            2.0**24,
+            -(2.0**24),
+            2.0**63,
+            -(2.0**63),
+            -0.5,
+            0.5,
+            float("inf"),
+            float("-inf"),
+            float("nan"),
+        ):
+            center = int(f) if np.isfinite(f) else 0
+            for i in range(max(-(2**63), center - 1), min(2**63, center + 2)):
+                with self.subTest(i=i, f=f):
+                    expected = [i == f, i < f, i <= f, f == i, f < i, f <= i]
+                    np.testing.assert_array_equal(generated(i, f).ravel(), expected)
+
+    def test_large_integer_literal_comparisons(self):
+        thresholds = (2**53 + 1, 2**53 + 2**30 + 1, -(2**53 + 2**30 + 1), 2**63 - 1)
+
+        def comparisons(f: wf.FloatScalar):
+            return sym.vector(
+                *(sym.iverson(op) for i in thresholds for op in (sym.eq(i, f), i < f, f <= i))
+            )
+
+        generated = self._generator(comparisons)
+        for threshold in thresholds:
+            center = self.EXPECTED_TYPE(threshold)
+            for value in (
+                np.nextafter(center, self.EXPECTED_TYPE(-np.inf)),
+                center,
+                np.nextafter(center, self.EXPECTED_TYPE(np.inf)),
+            ):
+                f = float(value)
+                with self.subTest(f=f):
+                    expected = [op for i in thresholds for op in (i == f, i < f, f <= i)]
+                    np.testing.assert_array_equal(generated(value).ravel(), expected)
+
     def _generator(
         self,
         func: typing.Callable,

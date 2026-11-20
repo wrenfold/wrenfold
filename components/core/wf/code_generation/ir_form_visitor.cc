@@ -3,6 +3,8 @@
 // For license information refer to accompanying LICENSE file.
 #include "wf/code_generation/ir_form_visitor.h"
 
+#include <limits>
+
 #include "wf/code_generation/ir_consumer_vector.h"
 #include "wf/enumerations.h"
 #include "wf/expression_visitor.h"
@@ -376,6 +378,21 @@ ir::value_ptr ir_form_visitor::operator()(const rational_constant& r) {
 ir::value_ptr ir_form_visitor::operator()(const relational& relational) {
   const ir::value_ptr left = operator()(relational.left());
   const ir::value_ptr right = operator()(relational.right());
+  const bool integer_on_left = left->numeric_type() == numeric_primitive_type::integral;
+  if ((integer_on_left && right->numeric_type() == numeric_primitive_type::floating_point) ||
+      (right->numeric_type() == numeric_primitive_type::integral &&
+       left->numeric_type() == numeric_primitive_type::floating_point)) {
+    const auto* literal =
+        get_if<integer_constant>(integer_on_left ? relational.left() : relational.right());
+    // Small literal thresholds (especially zero) are exactly representable even in binary32.
+    constexpr std::int64_t exact_limit = std::int64_t{1} << std::numeric_limits<float>::digits;
+    if (!literal || literal->value() < -exact_limit || literal->value() > exact_limit) {
+      // Keep the original operands when reconstructing symbolic expressions. Code generation
+      // lowers this mixed comparison before emitting control flow.
+      return push_operation(ir::compare{relational.operation()}, numeric_primitive_type::boolean,
+                            left, right);
+    }
+  }
   const numeric_primitive_type promoted_type =
       std::max(left->numeric_type(), right->numeric_type());
   return push_operation(ir::compare{relational.operation()}, numeric_primitive_type::boolean,

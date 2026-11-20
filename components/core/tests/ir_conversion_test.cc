@@ -1000,4 +1000,11 @@ TEST(IrTest, TestTypedScalarArgs2) {
   ASSERT_EQ(1, ir.count_operation<ir::cast>()) << ir;  //  `x` and `y` are multiplied, then casted
 }
 
+TEST(IrTest, MixedComparisonRoundTrip) {
+  auto [expressions, ir] =
+      create_ir([](ta::int_scalar_expr i, scalar_expr f) { return iverson(i < f); }, "compare",
+                arg("i"), arg("f"));
+  check_expressions(expressions, ir);
+}
+
 }  // namespace wf

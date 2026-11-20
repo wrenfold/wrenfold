@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include <limits>
+
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numeric_testing.h"
 
@@ -595,6 +597,25 @@ TEST(CppGenerationTest, TestIntegerArgument1) {
   static_assert(std::is_same_v<return_type, double>);
   ASSERT_EQ(2.0, gen::integer_argument_1(numeric::type_safe_int64_t(1), 2.0));
   ASSERT_EQ(67.2, gen::integer_argument_1(numeric::type_safe_int64_t(16), 4.2));
+}
+
+TEST(CppGenerationTest, MixedComparisons) {
+  const auto check = [](std::int64_t i, double f, bool equal, bool less, bool greater) {
+    const auto actual = gen::mixed_comparisons(i, f);
+    Eigen::Matrix<double, 6, 1> expected;
+    expected << equal, less, less || equal, equal, greater, greater || equal;
+    EXPECT_EQ(expected, actual) << "i = " << i << ", f = " << f;
+  };
+  constexpr std::int64_t boundary = std::int64_t{1} << 53;
+  for (const auto n : {boundary, -boundary}) {
+    check(n - 1, static_cast<double>(n), false, true, false);
+    check(n, static_cast<double>(n), true, false, false);
+    check(n + 1, static_cast<double>(n), false, false, true);
+  }
+  check(std::numeric_limits<std::int64_t>::max(), 0x1p63, false, true, false);
+  check(std::numeric_limits<std::int64_t>::min(), -0x1p63, true, false, false);
+  check(0, -0.5, false, false, true);
+  check(0, std::numeric_limits<double>::quiet_NaN(), false, false, false);
 }
 
 TEST(CppGenerationTest, TestIntegerOutputValues1) {
