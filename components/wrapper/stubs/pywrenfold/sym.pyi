@@ -1047,8 +1047,8 @@ def eliminate_subexpressions(expr: Expr | int | float, make_variable: Callable[[
     Args:
       expr: The expression to operate on.
       make_variable: A callable that accepts an integer indicating the index of the next variable. It
-        should return an appropriately named variable expression. By default, the names
-        ``v0, v1, ..., v{N}`` will be used.
+        should return a fresh variable for each index. The default uses ``v0, v1, ...``, skipping names
+        that already appear in the input expression.
       min_occurrences: The number of times an expression must appear as part of a unique parent in order
         to be extracted.
 
