@@ -367,7 +367,8 @@ static bool can_multiply_exponents(const power& base_pow, const scalar_expr& out
   }
   if (const number_set base_set = determine_numeric_set(base_pow.base());
       base_set == number_set::real_non_negative || base_set == number_set::real_positive) {
-    return true;
+    // A complex inner exponent can cross the principal branch even for a positive base.
+    return is_real_set(determine_numeric_set(base_pow.exponent()));
   }
   return false;
 }

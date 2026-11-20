@@ -528,7 +528,8 @@ TEST(ScalarOperationsTest, TestPowerCombinationInnerNonNegative) {
     ASSERT_IDENTICAL(s, pow(pow(s, 2), 1 / 2_s));
     ASSERT_IDENTICAL(s, pow(pow(s, 3), 1 / 3_s));
     ASSERT_IDENTICAL(pow(s, 12 / 7_s), pow(pow(s, 2), 6 / 7_s));
-    ASSERT_IDENTICAL(pow(s + 3, x / 3), pow(pow(s + 3, x), 1 / 3_s));
+    ASSERT_IDENTICAL(pow(s + 3, v / 3), pow(pow(s + 3, v), 1 / 3_s));
+    ASSERT_IDENTICAL(make_pow(pow(s + 3, x), 1 / 3_s), pow(pow(s + 3, x), 1 / 3_s));
   }
   ASSERT_IDENTICAL(pow(abs(v), 5 * x / 3), pow(pow(abs(v), 5 / 3_s), x));
   ASSERT_IDENTICAL(abs(v), pow(pow(abs(v), 2), 1_s / 2));
