@@ -4,6 +4,7 @@ Test of geometry module wrapper.
 NB: Most of this is tested in `quaternion_test.cc`. This is just a test of the wrapper itself.
 """
 
+import importlib.util
 import unittest
 
 import numpy as np
@@ -59,6 +60,34 @@ class GeometryWrapperTest(MathTestBase):
         code = wf.generate_function(func=sphere_cost, generator=wf.CppGenerator())
         self.assertIn("sphere_cost", code)
         self.assertIn("residual_D_v", code)
+
+    @unittest.skipUnless(importlib.util.find_spec("jax"), "JAX is required")
+    def test_unit_vector_reverse_mode_jacobians(self):
+        import jax
+
+        north = UnitN([0, 0, 1])
+
+        def retract(delta: wf.Vector2):
+            return north.retract(delta).to_vector()
+
+        def coordinates(y: wf.Vector3):
+            return north.local_coordinates(UnitN(y))
+
+        generator = wf.PythonGenerator(
+            target=wf.PythonGeneratorTarget.JAX, float_width=wf.PythonGeneratorFloatWidth.Float32
+        )
+        retract_fn, _ = wf.generate_python(retract, generator)
+        coordinates_fn, _ = wf.generate_python(coordinates, generator)
+
+        for case, func, arg, value, jacobian in (
+            ("zero displacement", retract_fn, [0, 0], [0, 0, 1], [[1, 0], [0, 1], [0, 0]]),
+            ("coincident", coordinates_fn, [0, 0, 1], [0, 0], [[1, 0, 0], [0, 1, 0]]),
+            ("equator", coordinates_fn, [1, 0, 0], [np.pi / 2, 0], [[0, 0, -1], [0, np.pi / 2, 0]]),
+        ):
+            with self.subTest(case=case):
+                x = np.array(arg, dtype=np.float32)
+                np.testing.assert_allclose(func(x)[:, 0], value)
+                np.testing.assert_allclose(jax.jacrev(func)(x)[:, 0, :], jacobian)
 
     def assertQuatIdentical(self, a: Quaternion, b: Quaternion):
         self.assertIdentical(a.w, b.w)
