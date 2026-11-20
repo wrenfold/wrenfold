@@ -380,7 +380,9 @@ matrix_expr inverse_left_jacobian_of_so3(const matrix_expr& w,
   const scalar_expr angle = sqrt(vx * vx + vy * vy + vz * vz);
 
   static const scalar_expr c0 = constants::negative_one / 2;
-  const scalar_expr c1 = 1 / pow(angle, 2) - (1 + cos(angle)) / (2 * angle * sin(angle));
+  // The half-angle form avoids a removable singularity at pi.
+  const scalar_expr half_angle = angle / 2;
+  const scalar_expr c1 = (1 - half_angle * cos(half_angle) / sin(half_angle)) / pow(angle, 2);
   static const scalar_expr c1_small_angle = constants::one / 12;  // lim[angle -> 0] c1
 
   // clang-format off
