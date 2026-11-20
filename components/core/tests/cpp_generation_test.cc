@@ -55,6 +55,9 @@ Scalar v01_1(const Scalar x) {
   return 2 * x;
 }
 
+// Referenced as a free symbol in the generated conditional.
+constexpr double v001 = 10.0;
+
 #include "generated.h"
 
 namespace wf {
@@ -74,6 +77,8 @@ TEST(CppGenerationTest, TestTemporaryNameCollisions) {
   EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(2.0, 3.0));
   EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(3.0, 2.0));
   EXPECT_EQ(0.0, gen::temporary_name_collision_conditional(2.0, 2.0));
+  EXPECT_EQ(12.0, gen::temporary_name_collision_free_symbol(2.0));
+  EXPECT_EQ(-2.0, gen::temporary_name_collision_free_symbol(-2.0));
 
   Eigen::Matrix<double, 1, 1> required, optional;
   EXPECT_EQ(5.0, gen::temporary_name_collision_outputs(2.0, 3.0, required, OPT_OUTPUT(optional)));

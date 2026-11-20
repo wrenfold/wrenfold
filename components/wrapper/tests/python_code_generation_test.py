@@ -729,6 +729,18 @@ class NumPyCodeGenerationTestBase(PythonCodeGenerationTestBase):
 
             return wrapped_func_capture_output_args
 
+    def test_temporary_names_match_free_symbols(self):
+        def add(x: wf.FloatScalar):
+            return x + sym.symbol("v01")
+
+        def add_suffixed(v01: wf.FloatScalar):
+            return v01 + sym.symbol("v01_1")
+
+        for func, name in ((add, "v01"), (add_suffixed, "v01_1")):
+            with self.subTest(name=name):
+                generated = self._generator(func, context={name: 10.0})
+                self.assertEqual(12.0, generated(2.0))
+
     def test_temporary_names_match_external_functions(self):
         """Reserve external names before naming temporaries, including across branches."""
 

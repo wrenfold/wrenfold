@@ -120,7 +120,7 @@ class ast_form_visitor {
   std::size_t value_width_;
   function_signature signature_;
 
-  // Reserve argument and external function names so temporaries cannot shadow either.
+  // Argument, external function, and free symbol names referenced by the generated function.
   std::unordered_set<std::string> reserved_names_;
 
   // Operations accrued in the current block.

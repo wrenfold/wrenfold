@@ -98,8 +98,7 @@ static ast::ast_element format_operation_count_comment(const operation_counts& c
 
 ast::function_definition ast_form_visitor::convert_function(const ir::const_block_ptr block,
                                                             const operation_counts& counts) {
-  // A temporary in an earlier block can hide a call in a later branch, so collect all
-  // external names before choosing any temporary names.
+  // A temporary in an earlier block can hide a free symbol or external call in a later branch.
   std::vector<ir::const_block_ptr> pending{block};
   std::unordered_set<ir::const_block_ptr> visited;
   while (!pending.empty()) {
@@ -109,9 +108,12 @@ ast::function_definition ast_form_visitor::convert_function(const ir::const_bloc
       continue;
     }
     for (const ir::const_value_ptr value : current->operations()) {
-      if (const auto* call = std::get_if<ir::call_external_function>(&value->value_op());
-          call != nullptr) {
+      if (const auto* call = std::get_if<ir::call_external_function>(&value->value_op())) {
         reserved_names_.insert(call->function().name());
+      } else if (const auto* load = std::get_if<ir::load>(&value->value_op())) {
+        if (const auto* symbol = std::get_if<variable>(&load->variant())) {
+          reserved_names_.insert(symbol->name());
+        }
       }
     }
     pending.insert(pending.end(), current->descendants().begin(), current->descendants().end());

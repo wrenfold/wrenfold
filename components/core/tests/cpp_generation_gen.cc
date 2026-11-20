@@ -82,6 +82,9 @@ int main() {
       generator, functions, [](scalar_expr a, scalar_expr b) { return where(a > b, a - b, b - a); },
       "temporary_name_collision_conditional", arg("v000"), arg("v009"));
   generate_func(
+      generator, functions, [](scalar_expr x) { return where(x > 0, x + scalar_expr{"v001"}, x); },
+      "temporary_name_collision_free_symbol", arg("x"));
+  generate_func(
       generator, functions,
       [](scalar_expr x, scalar_expr y) {
         return std::make_tuple(
