@@ -289,7 +289,7 @@ std::string cpp_code_generator::operator()(const ast::call_std_function& x) cons
                          make_view(x[0]));
     case std_math_function::signum:
       // TODO: Casts should be different, depending on type of first arg.
-      return fmt::format("(static_cast<Scalar>(0) < {arg}) - ({arg} < static_cast<Scalar>(0))",
+      return fmt::format("((static_cast<Scalar>(0) < {arg}) - ({arg} < static_cast<Scalar>(0)))",
                          fmt::arg("arg", make_view(x[0])));
     case std_math_function::floor:
       return fmt::format("static_cast<{}>(std::floor({}))",
