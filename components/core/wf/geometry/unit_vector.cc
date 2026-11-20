@@ -13,18 +13,22 @@ namespace wf {
 
 namespace {
 
-// Map a tangent displacement to a unit vector centered on the last basis axis.
-std::pair<matrix_expr, scalar_expr> sphere_exp(const matrix_expr& delta) {
+// Map a nonzero tangent displacement to a unit vector centered on the last basis axis.
+std::pair<matrix_expr, boolean_expr> sphere_exp(const matrix_expr& delta) {
   // exp_sphere(delta) = [sin(a)/a * delta; cos(a)], where a = ||delta||.
-  const scalar_expr angle = delta.norm();
-  const scalar_expr scale = where(angle > 0, sin(angle) / angle, 1);
+  const scalar_expr squared_angle = delta.squared_norm();
+  const boolean_expr nonzero = squared_angle > 0;
+  // retract() selects its first-order branch at zero. Keep this unused branch
+  // differentiable there too, since reverse-mode AD can propagate NaNs through a mask.
+  const scalar_expr angle = sqrt(where(nonzero, squared_angle, 1));
+  const scalar_expr scale = sin(angle) / angle;
   std::vector<scalar_expr> exp;
   exp.reserve(delta.rows() + 1);
   for (index_t i = 0; i < delta.rows(); ++i) {
     exp.push_back(delta[i] * scale);
   }
   exp.push_back(cos(angle));
-  return {matrix_expr::create(delta.rows() + 1, 1, std::move(exp)), angle};
+  return {matrix_expr::create(delta.rows() + 1, 1, std::move(exp)), nonzero};
 }
 
 // Map a unit vector centered on the last basis axis to tangent coordinates.
@@ -32,19 +36,23 @@ matrix_expr sphere_log(const matrix_expr& z) {
   // z = [v; w] where v has n-1 entries and w is the last entry. The tangent coordinates are
   // log_sphere([v; w]) = atan2(||v||, w) / ||v|| * v when ||v|| > 0.
   const index_t tangent_dim = z.rows() - 1;
-  const scalar_expr v_norm = z.get_block(0, 0, tangent_dim, 1).norm();
+  const scalar_expr v_squared_norm = z.get_block(0, 0, tangent_dim, 1).squared_norm();
+  const boolean_expr nonzero = v_squared_norm > 0;
+  const scalar_expr v_norm = sqrt(where(nonzero, v_squared_norm, 1));
   const scalar_expr w = z[tangent_dim];
-  const scalar_expr scale = where(v_norm > 0, atan2(v_norm, w) / v_norm, 1);
+  const scalar_expr scale = atan2(v_norm, w) / v_norm;
 
   // When ||v|| = 0, w < 0 is the antipode. Ceres puts pi on the last tangent
   // axis in that case. For w > 0, retain the first-order term v / w so that
   // differentiation at coincident vectors recovers the local-coordinate Jacobian.
+  // The fallback is unused away from the poles, where w can be zero at the equator.
+  const scalar_expr fallback_w = where(nonzero, 1, w);
   std::vector<scalar_expr> result;
   result.reserve(tangent_dim);
   for (index_t i = 0; i < tangent_dim; ++i) {
     const scalar_expr antipode = i == tangent_dim - 1 ? constants::pi : constants::zero;
-    const scalar_expr fallback = where(w < 0, antipode, z[i] / w);
-    result.push_back(where(v_norm > 0, scale * z[i], fallback));
+    const scalar_expr fallback = where(w < 0, antipode, z[i] / fallback_w);
+    result.push_back(where(nonzero, scale * z[i], fallback));
   }
   return matrix_expr::create(tangent_dim, 1, std::move(result));
 }
@@ -127,7 +135,7 @@ unit_vector unit_vector::retract(const matrix_expr& delta) const {
     throw dimension_error("UnitN tangent must be [{} x 1]. Received [{} x {}]", dimension() - 1,
                           delta.rows(), delta.cols());
   }
-  const auto [exp, angle] = sphere_exp(delta);
+  const auto [exp, nonzero] = sphere_exp(delta);
 
   // For a > 0, x plus delta = H_x @ exp_sphere(delta) * ||x||.
   // The paper assumes ||x|| = 1. Ceres preserves the input norm: H_x is orthogonal
@@ -137,7 +145,7 @@ unit_vector unit_vector::retract(const matrix_expr& delta) const {
   // Retain the first-order term at zero so symbolic differentiation agrees with
   // retract_derivative(), while a zero perturbation still returns x exactly.
   const matrix_expr first_order = value_ + retract_derivative() * delta;
-  return unit_vector{where(angle > 0, updated, first_order)};
+  return unit_vector{where(nonzero, updated, first_order)};
 }
 
 matrix_expr unit_vector::local_coordinates(const unit_vector& other) const {
