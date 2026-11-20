@@ -56,7 +56,7 @@ Scalar v01_1(const Scalar x) {
 }
 
 // Referenced as a free symbol in the generated conditional.
-constexpr double v001 = 10.0;
+constexpr double v001_1 = 10.0;
 
 #include "generated.h"
 
@@ -71,9 +71,9 @@ TEST(CppGenerationTest, TestSimpleMultiplyAdd) {
 TEST(CppGenerationTest, TestTemporaryNameCollisions) {
   EXPECT_EQ(5.0, gen::temporary_name_collision(2.0, 3.0));
   EXPECT_EQ(15.0, gen::temporary_name_collision_suffixed(1.0, 2.0, 4.0, 8.0));
-  EXPECT_EQ(15.0, gen::temporary_name_collision_external(99.0, 2.0, 3.0));
-  EXPECT_EQ(5.0, gen::temporary_name_collision_external_conditional(99.0, 2.0, 3.0));
-  EXPECT_EQ(15.0, gen::temporary_name_collision_external_conditional(99.0, 3.0, 2.0));
+  EXPECT_EQ(15.0, gen::temporary_name_collision_external(2.0, 3.0));
+  EXPECT_EQ(3.0, gen::temporary_name_collision_external_conditional(2.0, 3.0));
+  EXPECT_EQ(6.0, gen::temporary_name_collision_external_conditional(3.0, 2.0));
   EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(2.0, 3.0));
   EXPECT_EQ(1.0, gen::temporary_name_collision_conditional(3.0, 2.0));
   EXPECT_EQ(0.0, gen::temporary_name_collision_conditional(2.0, 2.0));

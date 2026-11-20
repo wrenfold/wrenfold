@@ -82,8 +82,9 @@ int main() {
       generator, functions, [](scalar_expr a, scalar_expr b) { return where(a > b, a - b, b - a); },
       "temporary_name_collision_conditional", arg("v000"), arg("v009"));
   generate_func(
-      generator, functions, [](scalar_expr x) { return where(x > 0, x + scalar_expr{"v001"}, x); },
-      "temporary_name_collision_free_symbol", arg("x"));
+      generator, functions,
+      [](scalar_expr x) { return where(x > 0, x + scalar_expr{"v001_1"}, x); },
+      "temporary_name_collision_free_symbol", arg("v001"));
   generate_func(
       generator, functions,
       [](scalar_expr x, scalar_expr y) {
@@ -96,16 +97,14 @@ int main() {
   const cpp_code_generator external_generator{cpp_matrix_type_behavior::generic_span};
   generate_func(
       external_generator, functions,
-      [](scalar_expr, scalar_expr x, scalar_expr y) {
-        return temporary_name_external::call(x + y) + x + y;
-      },
-      "temporary_name_collision_external", arg("v01"), arg("x"), arg("y"));
+      [](scalar_expr x, scalar_expr y) { return temporary_name_external::call(x + y) + x + y; },
+      "temporary_name_collision_external", arg("v01"), arg("y"));
   generate_func(
       external_generator, functions,
-      [](scalar_expr, scalar_expr x, scalar_expr y) {
-        return where(x > y, temporary_name_external::call(x + y) + x + y, x + y);
+      [](scalar_expr x, scalar_expr y) {
+        return where(x > y, temporary_name_external::call(x), y);
       },
-      "temporary_name_collision_external_conditional", arg("v01"), arg("x"), arg("y"));
+      "temporary_name_collision_external_conditional", arg("v01"), arg("y"));
   generate_func(
       generator, functions,
       [](symbolic::Point2d p) {
