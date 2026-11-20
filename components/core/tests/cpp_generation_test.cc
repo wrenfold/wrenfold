@@ -1,6 +1,8 @@
 // wrenfold symbolic code generator.
 // Copyright (c) 2024 Gareth Cross
 // For license information refer to accompanying LICENSE file.
+#include <limits>
+
 #include "wf_test_support/eigen_test_macros.h"
 #include "wf_test_support/numeric_testing.h"
 
@@ -169,6 +171,17 @@ TEST(CppGenerationTest, TestFloor) {
   EXPECT_EQ(3.0, gen::floor_test(3.14));
   EXPECT_EQ(-1.0, gen::floor_test(-0.01));
   EXPECT_EQ(-2.0, gen::floor_test(-1.25));
+  EXPECT_EQ(-2.0, gen::floor_test(-1.5));
+}
+
+TEST(CppGenerationTest, TestIntegerFloor) {
+  constexpr std::int64_t odd = (std::int64_t{1} << 53) + 1;
+  for (const auto x : {odd, -odd, std::numeric_limits<std::int64_t>::min(),
+                       std::numeric_limits<std::int64_t>::max()}) {
+    const auto result = gen::floor_integer<double>(x);
+    static_assert(std::is_same_v<decltype(result), const std::int64_t>);
+    EXPECT_EQ(x, result);
+  }
 }
 
 // Test that the generated functions call the STL equivalents.

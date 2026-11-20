@@ -158,6 +158,17 @@ pub fn floor_test<>(x: f64) -> f64
 
 #[inline]
 #[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, clippy::neg_multiply, unused_variables, unused_parens)]
+pub fn floor_integer<>(x: i64) -> i64
+{
+  // Operation counts:
+  // total: 0
+  
+  let v00: i64 = x;
+  v00
+}
+
+#[inline]
+#[allow(non_snake_case, clippy::unused_unit, clippy::collapsible_else_if, clippy::needless_late_init, clippy::neg_multiply, unused_variables, unused_parens)]
 pub fn cosh_test<>(x: f64) -> f64
 {
   // Operation counts:
