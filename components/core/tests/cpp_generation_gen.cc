@@ -78,6 +78,10 @@ int main() {
                                optional_output_arg("optional", p));
       },
       "forward_nested_custom_type", arg("p"));
+  generate_func(
+      generator, code, [](scalar_expr x) { return 7 * signum(x); }, "scaled_signum", arg("x"));
+  generate_func(
+      generator, code, [](scalar_expr x) { return -signum(x); }, "negated_signum", arg("x"));
   code = generator.apply_preamble(code, "gen");
 
   std::ofstream output{GENERATOR_OUTPUT_FILE, std::ios::binary | std::ios::out};

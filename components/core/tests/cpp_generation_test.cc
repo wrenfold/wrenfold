@@ -129,6 +129,16 @@ TEST(CppGenerationTest, TestExclusiveOr) {
   EXPECT_EQ(1.0, gen::exclusive_or(std::nextafter(0.0, -inf), std::nextafter(0.0, inf)));
 }
 
+TEST(CppGenerationTest, TestSignumPrecedence) {
+  EXPECT_EQ(-7.0, gen::scaled_signum(-3.0));
+  EXPECT_EQ(0.0, gen::scaled_signum(0.0));
+  EXPECT_EQ(7.0, gen::scaled_signum(3.0));
+
+  EXPECT_EQ(1.0, gen::negated_signum(-3.0));
+  EXPECT_EQ(0.0, gen::negated_signum(0.0));
+  EXPECT_EQ(-1.0, gen::negated_signum(3.0));
+}
+
 TEST(CppGenerationTest, TestSignum) {
   auto evaluator = create_evaluator(&signum_test);
 
