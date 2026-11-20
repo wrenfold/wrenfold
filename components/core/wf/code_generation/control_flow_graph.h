@@ -34,7 +34,7 @@ class control_flow_graph {
   explicit control_flow_graph(const function_description& description,
                               const std::optional<optimization_params>& params = std::nullopt);
 
-  // Consume `this` and convert to a control flow graph that contains jumps.
+  // Consume `this`, lower mixed numeric comparisons, and construct control flow.
   // This converts the graph from one with `cond` operations to one with multiple blocks and jump
   // operations.
   control_flow_graph convert_conditionals_to_control_flow(bool convert_ternaries = true) &&;
@@ -95,6 +95,9 @@ class control_flow_graph {
                                     static_cast<std::size_t>(func(ir::const_block_ptr{b.get()}));
                            });
   }
+
+  // Lower exact mixed comparisons to same-type operations for code generation.
+  void lower_mixed_comparisons();
 
   // Eliminate duplicate operations. Most are eliminated during the conversion from expressions
   // to the IR, but the conversion process can introduce a few new duplicates.

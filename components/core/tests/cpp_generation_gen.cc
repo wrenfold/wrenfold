@@ -66,6 +66,13 @@ int main() {
   std::string code = generate_test_expressions(generator);
   generate_func(
       generator, code,
+      [](ta::int_scalar_expr i, scalar_expr f) {
+        return ta::static_matrix<6, 1>{iverson(i == f), iverson(i < f), iverson(i <= f),
+                                       iverson(f == i), iverson(f < i), iverson(f <= i)};
+      },
+      "mixed_comparisons", arg("i"), arg("f"));
+  generate_func(
+      generator, code,
       [](symbolic::Point2d p) {
         return std::make_tuple(return_value(p), output_arg("out", p),
                                optional_output_arg("optional", p));

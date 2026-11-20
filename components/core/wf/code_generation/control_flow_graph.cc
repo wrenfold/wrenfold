@@ -207,9 +207,81 @@ void control_flow_graph::factorize_sums(const std::size_t num_passes) {
 #endif
 }
 
+void control_flow_graph::lower_mixed_comparisons() {
+  const auto block = first_block();
+  const auto& input = block->operations();
+  const auto is_mixed = [](ir::value_ptr v) {
+    return v->is_op<ir::compare>() && (*v)[0]->numeric_type() != (*v)[1]->numeric_type();
+  };
+  const auto first = std::find_if(input.begin(), input.end(), is_mixed);
+  if (first == input.end()) {
+    return;
+  }
+  std::vector<ir::value_ptr> output(input.begin(), first);
+  const auto emit = [&](auto op, numeric_primitive_type type, auto... args) {
+    return output.emplace_back(push_value(block, op, scalar_type(type), args...));
+  };
+  const auto subtract = [&](ir::value_ptr x, ir::value_ptr y) {
+    const auto type = x->numeric_type();
+    return emit(ir::add{}, type, x, emit(ir::neg{}, type, y));
+  };
+  constexpr auto fp = numeric_primitive_type::floating_point;
+  constexpr auto integral = numeric_primitive_type::integral;
+  const auto comparison_keys = [&](ir::value_ptr integer, ir::value_ptr floating) {
+    if (const auto* load = std::get_if<ir::load>(&integer->value_op());
+        load && load->is_type<integer_constant>()) {
+      // A symbolic integer literal can exceed the target's integer width. Peel off exact
+      // floating-point chunks, most significant first, without materializing a runtime integer.
+      const auto value = std::get<integer_constant>(load->variant()).value().value();
+      constexpr std::int64_t radix = std::int64_t{1} << 22;
+      const auto low = value % radix;
+      const auto middle = (value / radix % radix) * radix;
+      const auto high = value - low - middle;
+      const auto literal = [&](std::int64_t n) {
+        return emit(ir::load{float_constant{static_cast<double>(n)}}, fp);
+      };
+      if (high != 0) {
+        floating = subtract(floating, literal(high));
+      }
+      // Keep (f - high) grouped when both leading chunks are present.
+      if (middle != 0) {
+        return std::pair{subtract(literal(middle), floating), literal(-low)};
+      }
+      return std::pair{literal(low), floating};
+    }
+    // Compare R - f to R - i, where R is i rounded to the target floating type. Nearby
+    // floats subtract exactly; the next float beyond R is already past the rounding error.
+    const auto rounded = emit(ir::cast{fp}, fp, integer);
+    // R can be +2^63. Split it into two integral halves so both casts are in range,
+    // including on targets with 32-bit integers. For odd R the halves differ by one.
+    const auto one_half = emit(ir::load{float_constant{0.5}}, fp);
+    const auto half = emit(ir::cast{integral}, integral, emit(ir::mul{}, fp, rounded, one_half));
+    const auto rest =
+        emit(ir::cast{integral}, integral, subtract(rounded, emit(ir::cast{fp}, fp, half)));
+    // Form R - i as rest - (i - half) to avoid signed overflow.
+    const auto int_distance = emit(ir::cast{fp}, fp, subtract(rest, subtract(integer, half)));
+    return std::pair{subtract(rounded, floating), int_distance};
+  };
+  for (auto it = first; it != input.end(); ++it) {
+    const ir::value_ptr v = *it;
+    if (is_mixed(v)) {
+      const bool integer_on_left = (*v)[0]->numeric_type() == integral;
+      const auto [int_key, float_key] =
+          comparison_keys((*v)[integer_on_left ? 0 : 1], (*v)[integer_on_left ? 1 : 0]);
+      v->set_operation(ir::compare{v->as_op<ir::compare>().operation()}, v->type(),
+                       integer_on_left ? int_key : float_key,
+                       integer_on_left ? float_key : int_key);
+    }
+    output.push_back(v);
+  }
+  block->set_operations(std::move(output));
+  eliminate_duplicates();
+}
+
 control_flow_graph control_flow_graph::convert_conditionals_to_control_flow(
     const bool convert_ternaries) && {
   WF_FUNCTION_TRACE();
+  lower_mixed_comparisons();
   return ir_control_flow_converter{std::move(*this), convert_ternaries}.convert();
 }
 
