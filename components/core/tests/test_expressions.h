@@ -57,6 +57,8 @@ inline auto abs_test(scalar_expr x) { return abs(x); }
 // Test generation of call to floor.
 inline auto floor_test(scalar_expr x) { return floor(x); }
 
+inline auto floor_integer(ta::int_scalar_expr x) { return ta::int_scalar_expr{floor(x)}; }
+
 // Test generation of hyperbolic trig functions.
 inline auto cosh_test(scalar_expr x) { return cosh(x); }
 inline auto sinh_test(scalar_expr x) { return sinh(x); }

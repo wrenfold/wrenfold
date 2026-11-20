@@ -202,6 +202,12 @@ ir::value_ptr ir_form_visitor::operator()(const built_in_function_invocation& fu
   // Convert args to values:
   auto args = transform_map<absl::InlinedVector<ir::value_ptr, 4>>(func, *this);
 
+  // An integral value is already its floor. A floating-point round trip can lose low bits.
+  if (enum_value == std_math_function::floor &&
+      args.front()->numeric_type() == numeric_primitive_type::integral) {
+    return args.front();
+  }
+
   const numeric_primitive_type numeric_type = std_function_output_type(enum_value, args);
   return push_operation(ir::call_std_function{enum_value}, numeric_type, args);
 }

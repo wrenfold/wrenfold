@@ -21,6 +21,7 @@ std::string generate_test_expressions(Generator gen) {
   generate_func(gen, code, &signum_test, "signum_test", arg("x"));
   generate_func(gen, code, &abs_test, "abs_test", arg("x"));
   generate_func(gen, code, &floor_test, "floor_test", arg("x"));
+  generate_func(gen, code, &floor_integer, "floor_integer", arg("x"));
   generate_func(gen, code, &cosh_test, "cosh_test", arg("x"));
   generate_func(gen, code, &sinh_test, "sinh_test", arg("x"));
   generate_func(gen, code, &tanh_test, "tanh_test", arg("x"));
