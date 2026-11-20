@@ -115,4 +115,27 @@ TEST(CseVisitorTest, Test6) {
   ASSERT_IDENTICAL(f, apply_substitutions(output, replacements));
 }
 
+TEST(CseVisitorTest, DefaultVariableSkipsInputName) {
+  const auto [x, v0] = make_symbols("x", "v0");
+  const scalar_expr f = v0 + sin(x) + cos(sin(x));
+
+  const auto [output, replacements] = eliminate_subexpressions(f, nullptr, 2);
+  ASSERT_IDENTICAL(f, apply_substitutions(output, replacements));
+  ASSERT_EQ(1u, replacements.size());
+  ASSERT_IDENTICAL(make_var(1), std::get<0>(replacements[0]));
+}
+
+TEST(CseVisitorTest, DefaultVariablesSkipNamesInLaterMatrixEntries) {
+  const auto [x, v0] = make_symbols("x", "v0");
+  const scalar_expr v2{"v2", number_set::real_positive};
+  const scalar_expr shared = x + 1;
+  const matrix_expr input = make_vector(shared, cos(shared), cos(shared), v0, v2);
+
+  const auto [output, replacements] = eliminate_subexpressions(input, nullptr, 2);
+  ASSERT_IDENTICAL(input, apply_substitutions(output, replacements));
+  ASSERT_EQ(2u, replacements.size());
+  ASSERT_IDENTICAL(make_var(1), std::get<0>(replacements[0]));
+  ASSERT_IDENTICAL(make_var(3), std::get<0>(replacements[1]));
+}
+
 }  // namespace wf

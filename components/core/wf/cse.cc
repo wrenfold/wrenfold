@@ -4,6 +4,8 @@
 #include "wf/cse.h"
 
 #include <cstddef>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -20,6 +22,8 @@ namespace wf {
 class counter_visitor {
  public:
   counter_visitor() { counts_.reserve(10); }
+
+  void operator()(const variable& var) { variable_names_.insert(var.name()); }
 
   template <typename T>
   void operator()(const T& concrete) {
@@ -39,6 +43,7 @@ class counter_visitor {
 
   // Access counts.
   constexpr const auto& counts() const noexcept { return counts_; }
+  constexpr const auto& variable_names() const noexcept { return variable_names_; }
 
  private:
   template <typename Key>
@@ -49,6 +54,7 @@ class counter_visitor {
       counts_;
 
   expression_map_tuple<visited_set_type> visited_;
+  std::unordered_set<std::string_view> variable_names_;
 };
 
 cse_visitor::cse_visitor(const counter_visitor& counter, variable_function make_variable,
@@ -57,7 +63,13 @@ cse_visitor::cse_visitor(const counter_visitor& counter, variable_function make_
       make_variable_(std::move(make_variable)),
       min_occurrences_(min_occurrences) {
   if (!make_variable_) {
-    make_variable_ = [](std::size_t index) { return scalar_expr{fmt::format("v{}", index)}; };
+    make_variable_ = [&counter, next_index = std::size_t{0}](std::size_t) mutable {
+      std::string name;
+      do {
+        name = fmt::format("v{}", next_index++);
+      } while (counter.variable_names().count(name));
+      return scalar_expr{name};
+    };
   }
   replacements_.reserve(10);
 }
