@@ -4,6 +4,7 @@
 #include <Eigen/Geometry>
 
 #include "wf/collect.h"
+#include "wf/constants.h"
 #include "wf/expressions/multiplication.h"
 #include "wf/expressions/numeric_expressions.h"
 #include "wf/functions.h"
@@ -844,6 +845,14 @@ TEST(QuaternionTest, TestInverseJacobianOfSO3) {
       }
     }
   }
+}
+
+TEST(QuaternionTest, TestInverseJacobianOfSO3AtHalfTurn) {
+  const auto w = make_vector(constants::pi, 0, 0);
+  const auto J = left_jacobian_of_so3(w, 0);
+  const auto J_inv = inverse_left_jacobian_of_so3(w, 0);
+  ASSERT_IDENTICAL(make_identity(3), J * J_inv);
+  ASSERT_IDENTICAL(make_identity(3), J_inv * J);
 }
 
 }  // namespace wf
