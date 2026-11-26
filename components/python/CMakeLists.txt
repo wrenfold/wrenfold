@@ -12,5 +12,6 @@ add_library(
   wrenfold/geometry.py
   wrenfold/sym.py
   wrenfold/sympy_conversion.py
+  wrenfold/testing.py
   wrenfold/type_annotations.py
   wrenfold/type_info.py)

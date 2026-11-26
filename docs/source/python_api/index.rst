@@ -11,6 +11,7 @@ Python API Documentation
    type_annotations
    external_functions
    sympy_conversion
+   testing
    type_info
    ast
    enumerations

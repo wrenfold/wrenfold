@@ -90,6 +90,7 @@ if(${SPHINX_FOUND})
       source/python_api/index.rst
       source/python_api/sym.rst
       source/python_api/sympy_conversion.rst
+      source/python_api/testing.rst
       source/python_api/type_annotations.rst
       source/python_api/type_info.rst
       source/quick_start_files/main.cpp
@@ -100,6 +101,7 @@ if(${SPHINX_FOUND})
       source/quick_start_files/rosenbrock.h
       source/quick_start.rst
       source/reference/advanced_derivatives.rst
+      "${CMAKE_SOURCE_DIR}/examples/check_camera_jacobian.py"
       source/reference/conditionals.rst
       source/reference/custom_types_script.py
       source/reference/custom_types.rst
