@@ -80,3 +80,30 @@ weight itself contributing to the Jacobian. To that end, wrenfold includes the
     # Weighted residual:
     residual = sym.stop_derivative(w) * f_x
     print(residual.diff(x)) # prints: Derivative(f(x), x)*StopDerivative(c**2/(c**2 + f(x)**2))
+
+Checking a generated Jacobian
+-----------------------------
+
+Use :func:`wrenfold.testing.check_jacobian` in a Python test to compare an analytic Jacobian
+with independent finite differences at a sample point. For example, to check a scalar residual
+with two inputs:
+
+.. code-block:: python
+
+    from wrenfold.testing import check_jacobian
+
+    check_jacobian(
+        lambda x: x[0] * x[1],
+        lambda x: [[x[1], x[0]]],
+        at=[2.0, 3.0],
+    )
+
+For a pose, supply the update used by your solver. The pinhole camera below transforms a world
+point into camera coordinates and returns a two-dimensional pixel. Its Jacobian has six columns:
+three for rotation and three for translation. The check perturbs a rotated, translated pose
+on the right. Reversing the multiplication order in the retraction changes the coordinate frame
+and causes the check to fail.
+
+.. literalinclude:: ../../../examples/check_camera_jacobian.py
+    :language: python
+    :start-at: import numpy
